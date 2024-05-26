@@ -150,6 +150,9 @@ size_t AClient_URL::Write_Callback(void *contents, size_t size, size_t nmemb, vo
 		{
 			curr_char = user_input[1][invalid_char_len];
 
+			if (curr_char == L'«')  // !!! Can update to something
+				user_input[1][invalid_char_len] = L' ';
+
 			if (curr_char <= L'9' && curr_char >= L'0')
 				user_input[1][invalid_char_len] = L' ';
 		}

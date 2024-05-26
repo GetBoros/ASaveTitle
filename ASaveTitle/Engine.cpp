@@ -155,6 +155,9 @@ size_t AClient_URL::Write_Callback(void *contents, size_t size, size_t nmemb, vo
 
 			if (curr_char <= L'9' && curr_char >= L'0')
 				user_input[1][invalid_char_len] = L' ';
+
+			if (invalid_char_len > 1 && curr_char < L'а' && curr_char >= L'А')
+				user_input[1][invalid_char_len] = curr_char += L' ';
 		}
 
 		// 2.3. Get Numbers to title

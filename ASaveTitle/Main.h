@@ -2,6 +2,14 @@
 
 #include "Engine.h"
 
+enum class EPrograms
+{
+	Invalid = -1,
+	ASaver = 0,
+	ABook_Reader,
+	End
+};
+
 // AsMain
 class AsMain
 {
@@ -22,14 +30,18 @@ private:
 	bool Init_Instance();
 	ATOM Register_Class();
 	
-	WCHAR SZ_Title[AsConfig::Max_Loadstring];
-	WCHAR SZ_Window[AsConfig::Max_Loadstring];
+	// TEMP
+	RECT *Rect_Programs;
+
+	static WCHAR SZ_Title[AsConfig::Max_Loadstring];
+	static WCHAR SZ_Window[AsConfig::Max_Loadstring];
 	AsEngine Engine;
 	HINSTANCE HInstance;
 
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
-	static bool Temp;
+	static bool Is_Hwnd_Created;
+	static EPrograms Programs;
 };
 //------------------------------------------------------------------------------------------------------------

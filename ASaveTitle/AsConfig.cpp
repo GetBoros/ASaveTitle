@@ -8,6 +8,8 @@ const wchar_t AsConfig::Image_Folder[] = L"Pictures/";
 const wchar_t AsConfig::Main_Image_Folder[] = L"Main_Image.png";
 const wchar_t *AsConfig::Season[] = { L"I", L"II", L"III", L"IV", L"V", L"VI", L"VII", L"VIII", L"IX", L"X" };
 const wchar_t *AsConfig::Invalid_Chars[] = { L":", L"¸", L"¨" };
+const wchar_t *AsConfig::Text_Program_Names[] = {L"Saver", L"Book Reader", L"Invalid"};
+
 const wchar_t AsConfig::Invalid_Chars_Valid[] = { L',', L'å', L'å' };
 
 const int AsConfig::Settings_Size = sizeof(AsConfig::Settings) / sizeof(AsConfig::Settings[0]);

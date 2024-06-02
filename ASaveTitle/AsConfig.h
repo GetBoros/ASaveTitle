@@ -29,7 +29,7 @@ public:
 	static const int Invalid_Chars_Len = 3;
 	static const wchar_t *Invalid_Chars[Invalid_Chars_Len];
 	static const wchar_t Invalid_Chars_Valid[];
-
+	static const wchar_t *Text_Program_Names[];
 	static const char *Settings[];
 	static const int Settings_Size;
 

@@ -14,14 +14,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_
 
 
 // AsMain
-bool AsMain::Temp = false;
+bool AsMain::Is_Hwnd_Created = false;
+EPrograms AsMain::Programs = EPrograms::ASaver;
+WCHAR AsMain::SZ_Title[] = L"ASaver";
+WCHAR AsMain::SZ_Window[] = L"Book_Reader";
+//------------------------------------------------------------------------------------------------------------
 AsMain::AsMain(HINSTANCE handle_instance)
 	:HInstance(handle_instance)
 {
 	AsConfig::Load_From_Config();  // !!! Load background and else from config
 
-	LoadStringW(HInstance, IDS_APP_TITLE, SZ_Title, AsConfig::Max_Loadstring);  // from IDS_APP_TITLE get string and set to SZ_TITLE if < MAX_LOADSTRING
 	LoadStringW(HInstance, IDC_ASAVETITLE, SZ_Window, AsConfig::Max_Loadstring);
+	LoadStringW(HInstance, IDS_APP_TITLE, SZ_Title, AsConfig::Max_Loadstring);  // from IDS_APP_TITLE get string and set to SZ_TITLE if < MAX_LOADSTRING
 	Register_Class();
 	if (!Init_Instance() )
 		return;
@@ -66,12 +70,11 @@ bool AsMain::Init_Instance()
 	window_size.right = screenWidth;
 	window_size.bottom = screenHeight - 20;
 
-	hWnd = CreateWindowW(SZ_Window, SZ_Title, WS_POPUP | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, window_size.left, window_size.top, window_size.right, window_size.bottom, 0, 0, HInstance, 0);
+	hWnd = CreateWindowExW( 0, SZ_Window, 0, WS_OVERLAPPEDWINDOW, window_size.left, window_size.top, window_size.right - window_size.left, window_size.bottom - window_size.top, 0, 0, HInstance, 0);
 	if (!hWnd)
 		return false;
 
-	AdjustWindowRect(&AsConfig::Window_Rect, WS_OVERLAPPEDWINDOW, TRUE);
-	ShowWindow(hWnd, SW_NORMAL);
+	ShowWindow(hWnd, SW_MAXIMIZE);
 	UpdateWindow(hWnd);
 
 	return true;
@@ -99,17 +102,87 @@ ATOM AsMain::Register_Class()
 //------------------------------------------------------------------------------------------------------------
 LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+
 	switch (message)
 	{
 	case WM_CREATE:
+		SetMenu(hWnd, 0);  // !!!
 		break;
 
 	case WM_PAINT:
 	{
-		if (AsMain::Main_Window->Temp)  // Need to create hWnd
+		int i;
+
+		if (AsMain::Main_Window == 0)
+			return !InvalidateRect(hWnd, 0, FALSE);  // if Main Window don`t created
+
+		switch (Programs)
+		{
+		case EPrograms::Invalid:
+		{
+			const int round = 75;
+			const int x = 100;
+			const int width = 450;
+			const int height = 750;
+			const RECT rect_programs{ x, x, width, height };
+			RECT rect_intersecte{};
+			PAINTSTRUCT paint_struct;
+			HDC hdc;
+
+			// if intersect load program
+			if (AsMain::Main_Window != 0)
+			{
+				const int cord_mouse_x = AsMain::Main_Window->Engine.LM_Cord_X;
+				const RECT rect_mouse{ cord_mouse_x - 1, cord_mouse_x - 1, cord_mouse_x + 1, cord_mouse_x + 1 };
+				rect_intersecte = rect_programs;
+
+				for (i = 0; i < (int)EPrograms::End; i++)
+				{
+					const int width_offset = i * width;
+					
+					rect_intersecte.left += width_offset;
+					rect_intersecte.right += width_offset;
+
+					if (IntersectRect(&rect_intersecte, &rect_intersecte, &rect_mouse) )
+					{
+						Programs = (EPrograms)i;
+						InvalidateRect(hWnd, 0, TRUE);
+						return 0;
+					}
+				}
+			}
+
+			// Draw Main Menu
+			hdc = BeginPaint(hWnd, &paint_struct);
+			
+			for (i = 0; i < (int)EPrograms::End; i++)
+			{
+				RoundRect(hdc, rect_programs.left + (i * width), rect_programs.top, rect_programs.right + (i * width), rect_programs.bottom, round, round);
+				TextOutW(hdc, rect_programs.left + (i * width) + (width / 3), rect_programs.top + 70, AsConfig::Text_Program_Names[i], (int)wcslen(AsConfig::Text_Program_Names[i]) );
+			}
+
+			EndPaint(hWnd, &paint_struct);
+		}
+			break;
+
+
+		case EPrograms::ASaver:
 			AsMain::Main_Window->Engine.Draw_Frame(hWnd);
-		else
-			AsMain::Main_Window->Temp = true;
+			break;
+
+
+		case EPrograms::ABook_Reader:
+			AsMain::Main_Window->Engine.Draw_Frame_Book_Reader(hWnd);
+			break;
+
+
+		case EPrograms::End:
+			break;
+
+
+		default:
+			break;
+		}
 	}
 	break;
 
@@ -131,12 +204,14 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 		}
-		AsMain::Main_Window->Engine.UI_Builder->Set_User_Input(text);  // if press Enter(true) Redraw_Border || it`s for sort in future, but if don`t need we can just draw from next line
+		if (AsMain::Main_Window->Engine.UI_Builder != 0)
+			AsMain::Main_Window->Engine.UI_Builder->Set_User_Input(text);  // if press Enter(true) Redraw_Border || it`s for sort in future, but if don`t need we can just draw from next line
 	}
 	break;
 
 
 	case WM_KEYDOWN:
+	{
 		switch (wParam)
 		{
 
@@ -155,7 +230,8 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		default:
 			break;
 		}
-		break;
+	}
+	break;
 
 
 	case WM_LBUTTONDOWN:
@@ -208,7 +284,6 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			DestroyWindow(hWnd);
 			break;
 
-
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
@@ -220,6 +295,18 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PostQuitMessage(0);
 		break;
 
+
+	case WM_SIZE:
+	{
+		if (wParam == SC_MINIMIZE)
+			ShowWindow(hWnd, SW_MINIMIZE);
+		else if (wParam == SW_RESTORE)
+			ShowWindow(hWnd, SW_RESTORE);
+		else if (wParam == SC_MAXIMIZE)
+			ShowWindow(hWnd, SC_MAXIMIZE);
+
+	}
+		break;
 
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);

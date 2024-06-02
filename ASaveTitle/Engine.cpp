@@ -13,6 +13,12 @@ AClient_URL::~AClient_URL()
 //------------------------------------------------------------------------------------------------------------
 AClient_URL::AClient_URL(wchar_t *user_input)
 {// Setup
+
+	Handle_Saver_URL(user_input);
+}
+//------------------------------------------------------------------------------------------------------------
+void AClient_URL::Handle_Saver_URL(wchar_t *user_input)
+{
 	char *url;
 	int size;
 	wchar_t **url_pair;
@@ -69,6 +75,7 @@ AClient_URL::AClient_URL(wchar_t *user_input)
 	delete url_pair[0];
 	delete url_pair[1];
 	delete[] url_pair;
+
 }
 //------------------------------------------------------------------------------------------------------------
 size_t AClient_URL::Write_Callback(void *contents, size_t size, size_t nmemb, void *userp)
@@ -566,29 +573,29 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 				User_Input_Reset();
 				return;
 			}
-			else if (OpenClipboard(0))
+			else if (OpenClipboard(0) )
 			{
-				HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+				HANDLE handle_data = GetClipboardData(CF_UNICODETEXT);
 
-				if (hData != 0)
+				if (handle_data != 0)
 				{
-					WCHAR* psz_text = static_cast<WCHAR*>(GlobalLock(hData));  // Text from clipboard
+					WCHAR *psz_text = static_cast<WCHAR*>(GlobalLock(handle_data) );  // Text from clipboard
 
-					int temp;
-					int temp_r;
+					int clipboard_length;
+					int index;
 
-					temp_r = 0;
+					index = 0;
 					if (psz_text != 0)
 					{
-						temp = (int)wcslen(psz_text);
-						while (psz_text[temp_r] != '\0')
+						clipboard_length = (int)wcslen(psz_text);
+						while (psz_text[index] != '\0')
 						{
-							Set_User_Input(psz_text[temp_r]);
-							temp_r++;
+							Set_User_Input(psz_text[index]);
+							index++;
 						}
 					}
 
-					GlobalUnlock(hData);
+					GlobalUnlock(handle_data);
 				}
 
 				CloseClipboard();
@@ -1572,6 +1579,61 @@ void AsUI_Builder::Save_All_To_Data(const EActive_Menu& menu)
 
 
 
+
+// AsUI_Book_Reader
+AsUI_Book_Reader::AsUI_Book_Reader(HDC hdc)
+ : Ptr_Hdc(hdc)
+{
+
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Book_Reader::Handle_Input(EKey_Type &key_type)
+{
+	switch (key_type)
+	{
+	case EKT_None:
+		break;
+
+
+	case EKT_Draw_Main_Menu:
+	{
+		wchar_t temp_01[] = L"Welcome to the book reader, choose your option";
+
+		TextOutW(Ptr_Hdc, 15, 15, temp_01, (int)wcslen(temp_01) );
+	}
+	break;
+
+
+	case EKT_Enter:
+		break;
+
+
+	case EKT_Space:
+		break;
+
+
+	case EKT_LM_Down:
+		Rectangle(Ptr_Hdc, 66, 66, 99, 99);
+		break;
+
+
+	case EKT_RM_Down:
+		break;
+
+
+	case EKT_Redraw_User_Input:
+		break;
+
+
+	default:
+		break;
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
 // AsEngine
 /*HHOOK AsEngine::Global_Hook = SetWindowsHookExW(WH_KEYBOARD_LL, &AsEngine::KeyboardProc, 0, 0);  // TEMP HOOK*/
 //------------------------------------------------------------------------------------------------------------
@@ -1593,11 +1655,28 @@ void AsEngine::Draw_Frame(HWND hwnd)
 	Ptr_Hdc = BeginPaint(Ptr_Hwnd, &Paint_Struct);
 
 	if (UI_Builder == 0)
+	{
 		UI_Builder = new AsUI_Builder(Ptr_Hdc);
+		Key_Type = EKey_Type::EKT_Draw_Main_Menu;
+	}
 	else
 		UI_Builder->Ptr_Hdc = Ptr_Hdc;
 
 	Handle_Input();
+	EndPaint(Ptr_Hwnd, &Paint_Struct);
+}
+//------------------------------------------------------------------------------------------------------------
+void AsEngine::Draw_Frame_Book_Reader(HWND hwnd)
+{
+	Ptr_Hwnd = hwnd;
+	Ptr_Hdc = BeginPaint(Ptr_Hwnd, &Paint_Struct);
+
+	if (UI_Book_Reader == 0)
+		UI_Book_Reader = new AsUI_Book_Reader(Ptr_Hdc);
+	else
+		UI_Book_Reader->Ptr_Hdc = Ptr_Hdc;
+
+	UI_Book_Reader->Handle_Input(Key_Type);
 	EndPaint(Ptr_Hwnd, &Paint_Struct);
 }
 //------------------------------------------------------------------------------------------------------------

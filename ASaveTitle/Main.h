@@ -2,6 +2,7 @@
 
 #include "Engine.h"
 
+// EPrograms
 enum class EPrograms
 {
 	Invalid = -1,
@@ -9,6 +10,21 @@ enum class EPrograms
 	ABook_Reader,
 	End
 };
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
+// AsDictionary
+class AsDictionary
+{
+public:
+	void Emplace_Word(const char *word_longest);
+	void Dictionary_Convert_Test(const char *word);
+
+	std::map<unsigned long long, unsigned long long **> Dictionary_Map;
+};
+//------------------------------------------------------------------------------------------------------------
 
 // AsMain
 class AsMain

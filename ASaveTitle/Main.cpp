@@ -2,11 +2,133 @@
 
 AsMain *AsMain::Main_Window = 0;
 
+// AsDictionary
+void AsDictionary::Emplace_Word(const char *word_longest)
+{
+	Dictionary_Convert_Test(word_longest);
+}
+//------------------------------------------------------------------------------------------------------------
+void AsDictionary::Dictionary_Convert_Test(const char *word)
+{
+	bool is_nine = false;
+	int ptr = 0, str = 0, counter_write = 0;
+	int user_input_counter = 1;
+	unsigned long long numbers = 0;
+	unsigned long long **numbers_array;
+
+	int tempest = (int)(strlen(word) ) / 8;
+	numbers_array = new unsigned long long *[(int)tempest];  // add new ptr to point on other points
+	std::ofstream outfile("Map.bin", std::ios::out | std::ios::binary);
+
+	if (!outfile)
+		return;
+
+	while (user_input_counter != 0)
+	{
+		while (word[str] != '\0')  // Пока не достигнем конца обрабативаем строку
+		{
+			wchar_t ch;
+			int ch_int;
+
+			ch = word[str];
+			ch_int = (int)ch;  // 1105
+
+			if (counter_write % 9 == 0 && counter_write != 0)  // Заходим каждый 9 раз
+			{
+				if (counter_write == 9)
+					Dictionary_Map.emplace(numbers, numbers_array);
+
+				outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
+
+				if (ptr < tempest)
+				{
+					numbers_array[ptr] = new unsigned long long(numbers);
+					ptr++;
+
+				}
+
+				numbers = 0;
+			}
+
+			if (numbers == 0)
+				numbers = ch_int;
+			else
+				numbers = numbers * 100 + ch_int;  // 100 - смещение на 2 числа
+
+			counter_write++;
+			str++;
+		}
+
+		user_input_counter--;
+		str = 0;  // переходим в начало строки
+		is_nine = counter_write % 9 != 0;
+
+	}
+
+	outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
+
+	if (ptr < tempest)
+		numbers_array[ptr] = new unsigned long long(numbers);
+
+	ptr = 0;
+
+
+	if (!outfile)
+		return;
+
+	outfile.close();
+
+	bool is_add_to_user_array = false;
+	int how_much_g;
+	int block_sum;
+	unsigned long long *block_array;
+	unsigned long long number;
+
+	number = 0;
+
+	std::ifstream infile("Map.bin", std::ios::binary);  // Откриваем файл по названию
+	if (!infile)
+		return;
+
+	infile.seekg(0, std::ios::end);  // Вычисляем количество чисел в файле тем самим переходя в конец файла
+	how_much_g = (int)infile.tellg();
+
+	block_sum = how_much_g / sizeof(unsigned long long);  // (long long) 8 / size = how manny in unsigned long long data
+
+	infile.seekg(0, std::ios::beg);  // Переходим в начало файла
+	block_array = new unsigned long long[block_sum] {};  // Выделяем память для чтения чисел из файла
+	infile.read(reinterpret_cast<char*>(block_array), how_much_g);  // Читаем и записиваем числа из файла в массив!
+
+	for (size_t i = 0; i < block_sum; i++)
+		number = block_array[i];
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+//[[gnu::always_inline]] [[gnu::hot]] [[gnu::const]] [[nodiscard]] inline int f();
+//struct S {
+//	int member;
+//} obj, *pObj(&obj);
+
+int function_for_pointer(double xx)  // (*pointer_function)(double) pointer_function = function_for_pointer
+{
+	return static_cast<int>(xx);
+}
+
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	AsMain::Main_Window = AsMain::Get_Instance(hinstance);
-	return AsMain::Main_Window->Get_WParam();
+	const char word_longest[] = "PNEUMONOULTRAMICROSCOPICSILICOVOLCANOCONIOSIS";  // longest eng word
+
+	AsDictionary dictionary;  // Load Dictionary
+	dictionary.Emplace_Word(word_longest);
+	return 0;
+
+	 //TEMP END
+	//AsMain::Main_Window = AsMain::Get_Instance(hinstance);
+	//return AsMain::Main_Window->Get_WParam();
+
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -297,16 +419,11 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 	case WM_SIZE:
-	{
-		if (wParam == SC_MINIMIZE)
-			ShowWindow(hWnd, SW_MINIMIZE);
-		else if (wParam == SW_RESTORE)
-			ShowWindow(hWnd, SW_RESTORE);
-		else if (wParam == SC_MAXIMIZE)
-			ShowWindow(hWnd, SC_MAXIMIZE);
-
-	}
-		break;
+		if (wParam == SIZE_MAXIMIZED)
+			if (AsMain::Main_Window != 0)
+				AsMain::Main_Window->Engine.Is_After_Maximazied = false;
+			
+	break;
 
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);

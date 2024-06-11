@@ -81,13 +81,14 @@ void AClient_URL::Handle_Saver_URL(wchar_t *user_input)
 size_t AClient_URL::Write_Callback(void *contents, size_t size, size_t nmemb, void *userp)
 {// Get a part of bytes we can handle(write to file)
 	bool is_image;
-	int wideStringLength;
-	size_t total_size;
 	const wchar_t *pattern_img = L"image_src";
 	const wchar_t *pattern_htt = L"https";
 	const wchar_t *pattern_ttl = L"<h1>&laquo;";  // !!! if ANIMEVOST || og:title TEMP
 	const wchar_t *pattern_num = L": [";  // !!! if ANIMEVOST || [1- TEMP END
 	wchar_t **user_input = static_cast<wchar_t**>(userp);
+	int wideStringLength;
+	size_t total_size;
+	unsigned long long ll_ = 17999999999999999999ULL;
 
 	is_image = false;
 	total_size = size * nmemb;
@@ -303,7 +304,10 @@ void AsUI_Builder::Draw_Sub_Menu(const EActive_Menu &active_menu)
 	// 1.3. Data Output to submenu
 	Input_Button_Rect = Add_Button(border_rect, Sub_Menu_Title);
 
-	switch (Active_Menu = active_menu)
+	if (active_menu != EActive_Menu::EAM_Main)
+		Active_Menu = active_menu;
+
+	switch (Active_Menu)
 	{
 	case EAM_Watching:
 		Draw_User_Map(border_rect, User_Array_Map);
@@ -323,8 +327,6 @@ void AsUI_Builder::Draw_Sub_Menu(const EActive_Menu &active_menu)
 	case EAM_Wishlist:
 		Draw_User_Map(border_rect, User_Wishlist_Map);
 		break;
-
-
 
 
 	case EAM_Exit:
@@ -1212,7 +1214,7 @@ void AsUI_Builder::User_Input_Load(std::map<std::wstring, SUser_Input_Data> &use
 
 	infile.seekg(0, std::ios::beg);  // Переходим в начало файла
 	block_array = new unsigned long long[block_sum];  // Выделяем память для чтения чисел из файла
-	infile.read(reinterpret_cast<char*>(block_array), how_much_g);  // // Читаем и записиваем числа из файла в массив!
+	infile.read(reinterpret_cast<char*>(block_array), how_much_g);  // Читаем и записиваем числа из файла в массив!
 
 	while (ptr < block_sum)
 	{
@@ -1644,7 +1646,7 @@ AsEngine::~AsEngine()
 }
 //------------------------------------------------------------------------------------------------------------
 AsEngine::AsEngine()
- : Key_Type(EKey_Type::EKT_Draw_Main_Menu), Tools()
+ : Is_After_Maximazied(true), Key_Type(EKey_Type::EKT_Draw_Main_Menu), Tools()
 {
 	Set_Current_Data();
 }
@@ -1661,6 +1663,14 @@ void AsEngine::Draw_Frame(HWND hwnd)
 	}
 	else
 		UI_Builder->Ptr_Hdc = Ptr_Hdc;
+
+	if (!Is_After_Maximazied)
+	{
+		Is_After_Maximazied = !Is_After_Maximazied;
+		UI_Builder->Init();  // draw after maximazed window
+		UI_Builder->Draw_Sub_Menu();
+		return;
+	}
 
 	Handle_Input();
 	EndPaint(Ptr_Hwnd, &Paint_Struct);

@@ -16,6 +16,7 @@
 #include "chrono"  // THREADS || TIME SLEEP
 #include "WinSock2.h"  // NET
 #include "curl/curl.h"  // NET || BROWSE
+#include "array"
 
 // TEMP
 /*

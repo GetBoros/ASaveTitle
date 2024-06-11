@@ -74,7 +74,7 @@ public:
 	AsUI_Builder(HDC hdc);
 
 	void Init();  // Build Main Menu
-	void Draw_Sub_Menu(const EActive_Menu &active_menu);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
+	void Draw_Sub_Menu(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
 	void Redraw_Button_Advence(const EActive_Button &active_button);
 	void Redraw_Input_Button();  // Show user_input in sub menu
 	void User_Input_Adjust(const bool is_increment);  // Change active title num
@@ -87,6 +87,7 @@ public:
 	void Set_Sub_Menu_Curr_Page(const int &set_page_to);  // !!! Переделать
 	bool Set_User_Input(const wchar_t &text);
 
+	EActive_Menu Active_Menu;
 	HDC Ptr_Hdc;
 
 private:
@@ -124,7 +125,6 @@ private:
 	const int Sub_Menu_Max_Line = 31;  // Нужен алгоритм что бы понять сколько влезет в пользувательский экран, или настроить через config
 	const int User_Array_Max_Size = 50;  // нужно будет выгрузить из конфига
 
-	EActive_Menu Active_Menu;
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
 	RECT *Rect_Menu_List;  // main menu buttons cords here when they`r created
 	RECT *User_Input_Rect;  // user_inputs cords
@@ -174,6 +174,7 @@ public:
 	void Get_Clipboard_From_Else();
 	int On_Timer();
 
+	bool Is_After_Maximazied;
 	int LM_Cord_X = 0;
 	int LM_Cord_Y = 0;
 	EKey_Type Key_Type;
@@ -186,7 +187,6 @@ private:
 	void Mouse_Handler_RM();
 	void Set_Current_Data();
 	int Connect_To_Server();  // Send to server ULL; change IP ADDRESS of serv || NEED TURN ON SERVER prog
-
 
 	AsTools Tools;  // to see tacts place f8 destryctor
 	HWND Ptr_Hwnd;
@@ -723,6 +723,12 @@ V	- fixed bugs with L'<<' now work good
 		- Будем монитроить и фиксить
 
 	- Добавить возможность выбора с какой программы стартувать
+*/
+// TASKS --- 11.06.2024 ---  --- curr ---
+/*
+
+
+
 */
 // TASKS --- 1.06.2024 ---  --- curr ---
 /*

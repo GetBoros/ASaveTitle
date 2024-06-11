@@ -21,6 +21,8 @@ public:
 
 	static void Load_From_Config();
 
+	static const char Dictionary_Main_Folder[];
+
 	static const wchar_t Seasons[];
 	static const wchar_t Image_Folder[];
 	static const wchar_t Main_Image_Folder[];
@@ -42,7 +44,10 @@ public:
 	static constexpr int Main_Image_Width = 424;
 	static constexpr int Main_Image_Height = 818;
 	static constexpr int User_Input_Buffer = Window_Width / Ch_W;
-
+	static const unsigned long long LL_Max= 9223372036854775807LL;  // 9 22 33 72 03 68 54 77 58 07 LL || 8
+	static const unsigned long long ULL_Max = 18446744073709551615ULL;  // 18 [44 67 44] [07 37 09] [55 16 15] ULL || 9
+	static const unsigned long long ULL_Length = 1000000000000000000ULL;  // 18 [44 67 44] [07 37 09] [55 16 15] ULL || 9
+	
 	
 	static const COLORREF Color_White;
 	static const COLORREF Color_Green;

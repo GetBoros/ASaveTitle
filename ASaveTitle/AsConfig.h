@@ -9,6 +9,17 @@ enum class EConfig_Params : int
 	ECP_Something_Else
 };
 
+enum class EDictionary_Ñhar : int
+{
+	EDC_None = -1,
+	EDC_A = 65,
+
+	EDC_P = 80,
+
+	EDC_Z = 90,
+	EDC_End = 99
+};
+
 
 
 

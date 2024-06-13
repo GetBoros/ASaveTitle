@@ -5,7 +5,12 @@ bool AsTools::Is_Button_Pressed = false;
 AsTools::~AsTools()
 {
 	end_tick = __rdtsc();
-	delta_tick = end_tick - start_tick;  //112 197 229, 120 479 993, v7bs - 2 500 999 564 || 5 863 272 714 | 2 393 526 266
+	delta_tick = end_tick - start_tick;  // 194176 170824 192866
+
+	if (delta_tick > 4086646)
+		int yy = 0;
+	else if (delta_tick < 4086646 / 2)
+		int yy = 1;
 }
 //------------------------------------------------------------------------------------------------------------
 AsTools::AsTools()

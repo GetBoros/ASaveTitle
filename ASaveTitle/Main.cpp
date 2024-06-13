@@ -2,105 +2,156 @@
 
 AsMain *AsMain::Main_Window = 0;
 
-// AsDictionary
-void AsDictionary::Emplace_Word(const char *word_longest)
+// SWord
+SWord::SWord(unsigned long long* word_begin, size_t word_end)
+	: Word_Begin(word_begin), Word_End(word_end)
 {
-	Dictionary_Convert_Test(word_longest);
 }
 //------------------------------------------------------------------------------------------------------------
-void AsDictionary::Dictionary_Convert_Test(const char *word)
+
+
+
+
+// AsDictionary
+AsDictionary::~AsDictionary()
 {
-	bool is_nine = false;
-	int ptr = 0, str = 0, counter_write = 0;
-	int user_input_counter = 1;
-	unsigned long long numbers = 0;
-	unsigned long long **numbers_array;
+	// TEST
+	/*
+	int qwert;
+	unsigned long long check;
 
-	int tempest = (int)(strlen(word) ) / 8;
-	numbers_array = new unsigned long long *[(int)tempest];  // add new ptr to point on other points
-	std::ofstream outfile("Map.bin", std::ios::out | std::ios::binary);
-
-	if (!outfile)
-		return;
-
-	while (user_input_counter != 0)
+	for (auto& it : Dictionary_Map)
 	{
-		while (word[str] != '\0')  // Пока не достигнем конца обрабативаем строку
-		{
-			wchar_t ch;
-			int ch_int;
+		qwert = 0;
+		while (it.second.Word_End > qwert)
+			check = *(it.second.Word_Begin + qwert++);
+	}
+	*/
 
-			ch = word[str];
-			ch_int = (int)ch;  // 1105
+	Save();
 
-			if (counter_write % 9 == 0 && counter_write != 0)  // Заходим каждый 9 раз
-			{
-				if (counter_write == 9)
-					Dictionary_Map.emplace(numbers, numbers_array);
-
-				outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
-
-				if (ptr < tempest)
-				{
-					numbers_array[ptr] = new unsigned long long(numbers);
-					ptr++;
-
-				}
-
-				numbers = 0;
-			}
-
-			if (numbers == 0)
-				numbers = ch_int;
-			else
-				numbers = numbers * 100 + ch_int;  // 100 - смещение на 2 числа
-
-			counter_write++;
-			str++;
-		}
-
-		user_input_counter--;
-		str = 0;  // переходим в начало строки
-		is_nine = counter_write % 9 != 0;
-
+	for (auto &it : Dictionary_Map)
+	{
+		delete[] it.second.Word_Begin;
+		return;
 	}
 
-	outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
+}
+//------------------------------------------------------------------------------------------------------------
+AsDictionary::AsDictionary()
+{
+	Load();
+}
+//------------------------------------------------------------------------------------------------------------
+void AsDictionary::Emplace_Word(char *words)
+{
 
-	if (ptr < tempest)
-		numbers_array[ptr] = new unsigned long long(numbers);
+	int ptr = 0, str = 0, counter_write = 0;
+	size_t word_last_char;
+	unsigned long long* memmory_block;
+	unsigned long long number = 0;
 
-	ptr = 0;
+	const size_t len = strlen(words);
+	const size_t block_sum = (len + sizeof(unsigned long long) - 1) / sizeof(unsigned long long);  // (long long) 8 / size = how manny in unsigned long long data
+
+	word_last_char = 0;
+	memmory_block = new unsigned long long[block_sum] {};  // Выделяем память для чтения чисел из файла
 
 
+	while (words[str] != '\0')  // Пока не достигнем конца обрабативаем строку
+	{
+		char ch;
+		int ch_int;
+
+		ch = words[str];
+		ch_int = static_cast<int>(ch);  // 1105
+
+		if (counter_write % 9 == 0 && counter_write != 0)  // Заходим каждый 9 раз
+		{
+			memmory_block[ptr] = number;
+			number = 0;
+			ptr++;
+		}
+
+		if (number == 0)
+			number = ch_int;
+		else
+			number = number * 100 + ch_int;  // 100 - смещение на 2 числа
+
+		counter_write++;
+		str++;
+	}
+
+	number += AsConfig::ULL_Length;
+	if (ptr < block_sum)
+		memmory_block[ptr] = number;
+
+	for (size_t i = 0; i < block_sum; i++)
+	{
+		word_last_char++;
+
+		if (memmory_block[i] / AsConfig::ULL_Length)  // if true last word add to array or struct
+		{
+			i = i - word_last_char + 1;  // First word index
+			Dictionary_Map.emplace(memmory_block[i], SWord(&memmory_block[i], word_last_char) );  // Create Struct SWord and add to map
+			i = word_last_char;  // start from end
+		}
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+void AsDictionary::Save()
+{
+	size_t ptr;
+
+	std::ofstream outfile("Map.bin", std::ios::binary);
 	if (!outfile)
 		return;
 
+	for (const auto &it : Dictionary_Map)
+	{
+		ptr = 0;
+		do
+		{
+			const unsigned long long number = it.second.Word_Begin[ptr];
+			outfile.write(reinterpret_cast<const char *>(&number), sizeof(number) );
+		} while (!(it.second.Word_Begin[ptr++] / AsConfig::ULL_Length) );  // INCREMENT HERE
+	}
+	
 	outfile.close();
-
-	bool is_add_to_user_array = false;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsDictionary::Load()
+{
 	int how_much_g;
 	int block_sum;
-	unsigned long long *block_array;
-	unsigned long long number;
+	unsigned long long *memmory_block;
+	size_t word_last_char;
 
-	number = 0;
-
-	std::ifstream infile("Map.bin", std::ios::binary);  // Откриваем файл по названию
+	std::ifstream infile("Map.bin", std::ios::binary);
 	if (!infile)
 		return;
 
 	infile.seekg(0, std::ios::end);  // Вычисляем количество чисел в файле тем самим переходя в конец файла
 	how_much_g = (int)infile.tellg();
-
 	block_sum = how_much_g / sizeof(unsigned long long);  // (long long) 8 / size = how manny in unsigned long long data
 
 	infile.seekg(0, std::ios::beg);  // Переходим в начало файла
-	block_array = new unsigned long long[block_sum] {};  // Выделяем память для чтения чисел из файла
-	infile.read(reinterpret_cast<char*>(block_array), how_much_g);  // Читаем и записиваем числа из файла в массив!
+	memmory_block = new unsigned long long[block_sum] {};  // Выделяем память для чтения чисел из файла
+	infile.read(reinterpret_cast<char*>(memmory_block), how_much_g);  // Читаем и записиваем числа из файла в массив! как ull
+
+	word_last_char = 0;
 
 	for (size_t i = 0; i < block_sum; i++)
-		number = block_array[i];
+	{
+		word_last_char++;
+
+		if (memmory_block[i] / AsConfig::ULL_Length)  // if true last word add to array or struct
+		{
+			const size_t temp = i + 1 - word_last_char;
+			Dictionary_Map.emplace(memmory_block[temp], SWord(&memmory_block[temp], word_last_char) );  // Create Struct SWord and add to map
+			word_last_char = 0;
+		}
+	}
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -119,10 +170,15 @@ int function_for_pointer(double xx)  // (*pointer_function)(double) pointer_func
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	const char word_longest[] = "PNEUMONOULTRAMICROSCOPICSILICOVOLCANOCONIOSIS";  // longest eng word
+	char word_longest[] = "PNEUMONOULTRAMICROSCOPICSILICOVOLCANOCONIOSIS";
+	char word_shortest_00[] = "PRETTY";
+	char word_shortest_01[] = "GOOD";
 
-	AsDictionary dictionary;  // Load Dictionary
-	dictionary.Emplace_Word(word_longest);
+	AsDictionary dictionary;  // Words must be UP - CASE or GG, 
+	dictionary.Emplace_Word(word_shortest_00);	// 808269848489		PRETTY
+	dictionary.Emplace_Word(word_shortest_01);	// 71797968				GOOD
+	dictionary.Emplace_Word(word_longest);			// 807869857779787985
+
 	return 0;
 
 	 //TEMP END

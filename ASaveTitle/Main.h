@@ -1,50 +1,7 @@
 ﻿#pragma once
 
+#include "Dictionary.h"
 #include "Engine.h"
-
-// EPrograms
-enum class EPrograms
-{
-	Invalid = -1,
-	ASaver = 0,
-	ABook_Reader,
-	End
-};
-//------------------------------------------------------------------------------------------------------------
-
-
-
-
-// SWord
-struct SWord
-{
-	SWord(unsigned long long *word_begin, size_t word_end);
-
-	size_t Word_End;  // how much ull
-	unsigned long long *Word_Begin;  // Ptr at start word
-};
-//------------------------------------------------------------------------------------------------------------
-
-
-
-
-// AsDictionary
-class AsDictionary
-{
-public:
-	~AsDictionary();
-	AsDictionary();
-
-	void Emplace_Word(char *words);  // Add to Dictionary_Map
-
-	void Save();
-	void Load();  // Load From File to Dictionary_Map
-
-private:
-	AsTools Tools;
-	std::map<unsigned long long, SWord> Dictionary_Map;
-};
-//------------------------------------------------------------------------------------------------------------
 
 // AsMain
 class AsMain

@@ -1,9 +1,9 @@
 ﻿#include "Engine.h"
 
-// AClient_URL
-std::wstring AClient_URL::Response_Buffer;
+// ACurl_Client
+std::wstring ACurl_Client::Response_Buffer;
 //------------------------------------------------------------------------------------------------------------
-AClient_URL::~AClient_URL()
+ACurl_Client::~ACurl_Client()
 {//Tear Dowm
 
 	// Last Cleanuping & EASY
@@ -11,13 +11,37 @@ AClient_URL::~AClient_URL()
 	curl_global_cleanup();
 }
 //------------------------------------------------------------------------------------------------------------
-AClient_URL::AClient_URL(wchar_t *user_input)
+ACurl_Client::ACurl_Client(const EPrograms &program, wchar_t *user_input)
+ : Url_Easy(0), Response{}
 {// Setup
 
-	Handle_Saver_URL(user_input);
+	switch (program)
+	{
+	case EPrograms::Invalid:
+		break;
+	case EPrograms::ASaver:
+	{
+		if (user_input != 0)
+			Handle_Saver_URL(user_input);  // Anime-bit
+		else
+			Saver_Update();
+	}
+		break;
+
+	case EPrograms::ABook_Reader:
+		break;
+
+	case EPrograms::End:
+		break;
+
+	default:
+		break;
+	}
+
+
 }
 //------------------------------------------------------------------------------------------------------------
-void AClient_URL::Handle_Saver_URL(wchar_t *user_input)
+void ACurl_Client::Handle_Saver_URL(wchar_t *user_input)
 {
 	char *url;
 	int size;
@@ -78,7 +102,90 @@ void AClient_URL::Handle_Saver_URL(wchar_t *user_input)
 
 }
 //------------------------------------------------------------------------------------------------------------
-size_t AClient_URL::Write_Callback(void *contents, size_t size, size_t nmemb, void *userp)
+void ACurl_Client::Saver_Update()
+{
+	char url[] = "https://anime-bit.ru/";
+	wchar_t **url_pair;
+	void *void_ptr;
+
+	url_pair = new wchar_t *[2] { };
+	void_ptr = static_cast<void *>(url_pair);
+
+	// INIT CURL
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+	Url_Easy = curl_easy_init();
+
+	// SETTINGS
+	curl_easy_setopt(Url_Easy, CURLOPT_LOW_SPEED_TIME, 60L);  // 60 sec
+	curl_easy_setopt(Url_Easy, CURLOPT_LOW_SPEED_LIMIT, 30L);  // Abort if slower that 30 bytes/sec per seconds above
+	curl_easy_setopt(Url_Easy, CURLOPT_URL, url);
+
+	// HOW TO RESPONSE
+	curl_easy_setopt(Url_Easy, CURLOPT_WRITEFUNCTION, Write_Callback_Update);
+	curl_easy_setopt(Url_Easy, CURLOPT_WRITEDATA, void_ptr);
+
+	// FINAL
+	Response = curl_easy_perform(Url_Easy);
+	int yy = 0;
+}
+//------------------------------------------------------------------------------------------------------------
+size_t ACurl_Client::Write_Callback_Update(void *contents, size_t size, size_t nmemb, void *void_ptr)
+{// Get a part of bytes we can handle(write to file)
+	const wchar_t *pattern_title_name_begin = L"<img alt='&laquo;";
+	const wchar_t *pattern_title_name_end = L"&raquo";
+	const wchar_t *pattern_title_last_add = L"<div>Добавленно:";
+	wchar_t **user_input = static_cast<wchar_t**>(void_ptr);
+	int wideStringLength;
+	size_t total_size;
+
+	// 1. Get Content from URL to Responce Buffer
+	total_size = size * nmemb;  // !!! Doesn`t work All down code
+	wideStringLength = MultiByteToWideChar(CP_UTF8, 0, (char*)contents, -1, 0, 0);  // Вычисляем размер буфера, необходимый для конвертации
+
+	if (wideStringLength == 0)  // Обработка ошибки, если MultiByteToWideChar вернула 0
+		return 0;
+	else
+		Response_Buffer.resize(wideStringLength);  //
+
+	if (MultiByteToWideChar(CP_UTF8, 0, (char*)contents, -1, &Response_Buffer[0], wideStringLength) == 0)  // Conver ch -> wchar_t
+		return 0;  // Обработка ошибки, если MultiByteToWideChar вернула 0
+	else
+		Response_Buffer.pop_back();  // Удаляем завершающий нулевой символ
+	
+	// 1.1 Find new Add Title with seasons
+	if (const wchar_t* pattern_begining = wcsstr(Response_Buffer.c_str(), pattern_title_name_begin))
+	{
+		const wchar_t* ptr_end = wcsstr(pattern_begining, pattern_title_name_end);
+		const wchar_t* ptr_beg = pattern_begining + wcslen(pattern_title_name_begin);
+		const size_t pattern_title_length = ptr_end - ptr_beg;
+
+		user_input[0] = new wchar_t[64];  // !!!
+		wcsncpy_s(user_input[0], 63, ptr_beg, pattern_title_length);  // cpy title name
+	}
+
+	// 1.2 Find last added date
+	if (const wchar_t *pattern_begining = wcsstr(Response_Buffer.c_str(), pattern_title_last_add) )
+	{
+		const wchar_t *ptr_end = wcsstr(pattern_begining, L"</div>");
+		const wchar_t *ptr_beg = pattern_begining + wcslen(pattern_title_last_add);
+		const __int64 length = ptr_end - ptr_beg;
+
+		wcsncpy_s(user_input[0] + wcslen(user_input[0]), 63, ptr_beg, (int)length);  // cpy data added
+
+		if (!ptr_end != 0)
+			return 0;
+
+		const wchar_t *ptr_beg_01 = wcsstr(ptr_end, L" Серии: [");
+		const wchar_t *ptr_end_01 = wcsstr(ptr_end, L"]</div>") + 1;
+		__int64 length_01 = ptr_end_01 - ptr_beg_01;
+
+		if (ptr_beg_01 != 0)
+			wcsncpy_s(user_input[0] + wcslen(user_input[0]), 63, ptr_beg_01, (int)length_01); // cpy series
+	}
+	return total_size;  // return bytes we have deal with i
+}
+//-----------------------------------------------------------------------------------------------------------
+size_t ACurl_Client::Write_Callback(void *contents, size_t size, size_t nmemb, void *userp)
 {// Get a part of bytes we can handle(write to file)
 	bool is_image;
 	const wchar_t *pattern_img = L"image_src";
@@ -191,7 +298,7 @@ size_t AClient_URL::Write_Callback(void *contents, size_t size, size_t nmemb, vo
 		return fwrite(contents, size, nmemb, (FILE*)userp);   // if write img to file
 }
 //-----------------------------------------------------------------------------------------------------------
-size_t AClient_URL::Save_Img(void *contents, size_t size, size_t nmemb, FILE *userp)
+size_t ACurl_Client::Save_Img(void *contents, size_t size, size_t nmemb, FILE *userp)
 {
 	size_t written = fwrite(contents, size, nmemb, userp);
 
@@ -454,7 +561,8 @@ void AsUI_Builder::User_Input_Reset()
 		if (!std::filesystem::exists(AsConfig::Image_Folder) )
 			std::filesystem::create_directories(AsConfig::Image_Folder);
 	
-		AClient_URL client_url(User_Input);  // if can get info from url, animebit just for now
+		ACurl_Client client_url(EPrograms::ASaver, User_Input);  // if can get info from url, animebit just for now
+		//ACurl_Client client_url(User_Input);  // if can get info from url, animebit just for now
 	}
 
 	switch (Active_Menu)
@@ -532,14 +640,14 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 
 	if (!IsRectEmpty(Rect_Pages) )
 	{//Rect_Pages buttons Handle
-		if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[0]) )
+		if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EPage_Rect::EPR_Prev]) )
 		{
 			Sub_Menu_Curr_Page--;
 			Draw_Sub_Menu(Active_Menu);
 			return;
 		}
-		else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[1]) )  // Bad magic words
-		{// !!! Trash
+		else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EPage_Rect::EPR_Next]) )
+		{
 			Sub_Menu_Curr_Page++;
 			Draw_Sub_Menu(Active_Menu);
 			
@@ -550,6 +658,9 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 			Active_Menu = EAM_Watching;
 
 			return;
+		} else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EPage_Rect::EPR_Update]) )
+		{
+			ACurl_Client update(EPrograms::ASaver);
 		}
 	}
 
@@ -1055,16 +1166,20 @@ RECT AsUI_Builder::Add_Button(RECT &border_rect, const std::wstring &title)
 void AsUI_Builder::Add_Button_Next_Page()
 {
 	int scale = AsConfig::Global_Scale;
+	RECT button_update = { 1140, 12, 1228, 30 };  // Update Page
 	RECT button_next = { 1231, 12, 1303, 30 };  // Next Page
 	RECT button_prev = { 1305, 12, 1375, 30 };  // Prev Page
 
+	Rectangle(Ptr_Hdc, button_update.left, button_update.top, button_update.right, button_update.bottom);
+	TextOutW(Ptr_Hdc, button_update.left + 1, button_update.top + 1, L"Update Page", 11);
 	Rectangle(Ptr_Hdc, button_next.left, button_next.top, button_next.right, button_next.bottom);
-	TextOutW(Ptr_Hdc, button_next.left + 1, button_next.top + 1, L"Prev Page", 9);
+	TextOutW(Ptr_Hdc, button_next.left + 1, button_next.top + 1, L"Next Page", 9);
 	Rectangle(Ptr_Hdc, button_prev.left, button_prev.top, button_prev.right, button_prev.bottom);
-	TextOutW(Ptr_Hdc, button_prev.left + 1, button_prev.top + 1, L"Next Page", 9);
+	TextOutW(Ptr_Hdc, button_prev.left + 1, button_prev.top + 1, L"Prev Page", 9);
 
-	Rect_Pages[0] = button_next;
-	Rect_Pages[1] = button_prev;
+	Rect_Pages[EPage_Rect::EPR_Update] = button_update;
+	Rect_Pages[EPage_Rect::EPR_Next] = button_next;
+	Rect_Pages[EPage_Rect::EPR_Prev] = button_prev;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Add_To_User_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input)

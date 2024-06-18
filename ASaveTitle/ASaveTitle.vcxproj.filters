@@ -21,6 +21,9 @@
     <Filter Include="Tools\Config">
       <UniqueIdentifier>{e677aac0-9124-41c6-ac3c-59d3efc1425e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Dictionary">
+      <UniqueIdentifier>{b4b4616e-706c-4fdc-aa0b-fa0a09ea9867}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -43,6 +46,9 @@
     </ClInclude>
     <ClInclude Include="AsConfig.h">
       <Filter>Tools\Config</Filter>
+    </ClInclude>
+    <ClInclude Include="Dictionary.h">
+      <Filter>Dictionary</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -70,6 +76,9 @@
     </ClCompile>
     <ClCompile Include="AsConfig.cpp">
       <Filter>Tools\Config</Filter>
+    </ClCompile>
+    <ClCompile Include="Dictionary.cpp">
+      <Filter>Dictionary</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -8,9 +8,9 @@ AsTools::~AsTools()
 	delta_tick = end_tick - start_tick;  // 194176 170824 192866
 
 	if (delta_tick > 4086646)
-		int yy = 0;
+		int yy = 0;  // Bed
 	else if (delta_tick < 4086646 / 2)
-		int yy = 1;
+		int yy = 1;  // Good
 }
 //------------------------------------------------------------------------------------------------------------
 AsTools::AsTools()

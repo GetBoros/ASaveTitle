@@ -14,7 +14,7 @@ public:
 	
 	int Get_WParam();
 
-	static AsMain *Get_Instance(HINSTANCE handle_instance);
+	static AsMain *Set_Instance(HINSTANCE handle_instance);
 
 	static AsMain *Main_Window;
 

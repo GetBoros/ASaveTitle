@@ -102,7 +102,7 @@ public:
 	// Getters & Setters Mouse Handler
 	void Set_RM_Cord(const RECT &mouse_cord);
 	void Set_LM_Cord(const RECT &mouse_cord);
-	void Set_Sub_Menu_Curr_Page(const int &set_page_to);  // !!! Переделать
+	void Set_Sub_Menu_Curr_Page(const int &set_page_to);
 	bool Set_User_Input(const wchar_t &text);
 
 	EActive_Menu Active_Menu;
@@ -127,7 +127,6 @@ private:
 	void User_Input_Save(const char *file_path, wchar_t **user_array, int user_input_counter);  // Write wchar_t to data.bin
 	void Save_Image(const RECT &rect);  // Save image in rect
 	void Restore_Image(RECT &rect);  // redraw image
-	void IO_Config_Settings(SConfig &setting, const std::wstring &filename);  // !!! Don`t need anymore but can be useful
 	void Convert(int &ch, const bool &is_in_file);
 	SUser_Input_Data Init_UI_Data();
 	void Save_All_To_Data(const EActive_Menu &menu);
@@ -162,7 +161,7 @@ private:
 	std::map<std::wstring, SUser_Input_Data> User_Wishlist_Map;
 	std::map<std::wstring, SUser_Input_Data>::iterator User_Curr_It;
 
-	static int Context_Button_Length;  // !!!
+	static int Context_Button_Length;
 	static int User_Input_Len;  // count user input after press enter set to zero
 	
 	static const wchar_t Main_Menu_Title_Name[];
@@ -210,8 +209,6 @@ private:
 	HWND Ptr_Hwnd;
 	HDC Ptr_Hdc;
 	PAINTSTRUCT Paint_Struct;
-	//static LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);  // TEMP HOOK
-	//static HHOOK Global_Hook;  // Глобальный дескриптор клавиатурного хука  // TEMP HOOK
 };
 //------------------------------------------------------------------------------------------------------------
 
@@ -240,7 +237,6 @@ V	- Удаления из списка |	11.02.2024
 V		- если выбрана кнопка с главного меню удаления и выбрать кнопку с User_Array удалить из массива
 V			- проблема остаеться свободное место | нету проблем
 V			- так же удалить из файла
-V				- если загружать в Temp.bin потом перезаписивать? | Работаем по одному файлу Data.bin
 V				- когда перезаписивать? | Во время удаления
 
 // TASK ---13.02.2024---
@@ -627,7 +623,7 @@ V		- Если вставлять через URL теперь работает о
 V	- Доделать сезоны, Тест II 3 не выводиться
 V	- После добавление через URL
 V		- Сохранить картинку в папку Current_Array/Pictures/ *.png
-V			- изначально картинка добавляеться в Pictures/Temp.png
+V			- изначально картинка добавляеться в Pictures/Temporary.png
 V			- хорошо если все картинки будут в одном месте
 V				- из минусов пока что не вижу
 V			- определить где лучше сохранять
@@ -745,7 +741,13 @@ V	- Добавить возможность выбора с какой прог�
 // TASKS --- 18.06.2024 ---
 /*
 X	- Добавлять в структуру ID Title
-		- При нажатии кнопки пройтись по массиву, взять из структуры ID зайти на сайт, проверить доступную серию.
+
+X	- Создать в Tools статический метод сохранения входящих параметров
+X	- Доставать из url index(short)
+
+X		- Как сохранять структуру?
+
+X		- При нажатии кнопки пройтись по массиву, взять из структуры ID зайти на сайт, проверить доступную серию.
 			- Если серия другая изменить цвет кнопки и перерисувать
 X	- 
 */
@@ -886,8 +888,8 @@ V	- после удаления первого и последнего поль 
 // FUTURES FAST FIND 
 /*
 	wchar_t result[100] {};
-	wchar_t temp[] = L"https://animevost.org/tip/tv/3183-tadaima-okaeri.html";
-	wchar_t *ptr_start = wcsstr(temp, L"animevost");
+	wchar_t url[] = L"https://animevost.org/tip/tv/3183-tadaima-okaeri.html";
+	wchar_t *ptr_start = wcsstr(url, L"animevost");
 
 	// Находим совпадение с доступними сайтами
 	if (ptr_start != 0)
@@ -903,7 +905,7 @@ V	- после удаления первого и последнего поль 
 	// Если находим такой сайт в базе можно вигрузить паттерн для собственного класса CURL
 
 	// Сохраняем в Config? Или может передать через конструктор напрямую
-	ACurl_Client client_url(temp);  // reset from url to User_Input
+	ACurl_Client client_url(url);  // reset from url to User_Input
 
 */
 // TEMP
@@ -939,7 +941,7 @@ DXGI_ADAPTER_DESC adapterDesc;
 adapter->GetDesc(&adapterDesc);
 
 // Вывод информации о графическом адаптере
-wchar_t *temp = adapterDesc.Description;  // Get Addapter Descriptions
+wchar_t *description = adapterDesc.Description;  // Get Addapter Descriptions
 
 // Освобождение ресурсов
 adapter->Release();

@@ -37,8 +37,6 @@ ACurl_Client::ACurl_Client(const EPrograms &program, wchar_t *user_input)
 	default:
 		break;
 	}
-
-
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::Handle_Saver_URL(wchar_t *user_input)
@@ -76,9 +74,9 @@ void ACurl_Client::Handle_Saver_URL(wchar_t *user_input)
 
 	Response = curl_easy_perform(Url_Easy);
 
-	// 2. Second responds save to Folder picture Temp
+	// 2. Second responds save to Folder picture Temporary
 	delete[] url;
-	errno_t err = fopen_s(&file, "Pictures/Temp.png", "wb");  // save as Temp.png
+	errno_t err = fopen_s(&file, "Pictures/Temporary.png", "wb");  // save as Temporary.png
 	if (err == 0 && file != 0)
 	{
 		size = WideCharToMultiByte(CP_UTF8, 0, url_pair[0], -1, 0, 0, 0, 0);
@@ -126,7 +124,6 @@ void ACurl_Client::Saver_Update()
 
 	// FINAL
 	Response = curl_easy_perform(Url_Easy);
-	int yy = 0;
 }
 //------------------------------------------------------------------------------------------------------------
 size_t ACurl_Client::Write_Callback_Update(void *contents, size_t size, size_t nmemb, void *void_ptr)
@@ -190,8 +187,8 @@ size_t ACurl_Client::Write_Callback(void *contents, size_t size, size_t nmemb, v
 	bool is_image;
 	const wchar_t *pattern_img = L"image_src";
 	const wchar_t *pattern_htt = L"https";
-	const wchar_t *pattern_ttl = L"<h1>&laquo;";  // !!! if ANIMEVOST || og:title TEMP
-	const wchar_t *pattern_num = L": [";  // !!! if ANIMEVOST || [1- TEMP END
+	const wchar_t *pattern_ttl = L"<h1>&laquo;";
+	const wchar_t *pattern_num = L": [";
 	wchar_t **user_input = static_cast<wchar_t**>(userp);
 	int wideStringLength;
 	size_t total_size;
@@ -265,7 +262,7 @@ size_t ACurl_Client::Write_Callback(void *contents, size_t size, size_t nmemb, v
 		{
 			curr_char = user_input[1][invalid_char_len];
 
-			if (curr_char == L'«')  // !!! Can update to something
+			if (curr_char == L'«')
 				user_input[1][invalid_char_len] = L' ';
 
 			if (curr_char <= L'9' && curr_char >= L'0')
@@ -322,7 +319,6 @@ AsUI_Builder::~AsUI_Builder()
 
 	// 1. Save user input counter like array max size to file
 	config.User_Array_Max_Size = User_Array_Map.size();
-	IO_Config_Settings(config, config.File_Name);
 
 	// 1.2 Save covered image sys
 	if (Hdc_Memory != 0)
@@ -345,6 +341,10 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 	Main_Menu_Titles_Length_Max(50), Sub_Menu_Curr_Page(0), Prev_Main_Menu_Button(0), Prev_Button(99), User_Input_Rect{}, Prev_Context_Menu_Cords{},
 	Rect_Buttons_Context{}, Input_Button_Rect{}, Rect_Pages{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), Rect_User_Input_Change{}, Ptr_Hdc(hdc)
 {
+	//wchar_t temp[] = L"https://anime-bit.ru/content/6729/";
+
+	//ACurl_Client client_url(EPrograms::ASaver, temp);  // if can get info from url, animebit just for now
+
 	// Load map from Data/...
 	User_Input_Load(User_Array_Map, "Data/Watching.bin");
 	User_Input_Load(User_Library_Map, "Data/Library.bin");
@@ -582,10 +582,6 @@ void AsUI_Builder::User_Input_Reset()
 	case EAM_Wishlist:
 		Add_To_User_Array(User_Wishlist_Map, User_Input);
 		break;
-
-	default:
-		int yy = 0;
-		break;
 	}
 	Draw_Sub_Menu(Active_Menu);
 	Draw_Active_Button();
@@ -726,14 +722,14 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 		{// check clk on context menu
 			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Buttons_Context[i]) )
 			{
-				EActive_Menu temp = Active_Menu;
+				EActive_Menu prev_active_mune = Active_Menu;
 				Restore_Image(Prev_Context_Menu_Cords);
 
 				if (Active_Menu != EAM_Main)
 				{
 					Active_Menu = EAM_Main;
 					User_Input_Request();
-					Active_Menu = temp;
+					Active_Menu = prev_active_mune;
 				}
 
 				switch ( (EActive_Menu)i)
@@ -742,7 +738,6 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 					Add_To_User_Array(User_Array_Map, User_Curr_It->second.Title_Name_Num.c_str() );
 					Erase_From_User_Array();
 					Draw_Sub_Menu(Active_Menu);
-
 					break;
 
 				case EAM_Library_Menu:
@@ -766,10 +761,6 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 				case EAM_Erase:
 					Erase_From_User_Array();
 					Draw_Sub_Menu(Active_Menu);
-					break;
-
-				default:
-					int yy = 0;
 					break;
 				}
 				Save_All_To_Data( (EActive_Menu)i);
@@ -1213,12 +1204,12 @@ void AsUI_Builder::Add_To_User_Array(std::map<std::wstring, SUser_Input_Data> &u
 	else
 		user_arr.emplace(ui_data.Title_Name_Key, ui_data);  // if not add new title
 
-	if (std::filesystem::exists("Pictures/Temp.png") )
-		std::filesystem::rename("Pictures/Temp.png", (std::wstring(AsConfig::Image_Folder) + ui_data.Title_Name_Key + std::wstring(L".png") ) );
+	if (std::filesystem::exists("Pictures/Temporary.png") )
+		std::filesystem::rename("Pictures/Temporary.png", (std::wstring(AsConfig::Image_Folder) + ui_data.Title_Name_Key + std::wstring(L".png") ) );
 
 	if (Active_Menu != -1)
 	{
-		User_Curr_It = user_arr.find(User_Input);  // !!! not always need to find
+		User_Curr_It = user_arr.find(User_Input);
 		Active_Button = (EActive_Button)std::distance(user_arr.begin(), User_Curr_It);
 		Sub_Menu_Curr_Page = ((int)Active_Button - 1) / Sub_Menu_Max_Line;  // Find Page
 	}
@@ -1272,28 +1263,22 @@ void AsUI_Builder::Erase_From_User_Array()
 	{
 	case EAM_Watching:
 		User_Array_Map.erase(User_Curr_It->first);
-		Prev_Button = 99;  // set to no prev_button
 		break;
 
 	case EAM_Library_Menu:
 		User_Library_Map.erase(User_Curr_It->first);
-		Prev_Button = 99;  // set to no prev_button
 		break;
 
 	case EAM_Paused_Menu:
 		User_Paused_Map.erase(User_Curr_It->first);
-		Prev_Button = 99;  // set to no prev_button
 		break;
 
 	case EAM_Wishlist:
 		User_Wishlist_Map.erase(User_Curr_It->first);
-		Prev_Button = 99;  // set to no prev_button
-		break;
-
-	default:
-		int yy = 0;
 		break;
 	}
+
+	Prev_Button = 99;  // set to no prev_button
 	Save_All_To_Data(Active_Menu);  // Save by Erase
 }
 //------------------------------------------------------------------------------------------------------------
@@ -1353,12 +1338,12 @@ void AsUI_Builder::User_Input_Load(std::map<std::wstring, SUser_Input_Data> &use
 			}
 
 			// Конвертируем в рус символы
-			int temp = (int)ch_long;
+			int converted_char = (int)ch_long;
 
-			if (temp <= 64 && temp > 55)
+			if (converted_char <= 64 && converted_char > 55)
 				is_add_to_user_array = true;
 
-			if (is_add_to_user_array && temp > 64 || is_add_to_user_array && temp < 55)
+			if (is_add_to_user_array && converted_char > 64 || is_add_to_user_array && converted_char < 55)
 			{
 				user_input[str] = L'\0';
 				str = str + 1;
@@ -1369,9 +1354,9 @@ void AsUI_Builder::User_Input_Load(std::map<std::wstring, SUser_Input_Data> &use
 				str = 0;
 			}
 
-			Convert(temp, false);
+			Convert(converted_char, false);
 
-			wchar_t ch = (wchar_t)temp;
+			wchar_t ch = (wchar_t)converted_char;
 			user_input[str] = ch;
 			str++;
 		}
@@ -1395,14 +1380,14 @@ void AsUI_Builder::User_Input_Save(const char *file_path, wchar_t **user_array, 
 {
 	int ptr = 0, str = 0, counter_write = 0;
 	unsigned long long numbers = 0;
-	std::string temp = "Data/";
+	std::string user_input_saved_folder = "Data/";
 
-	if (!std::filesystem::exists(temp) )
-		std::filesystem::create_directory(temp);
+	if (!std::filesystem::exists(user_input_saved_folder) )
+		std::filesystem::create_directory(user_input_saved_folder);
 	
-	temp += file_path;
+	user_input_saved_folder += file_path;
 
-	std::ofstream outfile(temp, std::ios::out | std::ios::binary);  // Создаем новые данные
+	std::ofstream outfile(user_input_saved_folder, std::ios::out | std::ios::binary);  // Создаем новые данные
 
 	if (!outfile)
 		return;
@@ -1438,11 +1423,11 @@ void AsUI_Builder::User_Input_Save(const char *file_path, wchar_t **user_array, 
 		ptr++;  // переходим на следующую строку
 		str = 0;  // переходим в начало строки
 
-		bool temp = counter_write % 9 != 0;
+		bool is_nine = counter_write % 9 != 0;
 
-		if (user_input_counter == 0 && temp)  // если в конце массива то записиваем остаток символов
+		if (user_input_counter == 0 && is_nine)  // если в конце массива то записиваем остаток символов
 			outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
-		else if (!temp && user_input_counter == 0)
+		else if (!is_nine && user_input_counter == 0)
 			outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
 	}
 
@@ -1479,28 +1464,6 @@ void AsUI_Builder::Restore_Image(RECT& rect)
 		Saved_Object = NULL;
 	}
 	rect = {};  // обнуляем
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::IO_Config_Settings(SConfig &setting, const std::wstring &filename)
-{
-	if (setting.User_Array_Max_Size != 0)
-	{
-		std::ofstream file(filename);  // open file to write
-		if (file.is_open() )
-		{
-			file << setting.User_Array_Max_Size;  // write value to file
-			file.close();
-		}
-	}
-	else
-	{
-		std::ifstream file(filename);  // open file to read
-		if (file.is_open() )
-		{
-			file >> setting.User_Array_Max_Size;  // read value from file
-			file.close();
-		}
-	}
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Convert(int &ch, const bool &is_in_file)
@@ -1638,9 +1601,8 @@ SUser_Input_Data AsUI_Builder::Init_UI_Data()
 		ui_data.Title_Name_Num += AsConfig::Season[ui_data.Title_Season - 1];
 		ui_data.Title_Name_Num.append(L" ");
 	}
+	
 	ui_data.Title_Name_Num += std::to_wstring(ui_data.Title_Num);
-
-	// !!! Initialize TITLE_DATA 
 	ui_data.Title_Data;
 
 	return ui_data;
@@ -1752,11 +1714,8 @@ void AsUI_Book_Reader::Handle_Input(EKey_Type &key_type)
 
 
 // AsEngine
-/*HHOOK AsEngine::Global_Hook = SetWindowsHookExW(WH_KEYBOARD_LL, &AsEngine::KeyboardProc, 0, 0);  // TEMP HOOK*/
-//------------------------------------------------------------------------------------------------------------
 AsEngine::~AsEngine()
 {
-	//UnhookWindowsHookEx(Global_Hook);  // !!! temp TEMP HOOK
 	delete UI_Builder;
 }
 //------------------------------------------------------------------------------------------------------------
@@ -1946,20 +1905,4 @@ int AsEngine::Connect_To_Server()
 	WSACleanup();
 	return 0;
 }
-//------------------------------------------------------------------------------------------------------------
-/*
-LRESULT AsEngine::KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)  // TEMP HOOK
-{
-	if (nCode >= 0)
-	{
-		if (wParam == WM_KEYDOWN)
-		{
-			// Обработка нажатия клавиши
-			KBDLLHOOKSTRUCT* kbStruct = (KBDLLHOOKSTRUCT*)lParam;  //при нажатии на кнопку в свернутом ввиде попадаем сюда
-			wchar_t text = static_cast<wchar_t>(kbStruct->vkCode);
-		}
-	}
-	return CallNextHookEx(Global_Hook, nCode, wParam, lParam);
-}
-*/
 //------------------------------------------------------------------------------------------------------------

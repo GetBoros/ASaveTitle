@@ -145,8 +145,8 @@ void AsDictionary::Load()
 
 		if (memmory_block[i] / AsConfig::ULL_Length)  // if true last word add to array or struct
 		{
-			const size_t temp = i + 1 - word_last_char;
-			Dictionary_Map.emplace(memmory_block[temp], SWord(&memmory_block[temp], word_last_char));  // Create Struct SWord and add to map
+			const size_t index = i + 1 - word_last_char;
+			Dictionary_Map.emplace(memmory_block[index], SWord(&memmory_block[index], word_last_char) );  // Create Struct SWord and add to map
 			word_last_char = 0;
 		}
 	}

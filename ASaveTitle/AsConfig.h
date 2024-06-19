@@ -30,8 +30,6 @@ public:
 	~AsConfig();
 	AsConfig();
 
-	static void Load_From_Config();
-
 	static const char Dictionary_Main_Folder[];
 
 	static const wchar_t Seasons[];

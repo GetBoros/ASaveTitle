@@ -41,64 +41,9 @@ AsConfig::~AsConfig()
 //------------------------------------------------------------------------------------------------------------
 AsConfig::AsConfig()
 {
-	//Load_From_Config();
-
 	Window_Rect.left = 0;
 	Window_Rect.top = 0;
 	Window_Rect.right = Window_Width;
 	Window_Rect.bottom = Window_Height;
-}
-//------------------------------------------------------------------------------------------------------------
-void AsConfig::Load_From_Config()
-{
-   //EConfig_Params config_params = EConfig_Params::ECP_Standart_Background;
-   //char ch;
-   //int i = 0;
-   //int* brush = new int[3] {};
-   //char arr[Settings_Size][64]{};
-   //int yy = 0;
-   //std::ifstream load_from_file("Config.txt");
-   //if (!load_from_file.is_open())
-   //   return;
-
-   //while (load_from_file.get(ch))
-   //{
-   //   if (ch >= '0' && ch <= '9')
-   //   {
-   //      yy *= 10;
-   //      yy += ch - '0';
-   //   }
-   //   else if (ch == ',' || ch == ';')
-   //   {
-   //      brush[i++] = yy;
-   //      yy = 0;
-   //   }
-
-   //   if (ch == ';')
-   //   {
-   //      i = 0;
-
-   //      switch (config_params)
-   //      {
-   //      case EConfig_Params::ECP_Standart_Background:
-   //         Standart_Background = CreateSolidBrush(RGB(brush[0], brush[1], brush[2]));
-   //         config_params = EConfig_Params::ECP_Coordinates;
-   //         break;
-
-   //      case EConfig_Params::ECP_Coordinates:
-   //         Standart_Background = CreateSolidBrush(RGB(brush[0], brush[1], brush[2]));
-   //         config_params = EConfig_Params::ECP_Something_Else;
-   //         break;
-
-   //      case EConfig_Params::ECP_Something_Else:
-   //         break;
-
-   //      default:
-   //         int yy = 0;
-   //         break;
-   //      }
-   //   }
-   //}
-   //delete[] brush;
 }
 //------------------------------------------------------------------------------------------------------------

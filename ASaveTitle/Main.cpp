@@ -4,13 +4,46 @@
 AsMain *AsMain::Main_Window = 0;
 //------------------------------------------------------------------------------------------------------------
 
+//------------------------------------------------------------------------------------------------------------
+void Func_Load(const char *path, unsigned short &num)
+{
+	int how_much_g;
+	int block_sum;
+	unsigned short *memmory_block;
+
+	std::ifstream infile(path, std::ios::binary);
+	if (!infile)
+		return;
+
+	infile.seekg(0, std::ios::end);  // Вычисляем количество чисел в файле тем самим переходя в конец файла
+	how_much_g = (int)infile.tellg();
+	block_sum = how_much_g / sizeof(unsigned short);  // (long long) 8 / size = how manny in unsigned long long data
+
+	infile.seekg(0, std::ios::beg);  // Переходим в начало файла
+	memmory_block = new unsigned short[block_sum] {};  // Выделяем память для чтения чисел из файла
+	infile.read(reinterpret_cast<char *>(memmory_block), how_much_g);  // Читаем и записиваем числа из файла в массив! как ull
+
+	for (size_t i = 0; i < block_sum; i++)
+		unsigned short temp = memmory_block[i];
+
+	infile.close();
+	return;
+}
+//------------------------------------------------------------------------------------------------------------
+
 
 
 
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	AsMain::Main_Window = AsMain::Get_Instance(hinstance);
+	unsigned short num = AsTools::Format_Text_Using_Patterns(L"https://anime-bit.ru/content/6729/", L"content/", L"/");
+	unsigned short *array_nums = 0;
+
+	AsTools::Load_Template_From("Nums.txt", array_nums);  // return array
+	AsTools::Save_Template_To("Nums.txt", num);  // nums 6729
+
+	AsMain::Main_Window = AsMain::Set_Instance(hinstance);
 	return AsMain::Main_Window->Get_WParam();
 }
 //------------------------------------------------------------------------------------------------------------
@@ -27,8 +60,6 @@ WCHAR AsMain::SZ_Window[] = L"Book_Reader";
 AsMain::AsMain(HINSTANCE handle_instance)
 	:HInstance(handle_instance)
 {
-	AsConfig::Load_From_Config();  // !!! Load background and else from config
-
 	LoadStringW(HInstance, IDC_ASAVETITLE, SZ_Window, AsConfig::Max_Loadstring);
 	LoadStringW(HInstance, IDS_APP_TITLE, SZ_Title, AsConfig::Max_Loadstring);  // from IDS_APP_TITLE get string and set to SZ_TITLE if < MAX_LOADSTRING
 	Register_Class();
@@ -54,7 +85,7 @@ int AsMain::Get_WParam()
 	return (int)msg.wParam;
 }
 //------------------------------------------------------------------------------------------------------------
-AsMain *AsMain::Get_Instance(HINSTANCE handle_instance)
+AsMain *AsMain::Set_Instance(HINSTANCE handle_instance)
 {
 	if (Main_Window == 0)
 		Main_Window = new AsMain(handle_instance);
@@ -111,7 +142,7 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_CREATE:
-		SetMenu(hWnd, 0);  // !!!
+		SetMenu(hWnd, 0);
 		break;
 
 	case WM_PAINT:

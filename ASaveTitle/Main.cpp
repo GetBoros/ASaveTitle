@@ -68,22 +68,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_
 {
 	// https://www.youtube.com/watch?v=UloAuPT6jjM  || My video
 
-	Func_00();
+	//Func_00();
 
-	ASaved save_instance;
-	ASaved *load_instance;
+	//ASaved save_instance;
+	//ASaved *load_instance;
 
-	unsigned short num = AsTools::Format_Text_Using_Patterns(L"https://anime-bit.ru/content/6729/", L"content/", L"/");
-	unsigned short *array_nums = new unsigned short[2];
+	//unsigned short num = AsTools::Format_Text_Using_Patterns(L"https://anime-bit.ru/content/6729/", L"content/", L"/");
+	//unsigned short *array_nums = new unsigned short[2];
 
-	STitle tempest;
-	save_instance.temp = &tempest;
+	//STitle tempest;
+	//save_instance.temp = &tempest;
 
-	// TObjectSave
-	AsTools::TObject_Save(save_instance, "Nums.txt");  // nums 6729
-	AsTools::TObject_Load(load_instance, "Nums.txt");  // nums 6729
-
-
+	//// TObjectSave
+	//AsTools::TObject_Save(save_instance, "Nums.txt");  // nums 6729
+	//AsTools::TObject_Load(load_instance, "Nums.txt");  // nums 6729
+	
 	AsMain::Main_Window = AsMain::Set_Instance(hinstance);
 	return AsMain::Main_Window->Get_WParam();
 }

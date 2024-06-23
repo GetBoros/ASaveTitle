@@ -11,7 +11,7 @@ public:
 
 	static bool Is_Button_Pressed;
 
-	static unsigned short Format_Text_Using_Patterns(const wchar_t *url, const wchar_t *pattern_str, const wchar_t *pattern_end);
+	static void Format_Text_Using_Patterns(const wchar_t *url, const wchar_t *pattern_str, const wchar_t *pattern_end, wchar_t **result);
 	template <typename Template> static void TObject_Save(const Template &data, const char *path);
 	template <typename Template> static void TObject_Load(Template *&data, const char *path);
 

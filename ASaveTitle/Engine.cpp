@@ -210,24 +210,12 @@ size_t ACurl_Client::Write_Callback(void *contents, size_t size, size_t nmemb, v
 	
 	// 1. Получить httl картинки и сохранить её
 	if (const wchar_t *title_img_ptr = wcsstr(Response_Buffer.c_str(), pattern_img) )
-	{
-		if (title_img_ptr = wcsstr(Response_Buffer.c_str(), pattern_htt) )
-		{
-			int img_url_length = 0;
-			wchar_t char_index = title_img_ptr[img_url_length];
-
-			while (char_index != L'\"')
-				char_index = title_img_ptr[img_url_length++];  // find last title index
-
-			user_input[0] = new wchar_t[img_url_length--];
-			wcsncpy_s(user_input[0], img_url_length + 1, title_img_ptr, img_url_length);
-		}
-	}
+		AsTools::Format_Text_Using_Patterns(title_img_ptr, pattern_htt, L"\"", &user_input[0]);
 
 	// 2. Get title + seasons + nums + find & change invalid chars
 	const wchar_t *title_num_ptr = wcsstr(Response_Buffer.c_str(), pattern_ttl);  // get ptr at pattern_ttl begin
 	if (title_num_ptr != 0 && *(title_num_ptr + 1) != L'\0')
-	{
+	{// !!! Refactoring waiting this moment
 		wchar_t curr_char;  // Write title | write seasons
 		int pattern_length;
 		int i;
@@ -315,11 +303,6 @@ const wchar_t *AsUI_Builder::Sub_Menu_Title = L"Вводите текст сюд
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::~AsUI_Builder()
 {
-	SConfig config;
-
-	// 1. Save user input counter like array max size to file
-	config.User_Array_Max_Size = User_Array_Map.size();
-
 	// 1.2 Save covered image sys
 	if (Hdc_Memory != 0)
 		DeleteDC(Hdc_Memory);
@@ -470,7 +453,7 @@ void AsUI_Builder::Redraw_Button_Advence(const EActive_Button &active_button)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Redraw_Input_Button()
+void AsUI_Builder::Redraw_Input_Button() const
 {
 	RECT button = Input_Button_Rect;
 
@@ -561,8 +544,12 @@ void AsUI_Builder::User_Input_Reset()
 		if (!std::filesystem::exists(AsConfig::Image_Folder) )
 			std::filesystem::create_directories(AsConfig::Image_Folder);
 	
+		// Save site url, id
+		unsigned short site_id = 0;
+		wchar_t *temp;
+		AsTools::Format_Text_Using_Patterns(User_Input, L"content/", L"/", &temp);
+		site_id = std::stoi(temp);
 		ACurl_Client client_url(EPrograms::ASaver, User_Input);  // if can get info from url, animebit just for now
-		//ACurl_Client client_url(User_Input);  // if can get info from url, animebit just for now
 	}
 
 	switch (Active_Menu)
@@ -638,7 +625,11 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 	{//Rect_Pages buttons Handle
 		if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EPage_Rect::EPR_Prev]) )
 		{
-			Sub_Menu_Curr_Page--;
+			if (Sub_Menu_Curr_Page < 1)
+				return;
+			else
+				Sub_Menu_Curr_Page--;
+
 			Draw_Sub_Menu(Active_Menu);
 			return;
 		}
@@ -858,7 +849,7 @@ void AsUI_Builder::Redraw_Button(const EActive_Button &active_button, std::map<s
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Button_Text(const HBRUSH& background, const COLORREF& color_bk, const COLORREF& color_tx, const RECT& rect, const wchar_t* str)
+void AsUI_Builder::Draw_Button_Text(const HBRUSH& background, const COLORREF& color_bk, const COLORREF& color_tx, const RECT& rect, const wchar_t *str) const
 {
 	SelectObject(Ptr_Hdc, background);
 	SetBkColor(Ptr_Hdc, color_bk);
@@ -868,7 +859,7 @@ void AsUI_Builder::Draw_Button_Text(const HBRUSH& background, const COLORREF& co
 	TextOutW(Ptr_Hdc, rect.left + AsConfig::Global_Scale, rect.top + AsConfig::Global_Scale, str, (int)wcslen(str));  // button_prev text ( x its text out in middle
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_User_Title_Image(const wchar_t *image_path)
+void AsUI_Builder::Draw_User_Title_Image(const wchar_t *image_path) const
 {
 	int width = 0, height = 0, bpp = 0;
 	DirectX::ScratchImage image_title;
@@ -1132,7 +1123,7 @@ RECT AsUI_Builder::Add_Border(const int &x_cord) const
 	return border_rect;
 }
 //------------------------------------------------------------------------------------------------------------
-RECT AsUI_Builder::Add_Button(RECT &border_rect, const std::wstring &title)
+RECT AsUI_Builder::Add_Button(RECT &border_rect, const std::wstring &title) const
 {
 	int scale = AsConfig::Global_Scale;
 	int button_w, button_h;
@@ -1158,19 +1149,19 @@ void AsUI_Builder::Add_Button_Next_Page()
 {
 	int scale = AsConfig::Global_Scale;
 	RECT button_update = { 1140, 12, 1228, 30 };  // Update Page
-	RECT button_next = { 1231, 12, 1303, 30 };  // Next Page
-	RECT button_prev = { 1305, 12, 1375, 30 };  // Prev Page
+	RECT button_prev = { 1231, 12, 1303, 30 };  // Next Page
+	RECT button_next= { 1305, 12, 1375, 30 };  // Prev Page
 
 	Rectangle(Ptr_Hdc, button_update.left, button_update.top, button_update.right, button_update.bottom);
 	TextOutW(Ptr_Hdc, button_update.left + 1, button_update.top + 1, L"Update Page", 11);
-	Rectangle(Ptr_Hdc, button_next.left, button_next.top, button_next.right, button_next.bottom);
-	TextOutW(Ptr_Hdc, button_next.left + 1, button_next.top + 1, L"Next Page", 9);
 	Rectangle(Ptr_Hdc, button_prev.left, button_prev.top, button_prev.right, button_prev.bottom);
 	TextOutW(Ptr_Hdc, button_prev.left + 1, button_prev.top + 1, L"Prev Page", 9);
+	Rectangle(Ptr_Hdc, button_next.left, button_next.top, button_next.right, button_next.bottom);
+	TextOutW(Ptr_Hdc, button_next.left + 1, button_next.top + 1, L"Next Page", 9);
 
 	Rect_Pages[EPage_Rect::EPR_Update] = button_update;
-	Rect_Pages[EPage_Rect::EPR_Next] = button_next;
 	Rect_Pages[EPage_Rect::EPR_Prev] = button_prev;
+	Rect_Pages[EPage_Rect::EPR_Next] = button_next;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Add_To_User_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input)
@@ -1666,7 +1657,7 @@ AsUI_Book_Reader::AsUI_Book_Reader(HDC hdc)
 
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Book_Reader::Handle_Input(EKey_Type &key_type)
+void AsUI_Book_Reader::Handle_Input(EKey_Type &key_type) const
 {
 	switch (key_type)
 	{
@@ -1764,7 +1755,7 @@ void AsEngine::Draw_Frame_Book_Reader(HWND hwnd)
 	EndPaint(Ptr_Hwnd, &Paint_Struct);
 }
 //------------------------------------------------------------------------------------------------------------
-void AsEngine::Redraw_Frame()
+void AsEngine::Redraw_Frame() const
 {
 	InvalidateRect(Ptr_Hwnd, 0, FALSE);  // если во 2-м параметре указать RECT рисувать можно будет только в нем | TRUE если нужно стереть всё
 }

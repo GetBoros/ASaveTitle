@@ -50,12 +50,6 @@ enum EPage_Rect
 	EPR_Last
 };
 //------------------------------------------------------------------------------------------------------------
-struct SConfig
-{
-	size_t User_Array_Max_Size = 0;
-	std::wstring File_Name = L"Config.txt";
-};
-//------------------------------------------------------------------------------------------------------------
 struct SUser_Input_Data
 {
 	int Title_Num = 0;
@@ -94,7 +88,7 @@ public:
 	void Init();  // Build Main Menu
 	void Draw_Sub_Menu(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
 	void Redraw_Button_Advence(const EActive_Button &active_button);
-	void Redraw_Input_Button();  // Show user_input in sub menu
+	void Redraw_Input_Button() const;  // Show user_input in sub menu
 	void User_Input_Adjust(const bool is_increment);  // Change active title num
 	void User_Input_Request();  // Draw Request
 	void User_Input_Reset();  // Add to array
@@ -110,15 +104,15 @@ public:
 
 private:
 	void Redraw_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array);
-	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str);
-	void Draw_User_Title_Image(const wchar_t *image_path);
+	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
+	void Draw_User_Title_Image(const wchar_t *image_path) const;
 	void Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser_Input_Data> &map);
 	void Draw_Active_Button();
 	void Init_User_Array_Load(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
 	void Init_Context_Menu(const int &x, const int &y);
 	int Init_Seasons(int curr_it) const; 
 	RECT Add_Border(const int &x_cord) const;
-	RECT Add_Button(RECT &border_rect, const std::wstring &title);
+	RECT Add_Button(RECT &border_rect, const std::wstring &title) const;
 	void Add_Button_Next_Page();
 	void Add_To_User_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input);  // Save User_Input to User_Array_Map
 	void Add_To_Clipboard_Name_Key();
@@ -174,7 +168,7 @@ class AsUI_Book_Reader
 public:
 	AsUI_Book_Reader(HDC hdc);
 
-	void Handle_Input(EKey_Type &key_type);
+	void Handle_Input(EKey_Type &key_type) const;
 
 	HDC Ptr_Hdc;
 };
@@ -187,7 +181,7 @@ public:
 
 	void Draw_Frame(HWND hwnd);
 	void Draw_Frame_Book_Reader(HWND hwnd);
-	void Redraw_Frame();
+	void Redraw_Frame() const;
 	void Get_Clipboard_From_Else();
 	int On_Timer();
 
@@ -738,9 +732,9 @@ V		- Будем монитроить и фиксить
 
 V	- Добавить возможность выбора с какой программы стартувать
 */
-// TASKS --- 18.06.2024 - 21.06.2024 --- 
+// TASKS --- 18.06.2024 - 21.06.2024 ---
 /*
-V	- Tools 
+V	- Tools
 		- Save, Load, Format_text
 
 V	- Добавлять в структуру ID Title
@@ -751,8 +745,18 @@ V	- Доставать из url index(short)
 V		- Как сохранять структуру?
 			- Создать класс сохранение, в котором будут:
 				- // !!!
+*/
+// TASKS --- 23.06.2024  --- Current
+/*
 
-X	- 
+V	- Fix Going to page - 1 >
+
+X	- Переделать сохранение
+V		- Сохранить сайт, потом id (user input)
+X		- Создать структуру в которой храним:
+			- ID URL
+				- Файл називаеться например anime-bit в нём храним id
+
 */
 // TASKS
 /*

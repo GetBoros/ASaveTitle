@@ -545,10 +545,10 @@ void AsUI_Builder::User_Input_Reset()
 			std::filesystem::create_directories(AsConfig::Image_Folder);
 	
 		// Save site url, id
-		unsigned short site_id = 0;
-		wchar_t *temp;
-		AsTools::Format_Text_Using_Patterns(User_Input, L"content/", L"/", &temp);
-		site_id = std::stoi(temp);
+		//unsigned short site_id = 0;
+		//wchar_t *temp;
+		//AsTools::Format_Text_Using_Patterns(User_Input, L"content/", L"/", &temp);
+		//site_id = std::stoi(temp);
 		ACurl_Client client_url(EPrograms::ASaver, User_Input);  // if can get info from url, animebit just for now
 	}
 

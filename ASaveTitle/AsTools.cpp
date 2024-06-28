@@ -28,7 +28,10 @@ void AsTools::Format_Text_Using_Patterns(const wchar_t *url, const wchar_t *patt
 
 	const wchar_t *ptr_end = wcsstr(ptr_start, pattern_end);
 	if (!ptr_end)  // don`t found end
+	{
+		*result = new wchar_t[1]{};
 		return;
+	}
 	const int context_length = static_cast<int>(ptr_end - ptr_start + 1);
 	*result = new wchar_t[context_length] {};
 	const int context_end = context_length - 1;

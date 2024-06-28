@@ -10,12 +10,11 @@ class AsMain
 
 public:
 	AsMain(AsMain &main_window) = delete;
-	void operator=(const AsMain&) = delete;
+	void operator=(const AsMain &) = delete;
 	
 	int Get_WParam();
 
 	static AsMain *Set_Instance(HINSTANCE handle_instance);
-
 	static AsMain *Main_Window;
 
 private:

@@ -11,7 +11,7 @@ public:
 
 	static bool Is_Button_Pressed;
 
-	static void Format_Text_Using_Patterns(const wchar_t *url, const wchar_t *pattern_str, const wchar_t *pattern_end, wchar_t **result);
+	static void Format_Text_Using_Patterns(const wchar_t *url, const wchar_t *pattern_str, const wchar_t *pattern_end, wchar_t **result);  // result with start pattern
 	template <typename Template> static void TObject_Save(const Template &data, const char *path);
 	template <typename Template> static void TObject_Load(Template *&data, const char *path);
 
@@ -28,7 +28,7 @@ private:
 //------------------------------------------------------------------------------------------------------------
 template<typename Template> inline void AsTools::TObject_Save(const Template &data, const char *path)
 {//  !!! AsTools --- INLINE || TArray<unsigned short> temp;  Create TArray
-	std::ofstream outfile(path, std::ios::binary);
+	std::ofstream outfile(path, std::ios::binary | std::ios::app);
 	if (!outfile)
 		return;
 

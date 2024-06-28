@@ -216,6 +216,7 @@ size_t ACurl_Client::Write_Callback(void *contents, size_t size, size_t nmemb, v
 	const wchar_t *title_num_ptr = wcsstr(Response_Buffer.c_str(), pattern_ttl);  // get ptr at pattern_ttl begin
 	if (title_num_ptr != 0 && *(title_num_ptr + 1) != L'\0')
 	{// !!! Refactoring waiting this moment
+		wchar_t *title_name;
 		wchar_t curr_char;  // Write title | write seasons
 		int pattern_length;
 		int i;
@@ -233,11 +234,14 @@ size_t ACurl_Client::Write_Callback(void *contents, size_t size, size_t nmemb, v
 			curr_char = title_num_ptr[i++];
 
 		i = i - pattern_length + buffer_for_nums;
-		user_input[1] = new wchar_t[--i];
+		user_input[1] = new wchar_t[--i] {};
 		buffer_for_nums = i - buffer_for_nums;
 		
-		wcsncpy_s(user_input[1], i, title_num_ptr + pattern_length, buffer_for_nums);
-		
+
+		AsTools::Format_Text_Using_Patterns(title_num_ptr, title_num_ptr + pattern_length, L"&raquo;", &title_name);
+		wcsncpy_s(user_input[1], wcslen(title_name) + 1, title_name, wcslen(title_name) );
+		delete title_name;
+
 		// 2.1. Change Invalid chars
 		while (--invalid_char_len != -1)
 		{
@@ -543,12 +547,7 @@ void AsUI_Builder::User_Input_Reset()
 	{
 		if (!std::filesystem::exists(AsConfig::Image_Folder) )
 			std::filesystem::create_directories(AsConfig::Image_Folder);
-	
-		// Save site url, id
-		//unsigned short site_id = 0;
-		//wchar_t *temp;
-		//AsTools::Format_Text_Using_Patterns(User_Input, L"content/", L"/", &temp);
-		//site_id = std::stoi(temp);
+
 		ACurl_Client client_url(EPrograms::ASaver, User_Input);  // if can get info from url, animebit just for now
 	}
 

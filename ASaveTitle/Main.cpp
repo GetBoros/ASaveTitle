@@ -4,85 +4,18 @@
 AsMain *AsMain::Main_Window = 0;
 //------------------------------------------------------------------------------------------------------------
 
-
-
-
 //------------------------------------------------------------------------------------------------------------
-void Func_03(int *pawn_state)  // Character
-{
-	int a = 25;
-	pawn_state = &a;
-	*pawn_state = 35;
-}
-//------------------------------------------------------------------------------------------------------------
-void Set_State_To_Component(int* pawn_state)  // Component
-{
-	*pawn_state += 1;
-	Func_03(pawn_state);
-	*pawn_state = 23;
-}
-//------------------------------------------------------------------------------------------------------------
-void Func_01(int *pawn_state)  // Game Mode
-{
-	*pawn_state += 1;
-
-	pawn_state[1] = 1;
-	Set_State_To_Component(pawn_state);
-	*(pawn_state + 1) = 23;
-	int yy = 0;
-}
-//------------------------------------------------------------------------------------------------------------
-void Func_00()  // Load
-{
-	int save_game_instance[25]{};
-	// func begin - LOAD
-	Func_01(save_game_instance);
-	// func end - Save
-	save_game_instance[0] = 23;
-}
-//------------------------------------------------------------------------------------------------------------
-struct STitle
-{
-	char Url = 0;  // L"https://anime-bit.ru/content/6729/"
-	unsigned short Url_Content = 0;  // 6729  || AsTools::Format_Text_Using_Patterns(L"https://anime-bit.ru/content/6729/", L"content/", L"/");
-	int Title_Series = 0;  // 235
-	int Title_Season = 0;  // V
-	wchar_t Title_Name = 0;  // Рванные Валет 235
-	double Title_Rate = 0.0;  // 9.823
-};
-//------------------------------------------------------------------------------------------------------------
-class ASaved
+class ATest
 {
 public:
-	STitle *temp = 0;
+	wchar_t *test;
 };
 //------------------------------------------------------------------------------------------------------------
-
-
-
-
 
 
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	// https://www.youtube.com/watch?v=UloAuPT6jjM  || My video
-
-	//Func_00();
-
-	//ASaved save_instance;
-	//ASaved *load_instance;
-
-	//unsigned short num = AsTools::Format_Text_Using_Patterns(L"https://anime-bit.ru/content/6729/", L"content/", L"/");
-	//unsigned short *array_nums = new unsigned short[2];
-
-	//STitle tempest;
-	//save_instance.temp = &tempest;
-
-	//// TObjectSave
-	//AsTools::TObject_Save(save_instance, "Nums.txt");  // nums 6729
-	//AsTools::TObject_Load(load_instance, "Nums.txt");  // nums 6729
-	
 	AsMain::Main_Window = AsMain::Set_Instance(hinstance);
 	return AsMain::Main_Window->Get_WParam();
 }

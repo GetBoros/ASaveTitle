@@ -3,6 +3,47 @@
 #include "Dictionary.h"
 #include "Engine.h"
 
+// UObject
+class UObject
+{
+public:
+	
+	virtual ~UObject();
+	UObject();
+
+	int root;
+
+};
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
+// AActor public : UObject
+class AActor : public UObject
+{
+public:
+	virtual ~AActor();
+	AActor();
+
+	void Set_Url(const char *url);
+	void Find_From_Patern(std::string &url, const char *start, const char *end);
+
+private:
+	bool Read_Data_From_File();
+	void Write_Data_From_File();
+
+	int ID_Content;
+	int ID_Content_Size;
+	int *ID_Content_Array;
+
+	std::string Site;
+};
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
 // AsMain
 class AsMain
 {

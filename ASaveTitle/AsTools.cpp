@@ -7,10 +7,10 @@ AsTools::~AsTools()
 	end_tick = __rdtsc();
 	delta_tick = end_tick - start_tick;  // 194176 170824 192866
 
-	if (delta_tick > 4086646)
+	if (delta_tick > 100000)  // 86000
 		int yy = 0;  // Bed
-	else if (delta_tick < 4086646 / 2)
-		int yy = 1;  // Good
+	else if (delta_tick < 100000)
+		int yy = 1;  // Good  // 25464
 }
 //------------------------------------------------------------------------------------------------------------
 AsTools::AsTools()
@@ -36,5 +36,10 @@ void AsTools::Format_Text_Using_Patterns(const wchar_t *url, const wchar_t *patt
 	*result = new wchar_t[context_length] {};
 	const int context_end = context_length - 1;
 	wcsncpy_s(*result, context_length, ptr_start, context_end);
+}
+//------------------------------------------------------------------------------------------------------------
+void AsTools::Format_Text_Using_Patterns_Extended(const wchar_t* url, const wchar_t* pattern_str, const wchar_t* pattern_end, wchar_t** result)
+{
+
 }
 //------------------------------------------------------------------------------------------------------------

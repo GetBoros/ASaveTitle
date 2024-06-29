@@ -4,18 +4,137 @@
 AsMain *AsMain::Main_Window = 0;
 //------------------------------------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------------------------------------
-class ATest
+
+
+
+
+// UObject
+UObject::~UObject()
 {
-public:
-	wchar_t *test;
-};
+
+}
 //------------------------------------------------------------------------------------------------------------
+UObject::UObject()
+ : root(0)
+{
+	int yy = 0;
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
+// AActor
+AActor::~AActor()
+{
+	delete[] ID_Content_Array;
+}
+//------------------------------------------------------------------------------------------------------------
+AActor::AActor()
+ : ID_Content(0), ID_Content_Size(0), ID_Content_Array(0), Site{}
+{
+
+}
+//------------------------------------------------------------------------------------------------------------
+void AActor::Set_Url(const char *url)
+{
+	// 1.0 Receive Data from URL
+	Find_From_Patern(Site = url, "/content/", "/");
+	ID_Content = std::stoi(Site);
+
+	Find_From_Patern(Site = url, "https://", ".ru/");
+
+	// 1.1. Create Directory based on url 
+	if (!std::filesystem::exists("Data/" + Site) )
+		std::filesystem::create_directories("Data/" + Site);
+
+	Site = "Data/" + Site + "/" + Site + ".bin";
+
+	// 1.2 Load/Save
+	if (Read_Data_From_File() )  // if cant read or the ID exist return false
+		Write_Data_From_File();
+
+	// 1.3 Update Title
+	/*
+	
+	X	- Make url from ID_Context and Site:
+			- Parsing it
+
+	X	- Get ID_Content
+			- Use Curl to check url
+				- If have new series change button in array
+	*/
+}
+//------------------------------------------------------------------------------------------------------------
+void AActor::Find_From_Patern(std::string &url, const char *start, const char *end)  // ~80 000
+{
+	size_t start_pos = url.find(start);
+	size_t end_pos;
+	if (start_pos != std::string::npos)
+	{
+		start_pos += std::strlen(start);
+		end_pos = url.find(end, start_pos);
+		if (end_pos != std::string::npos)
+			url = url.substr(start_pos, end_pos - start_pos);
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+bool AActor::Read_Data_From_File()
+{
+	int how_much_g = 0;
+
+	std::ifstream infile(Site, std::ios::in | std::ios::binary);
+	if (!infile)
+	{// if first time 
+
+		ID_Content_Array = new int[ID_Content_Size + 1]{};
+		ID_Content_Array[ID_Content_Size++] = ID_Content;
+		return true;
+	}
+
+	infile.seekg(0, std::ios::end);
+	how_much_g = (int)infile.tellg();
+
+	ID_Content_Size = how_much_g / sizeof(int);
+
+	infile.seekg(0, std::ios::beg);
+	ID_Content_Array = new int [ID_Content_Size + 1]{};
+	infile.read(reinterpret_cast<char*>(ID_Content_Array), how_much_g);
+	infile.close();
+
+	for (int i = 0; i < ID_Content_Size; ++i)  // Check the same value, if find exit from component
+		if (ID_Content_Array[i] == ID_Content)
+			return false;
+
+	ID_Content_Array[ID_Content_Size++] = ID_Content;  // !!! Don`t add if already exist
+	return true;
+}
+//------------------------------------------------------------------------------------------------------------
+void AActor::Write_Data_From_File()
+{
+	std::ofstream outfile(Site, std::ios::out | std::ios::binary | std::ios::trunc);
+	if (!outfile)
+		return;
+
+	for (int i = 0; i < ID_Content_Size; ++i)
+		outfile.write(reinterpret_cast<const char*>(&ID_Content_Array[i]), sizeof(ID_Content_Array[i]) );
+
+	outfile.close();
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
 
 
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
+	//AActor* actor_component; 
+
+	//actor_component = new AActor{};
+	//actor_component->Set_Url("https://anime-bit.ru/content/6785/");
+
 	AsMain::Main_Window = AsMain::Set_Instance(hinstance);
 	return AsMain::Main_Window->Get_WParam();
 }

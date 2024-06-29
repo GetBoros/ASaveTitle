@@ -79,6 +79,28 @@ private:
 	static std::wstring Response_Buffer;  // respnse from url
 };
 //------------------------------------------------------------------------------------------------------------
+class ACurl_Component
+{
+public:
+	~ACurl_Component();
+	ACurl_Component(const wchar_t *url);
+
+private:
+	void Set_Url(const char *url);
+	void Find_From_Patern(std::string &url, const char *start, const char *end);
+
+private:
+	bool Read_Data_From_File();
+	void Write_Data_From_File();
+
+	int ID_Content;
+	int ID_Content_Size;
+	int *ID_Content_Array;
+
+	std::string Site;
+
+};
+//------------------------------------------------------------------------------------------------------------
 class AsUI_Builder
 {
 public:
@@ -758,15 +780,20 @@ X		- Создать структуру в которой храним:
 				- Файл називаеться например anime-bit в нём храним id
 
 */
-// TASKS --- 27.06.2024  --- Current --- 
+// TASKS --- 29.06.2024  --- Current --- 
 /*
-X	- Сохранять добавленный URL в Data_URL
-		- 
+
+V	- Format url to site and ID_Content
+V	- Save ID_Content to bin, don`t save same id
+V	- Load ID_COntent from bin
+
+X	- Make url to start parsing
+X		- При нажатии кнопки пройтись по массиву, взять из структуры ID зайти на сайт, проверить доступную серию.
+			- Если серия другая изменить цвет кнопки и перерисувать
+
 */
 // TASKS
 /*
-X		- При нажатии кнопки пройтись по массиву, взять из структуры ID зайти на сайт, проверить доступную серию.
-			- Если серия другая изменить цвет кнопки и перерисувать
 
 --- MOST WANTED ---
 V	- Добавить новую кнопку после которой будут происходить такие действия

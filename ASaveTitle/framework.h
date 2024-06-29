@@ -17,7 +17,7 @@
 #include "WinSock2.h"  // NET
 #include "curl/curl.h"  // NET || BROWSE
 #include "array"
-
+#include <cwchar>  // wcstombs_s
 // TEMP
 /*
 //#include <WS2tcpip.h>

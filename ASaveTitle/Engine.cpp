@@ -298,6 +298,117 @@ size_t ACurl_Client::Save_Img(void *contents, size_t size, size_t nmemb, FILE *u
 
 
 
+// ACurl_Component
+ACurl_Component::~ACurl_Component()
+{
+	delete[] ID_Content_Array;
+}
+//------------------------------------------------------------------------------------------------------------
+ACurl_Component::ACurl_Component(const wchar_t *url)
+ : ID_Content(0), ID_Content_Size(0), ID_Content_Array(0), Site{}
+{
+	size_t len;
+	size_t converted_chars;
+
+	len = std::wcslen(url) + 1; // +1 для завершающего нулевого символа
+	converted_chars = 0;
+	std::vector<char> chars_buffer(len);
+	
+	wcstombs_s(&converted_chars, chars_buffer.data(), len, url, len - 1);  // Преобразуем широкую строку в многобайтовую строку
+	
+	Set_Url(chars_buffer.data() );  // Передаем результат в Set_Url
+}
+//------------------------------------------------------------------------------------------------------------
+void ACurl_Component::Set_Url(const char* url)
+{
+	// 1.0 Receive Data from URL
+	Find_From_Patern(Site = url, "/content/", "/");
+	ID_Content = std::stoi(Site);
+
+	Find_From_Patern(Site = url, "https://", ".ru/");
+
+	// 1.1. Create Directory based on url 
+	if (!std::filesystem::exists("Data/" + Site) )
+		std::filesystem::create_directories("Data/" + Site);
+
+	Site = "Data/" + Site + "/" + Site + ".bin";
+
+	// 1.2 Load/Save
+	if (Read_Data_From_File() )  // if cant read or the ID exist return false
+		Write_Data_From_File();
+
+	// 1.3 Update Title
+	/*
+
+	X	- Make url from ID_Context and Site:
+			- Parsing it
+
+	X	- Get ID_Content
+			- Use Curl to check url
+				- If have new series change button in array
+	*/
+}
+//------------------------------------------------------------------------------------------------------------
+void ACurl_Component::Find_From_Patern(std::string& url, const char* start, const char* end)  // ~80 000
+{
+	size_t start_pos = url.find(start);
+	size_t end_pos;
+	if (start_pos != std::string::npos)
+	{
+		start_pos += std::strlen(start);
+		end_pos = url.find(end, start_pos);
+		if (end_pos != std::string::npos)
+			url = url.substr(start_pos, end_pos - start_pos);
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+bool ACurl_Component::Read_Data_From_File()
+{
+	int how_much_g = 0;
+
+	std::ifstream infile(Site, std::ios::in | std::ios::binary);
+	if (!infile)
+	{// if first time 
+
+		ID_Content_Array = new int[ID_Content_Size + 1] {};
+		ID_Content_Array[ID_Content_Size++] = ID_Content;
+		return true;
+	}
+
+	infile.seekg(0, std::ios::end);
+	how_much_g = (int)infile.tellg();
+
+	ID_Content_Size = how_much_g / sizeof(int);
+
+	infile.seekg(0, std::ios::beg);
+	ID_Content_Array = new int [ID_Content_Size + 1] {};
+	infile.read(reinterpret_cast<char*>(ID_Content_Array), how_much_g);
+	infile.close();
+
+	for (int i = 0; i < ID_Content_Size; ++i)  // Check the same value, if find exit from component
+		if (ID_Content_Array[i] == ID_Content)
+			return false;
+
+	ID_Content_Array[ID_Content_Size++] = ID_Content;  // !!! Don`t add if already exist
+	return true;
+}
+//------------------------------------------------------------------------------------------------------------
+void ACurl_Component::Write_Data_From_File()
+{
+	std::ofstream outfile(Site, std::ios::out | std::ios::binary | std::ios::trunc);
+	if (!outfile)
+		return;
+
+	for (int i = 0; i < ID_Content_Size; ++i)
+		outfile.write(reinterpret_cast<const char*>(&ID_Content_Array[i]), sizeof(ID_Content_Array[i]));
+
+	outfile.close();
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
 // AsUI_Builder
 int AsUI_Builder::User_Input_Len = 0;
 int AsUI_Builder::Context_Button_Length = 5;
@@ -328,10 +439,6 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 	Main_Menu_Titles_Length_Max(50), Sub_Menu_Curr_Page(0), Prev_Main_Menu_Button(0), Prev_Button(99), User_Input_Rect{}, Prev_Context_Menu_Cords{},
 	Rect_Buttons_Context{}, Input_Button_Rect{}, Rect_Pages{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), Rect_User_Input_Change{}, Ptr_Hdc(hdc)
 {
-	//wchar_t temp[] = L"https://anime-bit.ru/content/6729/";
-
-	//ACurl_Client client_url(EPrograms::ASaver, temp);  // if can get info from url, animebit just for now
-
 	// Load map from Data/...
 	User_Input_Load(User_Array_Map, "Data/Watching.bin");
 	User_Input_Load(User_Library_Map, "Data/Library.bin");
@@ -548,7 +655,18 @@ void AsUI_Builder::User_Input_Reset()
 		if (!std::filesystem::exists(AsConfig::Image_Folder) )
 			std::filesystem::create_directories(AsConfig::Image_Folder);
 
-		ACurl_Client client_url(EPrograms::ASaver, User_Input);  // if can get info from url, animebit just for now
+		//TEMP
+		std::thread th_user_arra;
+		std::thread th_libr_arra;
+
+		th_user_arra = std::thread([&]() { ACurl_Component save_id_contet(User_Input); });
+		th_libr_arra = std::thread([&]() { ACurl_Client client_url(EPrograms::ASaver, User_Input); });
+
+		th_user_arra.join();
+		th_libr_arra.join();
+
+		//ACurl_Component save_id_contet(User_Input);  // thread 2 - 3 save content id to file named like url || UPDATE BUTTON
+		//ACurl_Client client_url(EPrograms::ASaver, User_Input);  // if can get info from url, animebit just for now
 	}
 
 	switch (Active_Menu)

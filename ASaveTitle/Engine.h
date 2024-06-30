@@ -83,15 +83,17 @@ class ACurl_Component
 {
 public:
 	~ACurl_Component();
-	ACurl_Component(const wchar_t *url);
+	ACurl_Component();
+
+	void Set_W_Url(const wchar_t *url);
+	void Get_Url(wchar_t *user_input);
 
 private:
-	void Set_Url(const char *url);
+	void Set_Content_ID(const char *url);
 	void Find_From_Patern(std::string &url, const char *start, const char *end);
-
-private:
-	bool Read_Data_From_File();
 	void Write_Data_From_File();
+	void Update_Url();
+	void Load();
 
 	int ID_Content;
 	int ID_Content_Size;
@@ -158,6 +160,7 @@ private:
 	const int Sub_Menu_Max_Line = 31;  // Нужен алгоритм что бы понять сколько влезет в пользувательский экран, или настроить через config
 	const int User_Array_Max_Size = 50;  // нужно будет выгрузить из конфига
 
+	ACurl_Component *Curl_Component;
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
 	RECT *Rect_Menu_List;  // main menu buttons cords here when they`r created
 	RECT *User_Input_Rect;  // user_inputs cords
@@ -175,7 +178,7 @@ private:
 	std::map<std::wstring, SUser_Input_Data> User_Library_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Paused_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Wishlist_Map;
-	std::map<std::wstring, SUser_Input_Data>::iterator User_Curr_It;
+	std::map<std::wstring, SUser_Input_Data>::iterator It_Current_User;
 
 	static int Context_Button_Length;
 	static int User_Input_Len;  // count user input after press enter set to zero
@@ -780,16 +783,32 @@ X		- Создать структуру в которой храним:
 				- Файл називаеться например anime-bit в нём храним id
 
 */
-// TASKS --- 29.06.2024  --- Current --- 
+// TASKS --- 29.06.2024  ---
 /*
 
 V	- Format url to site and ID_Content
 V	- Save ID_Content to bin, don`t save same id
 V	- Load ID_COntent from bin
 
-X	- Make url to start parsing
-X		- При нажатии кнопки пройтись по массиву, взять из структуры ID зайти на сайт, проверить доступную серию.
-			- Если серия другая изменить цвет кнопки и перерисувать
+*/
+// TASKS --- 30.06.2024  --- 
+/*
+
+V	- Переделанно сохранения в ACurl_Component при создании и удаленеие обэкта
+
+
+V	- После выхода из програмы не сохраняет.... Fixed
+
+V	- ACurl_Component передалать сохранять и загружать конструктор, деструктор
+
+V	- Make url to start parsing
+V		- При нажатии кнопки пройтись по массиву, взять из структуры ID зайти на сайт, проверить доступную серию.
+
+*/
+// TASKS --- 01.07.2024  --- Current --- 
+/*
+
+X	- Если серия другая изменить цвет кнопки и перерисувать
 
 */
 // TASKS

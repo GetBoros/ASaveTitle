@@ -42,12 +42,13 @@ enum EActive_Menu
 	EAM_Exit
 };
 //------------------------------------------------------------------------------------------------------------
-enum EPage_Rect
+enum EActive_Page
 {
-	EPR_Update,
-	EPR_Prev,
-	EPR_Next,
-	EPR_Last
+	EAP_None = -1,
+	EAP_Update = 0,
+	EAP_Prev,
+	EAP_Next,
+	EAP_Last
 };
 //------------------------------------------------------------------------------------------------------------
 struct SUser_Input_Data
@@ -86,21 +87,19 @@ public:
 	ACurl_Component();
 
 	void Set_W_Url(const wchar_t *url);
-	void Get_Url(wchar_t *user_input);
+	bool Get_Url(wchar_t *user_input, const int &id_content_index);
 
 private:
-	void Set_Content_ID(const char *url);
 	void Find_From_Patern(std::string &url, const char *start, const char *end);
-	void Write_Data_From_File();
-	void Update_Url();
-	void Load();
+	void Set_Content_ID(const char *url);
+	void Save_ID_Content();
+	void Load_ID_Content();
 
 	int ID_Content;
 	int ID_Content_Size;
 	int *ID_Content_Array;
 
 	std::string Site;
-
 };
 //------------------------------------------------------------------------------------------------------------
 class AsUI_Builder
@@ -112,7 +111,7 @@ public:
 	void Init();  // Build Main Menu
 	void Draw_Sub_Menu(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
 	void Redraw_Button_Advence(const EActive_Button &active_button);
-	void Redraw_Input_Button() const;  // Show user_input in sub menu
+	void User_Input_Redraw_Button() const;  // Show user_input in sub menu
 	void User_Input_Adjust(const bool is_increment);  // Change active title num
 	void User_Input_Request();  // Draw Request
 	void User_Input_Reset();  // Add to array
@@ -127,6 +126,7 @@ public:
 	HDC Ptr_Hdc;
 
 private:
+	void Update_ID_Content();  // Check only Array_Map
 	void Redraw_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array);
 	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
 	void Draw_User_Title_Image(const wchar_t *image_path) const;
@@ -139,6 +139,7 @@ private:
 	RECT Add_Button(RECT &border_rect, const std::wstring &title) const;
 	void Add_Button_Next_Page();
 	void Add_To_User_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input);  // Save User_Input to User_Array_Map
+	void Add_To_Clipboard();
 	void Add_To_Clipboard_Name_Key();
 	void Erase_From_User_Array();  // Errase from Array
 	void User_Input_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
@@ -162,12 +163,13 @@ private:
 
 	ACurl_Component *Curl_Component;
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
+	EActive_Page Active_Page;
 	RECT *Rect_Menu_List;  // main menu buttons cords here when they`r created
 	RECT *User_Input_Rect;  // user_inputs cords
 	RECT *Rect_User_Input_Change;
 	RECT *Rect_Buttons_Context;
 	RECT Prev_Context_Menu_Cords;  // prev context cords
-	RECT Rect_Pages[EPage_Rect::EPR_Last];
+	RECT Rect_Pages[EActive_Page::EAP_Last];
 	HDC Hdc_Memory;
 	HBITMAP H_Bitmap;
 	HGDIOBJ Saved_Object;
@@ -808,8 +810,13 @@ V		- При нажатии кнопки пройтись по массиву, в
 // TASKS --- 01.07.2024  --- Current --- 
 /*
 
-X	- Если серия другая изменить цвет кнопки и перерисувать
+V	- Если серия другая изменить цвет кнопки и перерисувать
+V	- Add to clipboard url with id, can go site and watch
+V	- Double click on User_Input_Button to update new watched
 
+X	- When press update button
+		- 
+X		- While 12 / 12 Add to watched
 */
 // TASKS
 /*

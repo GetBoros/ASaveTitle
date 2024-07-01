@@ -23,12 +23,14 @@ const COLORREF AsConfig::Color_Text_Green = RGB(80, 146, 56);
 const COLORREF AsConfig::Color_Dark = RGB(30, 30, 30);
 const COLORREF AsConfig::Color_Yellow = RGB(220, 220, 10);
 const COLORREF AsConfig::Color_Red = RGB(255, 32, 37);
+const COLORREF AsConfig::Color_Backgrount_Text = RGB(185, 122, 87);
 
 const HBRUSH AsConfig::Brush_White  = CreateSolidBrush(RGB(255, 255, 255) );
 const HBRUSH AsConfig::Brush_Gray  = CreateSolidBrush(RGB(125, 125, 125) );
 const HBRUSH AsConfig::Brush_Green = CreateSolidBrush(RGB(0, 255, 0) );
 const HBRUSH AsConfig::Brush_Green_Dark = CreateSolidBrush(RGB(80, 146, 56) );
 const HBRUSH AsConfig::Brush_Background = CreateSolidBrush(RGB(30, 30, 30) );
+const HBRUSH AsConfig::Brush_Background_Button_Update = CreateSolidBrush(RGB(185, 122, 87) );
 //------------------------------------------------------------------------------------------------------------
 AsConfig::~AsConfig()
 {
@@ -37,6 +39,7 @@ AsConfig::~AsConfig()
 	DeleteObject(Brush_Green);
 	DeleteObject(Brush_Green_Dark);
 	DeleteObject(Brush_Background);
+	DeleteObject(Brush_Background_Button_Update);
 }
 //------------------------------------------------------------------------------------------------------------
 AsConfig::AsConfig()

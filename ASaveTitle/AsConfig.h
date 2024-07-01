@@ -64,12 +64,14 @@ public:
 	static const COLORREF Color_Dark;
 	static const COLORREF Color_Yellow;
 	static const COLORREF Color_Red;
+	static const COLORREF Color_Backgrount_Text;
 
 	static const HBRUSH Brush_White;
 	static const HBRUSH Brush_Gray;
 	static const HBRUSH Brush_Green;
 	static const HBRUSH Brush_Green_Dark;
 	static const HBRUSH Brush_Background;
+	static const HBRUSH Brush_Background_Button_Update;
 
 	static RECT Window_Rect;
 };

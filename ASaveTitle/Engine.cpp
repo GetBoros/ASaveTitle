@@ -307,7 +307,7 @@ ACurl_Component::~ACurl_Component()
 ACurl_Component::ACurl_Component()
  : ID_Content(0), ID_Content_Size(0), ID_Content_Array(0), Site{}
 {
-	Load();
+	Load_ID_Content();
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Component::Set_W_Url(const wchar_t *url)
@@ -324,18 +324,32 @@ void ACurl_Component::Set_W_Url(const wchar_t *url)
 	Set_Content_ID(chars_buffer.data() );  // Передаем результат в Set_Url
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Component::Get_Url(wchar_t *user_input)
+bool ACurl_Component::Get_Url(wchar_t *user_input, const int &id_content_index)
 {
 	std::wstring url;
-	url = L"https://anime-bit.ru/content/" + std::to_wstring(ID_Content_Array[0]) + L"/";  // !!! Constant chang to dynamic
+	
+	if (id_content_index >= ID_Content_Size)
+		return false;
+	
+	url = L"https://anime-bit.ru/content/" + std::to_wstring(ID_Content_Array[id_content_index]) + L"/";  // !!! Constant chang to dynamic
 	const wchar_t *c_url = url.c_str();
 
-	//wchar_t *w_url = new wchar_t[wcslen(c_url) + 1];
 	wcsncpy_s(user_input, wcslen(c_url) + 1, c_url, wcslen(c_url) );
 
-	//if (w_url != 0)
-	//	ACurl_Client test(EPrograms::ASaver, w_url);  // Кайдзю номер восемь 12 if 11 need do something
-
+	return true;
+}
+//------------------------------------------------------------------------------------------------------------
+void ACurl_Component::Find_From_Patern(std::string &url, const char *start, const char *end)  // ~80 000
+{
+	size_t start_pos = url.find(start);
+	size_t end_pos;
+	if (start_pos != std::string::npos)
+	{
+		start_pos += std::strlen(start);
+		end_pos = url.find(end, start_pos);
+		if (end_pos != std::string::npos)
+			url = url.substr(start_pos, end_pos - start_pos);
+	}
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Component::Set_Content_ID(const char* url)
@@ -353,23 +367,10 @@ void ACurl_Component::Set_Content_ID(const char* url)
 	Site = "Data/" + Site + "/" + Site + ".bin";
 
 	// 1.2 Add ID_Content
-	Write_Data_From_File();
+	Save_ID_Content();
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Component::Find_From_Patern(std::string &url, const char *start, const char *end)  // ~80 000
-{
-	size_t start_pos = url.find(start);
-	size_t end_pos;
-	if (start_pos != std::string::npos)
-	{
-		start_pos += std::strlen(start);
-		end_pos = url.find(end, start_pos);
-		if (end_pos != std::string::npos)
-			url = url.substr(start_pos, end_pos - start_pos);
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Component::Write_Data_From_File()
+void ACurl_Component::Save_ID_Content()
 {
 	for (int i = 0; i < ID_Content_Size; ++i)  // Check the same value, if find exit from component
 		if (ID_Content_Array[i] == ID_Content)
@@ -385,23 +386,10 @@ void ACurl_Component::Write_Data_From_File()
 		outfile.write(reinterpret_cast<const char*>(&ID_Content_Array[i]), sizeof(ID_Content_Array[i]));
 
 	outfile.close();
-	Load();
+	Load_ID_Content();
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Component::Update_Url()
-{
-	std::wstring url;
-	url = L"https://anime-bit.ru/content/" + std::to_wstring(ID_Content_Array[0]) + L"/";
-	const wchar_t *c_url = url.c_str();
-
-	wchar_t *w_url = new wchar_t[wcslen(c_url) + 1];
-	wcsncpy_s(w_url, wcslen(c_url) + 1, c_url, wcslen(c_url) );
-
-	if (w_url != 0)
-		ACurl_Client test(EPrograms::ASaver, w_url);  // Кайдзю номер восемь 12 if 11 need do something
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Component::Load()
+void ACurl_Component::Load_ID_Content()
 {
 	int how_much_g;
 	
@@ -458,7 +446,7 @@ AsUI_Builder::~AsUI_Builder()
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::AsUI_Builder(HDC hdc)
  : Active_Menu(EAM_Main), Active_Button(EActive_Button::EAB_Main_Menu), Rect_Menu_List{}, User_Input{}, Rect_Menu_List_Length(0), Rect_Sub_Menu_Length(0),
-	Main_Menu_Titles_Length_Max(50), Curl_Component(0), Sub_Menu_Curr_Page(0), Prev_Main_Menu_Button(0), Prev_Button(99), User_Input_Rect{}, Prev_Context_Menu_Cords{},
+	Main_Menu_Titles_Length_Max(50), Curl_Component(0), Active_Page(EActive_Page::EAP_None), Sub_Menu_Curr_Page(0), Prev_Main_Menu_Button(0), Prev_Button(99), User_Input_Rect{}, Prev_Context_Menu_Cords{},
 	Rect_Buttons_Context{}, Input_Button_Rect{}, Rect_Pages{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), Rect_User_Input_Change{}, Ptr_Hdc(hdc)
 {
 	// Load map from Data/...
@@ -588,7 +576,7 @@ void AsUI_Builder::Redraw_Button_Advence(const EActive_Button &active_button)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Redraw_Input_Button() const
+void AsUI_Builder::User_Input_Redraw_Button() const
 {
 	RECT button = Input_Button_Rect;
 
@@ -755,7 +743,8 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 
 	if (!IsRectEmpty(Rect_Pages) )
 	{//Rect_Pages buttons Handle
-		if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EPage_Rect::EPR_Prev]) )
+
+		if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Prev]) )
 		{
 			if (Sub_Menu_Curr_Page < 1)
 				return;
@@ -765,7 +754,7 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 			Draw_Sub_Menu(Active_Menu);
 			return;
 		}
-		else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EPage_Rect::EPR_Next]) )
+		else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Next]) )
 		{
 			Sub_Menu_Curr_Page++;
 			Draw_Sub_Menu(Active_Menu);
@@ -777,33 +766,17 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 			Active_Menu = EAM_Watching;
 
 			return;
-		} else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EPage_Rect::EPR_Update]) )  // Update Button
+		} else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Update]) )  // Update Button
 		{
-			int index;
-			SUser_Input_Data new_ui_data;
-
-			index = 0;
-			Curl_Component->Get_Url(User_Input);  // !!! Set to Clipboard
-			ACurl_Client reguest(EPrograms::ASaver, User_Input);
-
-			new_ui_data = Init_UI_Data();  // User_Input convert to data
-			It_Current_User = User_Array_Map.find(User_Input);
-
-			if (new_ui_data.Title_Num > It_Current_User->second.Title_Num)
-			{
-				for (auto iter = User_Array_Map.begin(); iter != It_Current_User; ++iter)  // !!! Find Active button || what happend if 
-					++index;
-
-				Active_Button = (EActive_Button)index;
-				Draw_Active_Button();  // !!! Redraw to different color
-			}
-			index = 0;
+			Update_ID_Content();  // While press Update Page
+			return;
 		}
 	}
 
 
 	if (!IsRectEmpty(&Rect_User_Input_Change[0]) )
 	{// Reguest Handle
+
 		for (int i = 0; i < 2; i++)
 			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_User_Input_Change[i]) )
 			{
@@ -816,6 +789,7 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 
 	if (!IsRectEmpty(&Input_Button_Rect) )
 	{// User_Input Handle || doubl click on User_Input ||
+
 		if (IntersectRect(&intersect_rect, &mouse_cord, &Input_Button_Rect) )
 		{
 			if (User_Input[0] != 0)
@@ -850,7 +824,7 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 
 				CloseClipboard();
 			}
-			Redraw_Input_Button();
+			User_Input_Redraw_Button();
 			return;
 		}
 
@@ -859,8 +833,10 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 
 	if (!IsRectEmpty(&Prev_Context_Menu_Cords) )
 	{// Context Menu Handle
+
 		for (int i = 0; i < Context_Button_Length; i++)
 		{// check clk on context menu
+
 			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Buttons_Context[i]) )
 			{
 				EActive_Menu prev_active_mune = Active_Menu;
@@ -914,6 +890,7 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 
 	for (int i = 0; i < Rect_Menu_List_Length; i++)
 	{// Main Menu Handle
+
 		if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]) )
 		{
 			if (Active_Menu != EAM_Main)
@@ -932,6 +909,7 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 
 	for (int i = Sub_Menu_Curr_Page * Sub_Menu_Max_Line; i < Rect_Sub_Menu_Length; i++)
 	{// Sub Menu Handle
+
 		if (IntersectRect(&intersect_rect, &mouse_cord, &User_Input_Rect[i] ) )
 		{
 			Active_Button = (EActive_Button)i;
@@ -972,6 +950,48 @@ bool AsUI_Builder::Set_User_Input(const wchar_t &user_text)
 	return false;
 }
 //------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Update_ID_Content()
+{
+	int index;
+	int id_content_index;
+	SUser_Input_Data new_ui_data;
+
+	index = 0;
+	id_content_index = 0;
+
+	while (Curl_Component->Get_Url(User_Input, id_content_index) )
+	{// While we have saved ID_Content
+
+		// 1.1 Send reguest to url
+		ACurl_Client reguest(EPrograms::ASaver, User_Input);
+		new_ui_data = Init_UI_Data();  // User_Input convert to data
+
+		// 1.2 If cant find return
+		It_Current_User = User_Array_Map.find(User_Input);
+		if (!(It_Current_User != User_Array_Map.end() ) )
+			return;  // Can delete id_content_index with data if cant find || watched or deleted by user
+
+		if (new_ui_data.Title_Num > It_Current_User->second.Title_Num)
+		{// If have new series draw button if different color
+
+			for (auto iter = User_Array_Map.begin(); iter != It_Current_User; ++iter)
+				++index;
+
+			// 2.1 Setting to redraw button
+			Active_Button = (EActive_Button)index;
+			Active_Page = EAP_Update;
+			Draw_Active_Button();
+
+			// 2.2 Get url at clipboard and redraw
+			Curl_Component->Get_Url(User_Input, id_content_index);
+			Add_To_Clipboard();  // Set to Clipboard and get url from User_Input
+			User_Input_Redraw_Button();  // redraw
+			return;
+		}
+		id_content_index++;
+	}
+}
+//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Redraw_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array)
 {
 	if (Active_Menu != EAM_Main)
@@ -985,9 +1005,17 @@ void AsUI_Builder::Redraw_Button(const EActive_Button &active_button, std::map<s
 		
 		It_Current_User = user_array.begin();  // Active Button
 		std::advance(It_Current_User, (int)active_button);
-		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, User_Input_Rect[(int)active_button], It_Current_User->second.Title_Name_Num.c_str() );
 
-		Add_To_Clipboard_Name_Key();
+		if (Active_Page != EAP_Update)  // if from update button change color
+		{
+			Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, User_Input_Rect[(int)active_button], It_Current_User->second.Title_Name_Num.c_str());
+			Add_To_Clipboard_Name_Key();
+		}
+		else
+		{
+			Active_Page = EAP_None;
+			Draw_Button_Text(AsConfig::Brush_Background_Button_Update, AsConfig::Color_Backgrount_Text, AsConfig::Color_Dark, User_Input_Rect[(int)active_button], It_Current_User->second.Title_Name_Num.c_str());
+		}
 		Prev_Button = (int)active_button;
 	}
 	else
@@ -1309,9 +1337,9 @@ void AsUI_Builder::Add_Button_Next_Page()
 	Rectangle(Ptr_Hdc, button_next.left, button_next.top, button_next.right, button_next.bottom);
 	TextOutW(Ptr_Hdc, button_next.left + 1, button_next.top + 1, L"Next Page", 9);
 
-	Rect_Pages[EPage_Rect::EPR_Update] = button_update;
-	Rect_Pages[EPage_Rect::EPR_Prev] = button_prev;
-	Rect_Pages[EPage_Rect::EPR_Next] = button_next;
+	Rect_Pages[EActive_Page::EAP_Update] = button_update;
+	Rect_Pages[EActive_Page::EAP_Prev] = button_prev;
+	Rect_Pages[EActive_Page::EAP_Next] = button_next;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Add_To_User_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input)
@@ -1360,6 +1388,51 @@ void AsUI_Builder::Add_To_User_Array(std::map<std::wstring, SUser_Input_Data> &u
 		User_Input[i] = 0;
 
 	User_Input_Len = 0;
+}
+//------------------------------------------------------------------------------------------------------------
+ void AsUI_Builder::Add_To_Clipboard()
+{// Need refactoring, can delete url
+
+	wchar_t *url;
+	size_t size_in_bytes;
+	HGLOBAL global_handle;
+	LPVOID global_ptr;
+
+	if (!OpenClipboard(0) )
+		return;
+
+	if (!EmptyClipboard() )  // clean, if cant close and return
+	{
+		CloseClipboard();
+		return;
+	}
+
+	url = new wchar_t[wcslen(User_Input) + 1];  // Выделение памяти для url с учетом завершающего нуля
+	wcsncpy_s(url , wcslen(User_Input) + 1, User_Input, wcslen(User_Input));  // Копирование строки User_Input в url 
+	size_in_bytes = (wcslen(User_Input) + 1) * sizeof(wchar_t);  // Вычисление размера памяти с учетом правильных скобок
+	global_handle = GlobalAlloc(GMEM_MOVEABLE, size_in_bytes);
+
+	if (!global_handle)
+		CloseClipboard();
+	else
+	{
+		global_ptr = GlobalLock(global_handle);
+
+		if (!global_ptr)
+			return;
+
+		memcpy(global_ptr, url, size_in_bytes);  // Скопировать текст в выделенную память
+		GlobalUnlock(global_handle);  // Разблокировать глобальную память
+
+		if (SetClipboardData(CF_UNICODETEXT, global_handle) )  // Поместить текст в буфер обмена
+			CloseClipboard();  // Закрыть буфер обмена
+		else
+		{
+			GlobalFree(global_handle);  // Освободить глобальную память в случае ошибки
+			CloseClipboard();
+		}
+	}
+	delete []url;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Add_To_Clipboard_Name_Key()
@@ -1943,7 +2016,7 @@ void AsEngine::Handle_Input()
 
 
 	case EKT_Redraw_User_Input:
-		UI_Builder->Redraw_Input_Button();
+		UI_Builder->User_Input_Redraw_Button();
 		break;
 
 

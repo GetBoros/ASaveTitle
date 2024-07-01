@@ -967,9 +967,9 @@ void AsUI_Builder::Update_ID_Content()
 		new_ui_data = Init_UI_Data();  // User_Input convert to data
 
 		// 1.2 If cant find return
-		It_Current_User = User_Array_Map.find(User_Input);
-		if (!(It_Current_User != User_Array_Map.end() ) )
-			return;  // Can delete id_content_index with data if cant find || watched or deleted by user
+		It_Current_User = User_Array_Map.find(User_Input);  // !!!
+		//if (!(It_Current_User != User_Array_Map.end() ) )
+		//	return;  // Can delete id_content_index with data if cant find || watched or deleted by user
 
 		if (new_ui_data.Title_Num > It_Current_User->second.Title_Num)
 		{// If have new series draw button if different color

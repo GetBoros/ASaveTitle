@@ -393,7 +393,7 @@ void ACurl_Component::Emplace_ID_Content()
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Component::Load_ID_Content()
 {
-	int how_much_g;
+	unsigned short how_much_g;
 	
 	how_much_g = 0;
 	delete[] ID_Content_Array;
@@ -402,17 +402,17 @@ void ACurl_Component::Load_ID_Content()
 	if (infile)
 	{
 		infile.seekg(0, std::ios::end);
-		how_much_g = (int)infile.tellg();
+		how_much_g = (unsigned short)infile.tellg();
 
-		ID_Content_Size = how_much_g / sizeof(int);
+		ID_Content_Size = how_much_g / sizeof(unsigned short);
 
 		infile.seekg(0, std::ios::beg);
-		ID_Content_Array = new int [ID_Content_Size + 1] {};
+		ID_Content_Array = new unsigned short [ID_Content_Size + 1] {};
 		infile.read(reinterpret_cast<char*>(ID_Content_Array), how_much_g);
 		infile.close();
 	}
 	else
-		ID_Content_Array = new int[ID_Content_Size + 1] {};
+		ID_Content_Array = new unsigned short[ID_Content_Size + 1] {};
 }
 //------------------------------------------------------------------------------------------------------------
 

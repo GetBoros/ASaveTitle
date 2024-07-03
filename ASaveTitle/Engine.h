@@ -96,9 +96,9 @@ private:
 	void Load_ID_Content();
 
 
-	int ID_Content;
-	int ID_Content_Size;
-	int *ID_Content_Array;
+	unsigned short ID_Content;
+	unsigned short ID_Content_Size;
+	unsigned short *ID_Content_Array;
 
 	std::string Url_Site_Name;
 	std::string Path_Folder;

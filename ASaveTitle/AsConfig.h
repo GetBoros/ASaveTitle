@@ -31,6 +31,7 @@ public:
 	AsConfig();
 
 	static const char Dictionary_Main_Folder[];
+	static const char Path_Sites_Folder[];
 
 	static const wchar_t Seasons[];
 	static const wchar_t Image_Folder[];

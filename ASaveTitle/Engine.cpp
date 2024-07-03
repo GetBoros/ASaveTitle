@@ -305,23 +305,30 @@ ACurl_Component::~ACurl_Component()
 }
 //------------------------------------------------------------------------------------------------------------
 ACurl_Component::ACurl_Component()
- : ID_Content(0), ID_Content_Size(0), ID_Content_Array(0), Site{}
+ : ID_Content(0), ID_Content_Size(0), ID_Content_Array(0), Url_Site_Name{}, Path_Folder(AsConfig::Path_Sites_Folder)
 {
+	Path_Folder += "anime-bit.bin";  // !!! Temp
 	Load_ID_Content();
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Component::Set_W_Url(const wchar_t *url)
+void ACurl_Component::Add_ID_Content(const wchar_t *url)
 {
 	size_t len;
 	size_t converted_chars;
 
-	len = std::wcslen(url) + 1; // +1 для завершающего нулевого символа
+	len = std::wcslen(url) + 1; // + char for \0
 	converted_chars = 0;
 	std::vector<char> chars_buffer(len);
+	wcstombs_s(&converted_chars, chars_buffer.data(), len, url, len - 1);  // wchar_t to char
 
-	wcstombs_s(&converted_chars, chars_buffer.data(), len, url, len - 1);  // Преобразуем широкую строку в многобайтовую строку
+	Find_From_Patern(Url_Site_Name = chars_buffer.data(), "/content/", "/");  // Receive ID_Content
+	ID_Content = std::stoi(Url_Site_Name);
 
-	Set_Content_ID(chars_buffer.data() );  // Передаем результат в Set_Url
+	Find_From_Patern(Url_Site_Name = chars_buffer.data(), "https://", ".ru/");  // Receive Url_Site_Name url to create folder
+	if (!std::filesystem::exists(Path_Folder) )
+		std::filesystem::create_directories(AsConfig::Path_Sites_Folder);  // If folder does`nt exist create it
+
+	Emplace_ID_Content();  // Save all to files 
 }
 //------------------------------------------------------------------------------------------------------------
 bool ACurl_Component::Get_Url(wchar_t *user_input, const int &id_content_index)
@@ -339,6 +346,19 @@ bool ACurl_Component::Get_Url(wchar_t *user_input, const int &id_content_index)
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
+bool ACurl_Component::Erase_ID_Content(const int &if_not_last_id_content)
+{
+	if (ID_Content_Size > if_not_last_id_content)
+	{
+		--ID_Content_Size;
+		ID_Content_Array[if_not_last_id_content] = ID_Content_Array[ID_Content_Size];
+		ID_Content_Array[ID_Content_Size] = 0;
+		Emplace_ID_Content();
+		return true;
+	}
+	return false;
+}
+//------------------------------------------------------------------------------------------------------------
 void ACurl_Component::Find_From_Patern(std::string &url, const char *start, const char *end)  // ~80 000
 {
 	size_t start_pos = url.find(start);
@@ -352,41 +372,23 @@ void ACurl_Component::Find_From_Patern(std::string &url, const char *start, cons
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Component::Set_Content_ID(const char* url)
-{
-	// 1.0 Receive Data from URL
-	Find_From_Patern(Site = url, "/content/", "/");
-	ID_Content = std::stoi(Site);
-
-	Find_From_Patern(Site = url, "https://", ".ru/");
-
-	// 1.1. Create Directory based on url 
-	if (!std::filesystem::exists("Data/" + Site) )
-		std::filesystem::create_directories("Data/" + Site);
-
-	Site = "Data/" + Site + "/" + Site + ".bin";
-
-	// 1.2 Add ID_Content
-	Save_ID_Content();
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Component::Save_ID_Content()
+void ACurl_Component::Emplace_ID_Content()
 {
 	for (int i = 0; i < ID_Content_Size; ++i)  // Check the same value, if find exit from component
 		if (ID_Content_Array[i] == ID_Content)
 			return;  // !!! Don`t add if already exist
 
-	ID_Content_Array[ID_Content_Size++] = ID_Content;
+	ID_Content_Array[ID_Content_Size] = ID_Content;
 
-	std::ofstream outfile(Site, std::ios::out | std::ios::binary | std::ios::trunc);
+	std::ofstream outfile(Path_Folder, std::ios::out | std::ios::binary | std::ios::trunc);
 	if (!outfile)
 		return;
 
-	for (int i = 0; i < ID_Content_Size; ++i)
-		outfile.write(reinterpret_cast<const char*>(&ID_Content_Array[i]), sizeof(ID_Content_Array[i]));
-
+	for (int i = 0; i <= ID_Content_Size; ++i)
+		outfile.write(reinterpret_cast<const char*>(&ID_Content_Array[i]), sizeof(ID_Content_Array[i]) );
 	outfile.close();
-	Load_ID_Content();
+	
+	Load_ID_Content();  // Load to increment buffer for content
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Component::Load_ID_Content()
@@ -396,7 +398,7 @@ void ACurl_Component::Load_ID_Content()
 	how_much_g = 0;
 	delete[] ID_Content_Array;
 
-	std::ifstream infile("Data/anime-bit/anime-bit.bin", std::ios::in | std::ios::binary);  // !!! change from const when first time
+	std::ifstream infile(Path_Folder, std::ios::in | std::ios::binary);  // !!! change from const when first time
 	if (infile)
 	{
 		infile.seekg(0, std::ios::end);
@@ -668,7 +670,7 @@ void AsUI_Builder::User_Input_Reset()
 			std::filesystem::create_directories(AsConfig::Image_Folder);
 
 		// !!! THREAD
-		Curl_Component->Set_W_Url(User_Input);
+		Curl_Component->Add_ID_Content(User_Input);
 		ACurl_Client client_url(EPrograms::ASaver, User_Input);
 	}
 
@@ -950,7 +952,7 @@ bool AsUI_Builder::Set_User_Input(const wchar_t &user_text)
 	return false;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Update_ID_Content()
+bool  AsUI_Builder::Update_ID_Content()
 {
 	int index;
 	int id_content_index;
@@ -968,8 +970,8 @@ void AsUI_Builder::Update_ID_Content()
 
 		// 1.2 If cant find return
 		It_Current_User = User_Array_Map.find(User_Input);  // !!!
-		//if (!(It_Current_User != User_Array_Map.end() ) )
-		//	return;  // Can delete id_content_index with data if cant find || watched or deleted by user
+		if (!(It_Current_User != User_Array_Map.end() ) )
+			return Curl_Component->Erase_ID_Content(id_content_index);  // Delete ID_Content if not in User_Array_Map
 
 		if (new_ui_data.Title_Num > It_Current_User->second.Title_Num)
 		{// If have new series draw button if different color
@@ -986,10 +988,11 @@ void AsUI_Builder::Update_ID_Content()
 			Curl_Component->Get_Url(User_Input, id_content_index);
 			Add_To_Clipboard();  // Set to Clipboard and get url from User_Input
 			User_Input_Redraw_Button();  // redraw
-			return;
+			return true;
 		}
 		id_content_index++;
 	}
+	return true;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Redraw_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array)

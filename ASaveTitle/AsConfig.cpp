@@ -3,6 +3,7 @@
 // AsConfig
 const char *AsConfig::Settings[] = { "Standart Background = ;", "Coordinates = ;", "Something Else = ;" };
 const char AsConfig::Dictionary_Main_Folder[] = "Map.bin";
+const char AsConfig::Path_Sites_Folder[] = "Data/Sites/";
 
 const wchar_t AsConfig::Seasons[3] = { 'I', 'V', 'X' };
 const wchar_t AsConfig::Image_Folder[] = L"Pictures/";

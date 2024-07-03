@@ -86,20 +86,22 @@ public:
 	~ACurl_Component();
 	ACurl_Component();
 
-	void Set_W_Url(const wchar_t *url);
+	void Add_ID_Content(const wchar_t *url);  // set wchar_t convert to char and save to url folder
 	bool Get_Url(wchar_t *user_input, const int &id_content_index);
+	bool Erase_ID_Content(const int &if_not_last_id_content);
 
 private:
 	void Find_From_Patern(std::string &url, const char *start, const char *end);
-	void Set_Content_ID(const char *url);
-	void Save_ID_Content();
+	void Emplace_ID_Content();
 	void Load_ID_Content();
+
 
 	int ID_Content;
 	int ID_Content_Size;
 	int *ID_Content_Array;
 
-	std::string Site;
+	std::string Url_Site_Name;
+	std::string Path_Folder;
 };
 //------------------------------------------------------------------------------------------------------------
 class AsUI_Builder
@@ -126,7 +128,7 @@ public:
 	HDC Ptr_Hdc;
 
 private:
-	void Update_ID_Content();  // Check only Array_Map
+	bool Update_ID_Content();  // Check only Array_Map
 	void Redraw_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array);
 	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
 	void Draw_User_Title_Image(const wchar_t *image_path) const;
@@ -807,16 +809,24 @@ V	- Make url to start parsing
 V		- При нажатии кнопки пройтись по массиву, взять из структуры ID зайти на сайт, проверить доступную серию.
 
 */
-// TASKS --- 01.07.2024  --- Current --- 
+// TASKS --- 01.07.2024
 /*
 
 V	- Если серия другая изменить цвет кнопки и перерисувать
 V	- Add to clipboard url with id, can go site and watch
 V	- Double click on User_Input_Button to update new watched
 
-X	- When press update button
-		- 
+*/
+// TASKS --- 03.07.2024  --- Current --- 
+/*
+V	- When press update button
+V		- if not in main array delete ID_Content from base
+X			- or re-save to another falder
+
+X	- Refactoring How to get folder ?
+
 X		- While 12 / 12 Add to watched
+
 */
 // TASKS
 /*

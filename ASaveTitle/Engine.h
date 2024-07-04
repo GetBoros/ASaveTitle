@@ -90,14 +90,14 @@ public:
 	bool Get_Url(wchar_t *user_input, const int &id_content_index);
 	bool Erase_ID_Content(const int &if_not_last_id_content);
 
+	unsigned short ID_Content_Size;
+
 private:
 	void Find_From_Patern(std::string &url, const char *start, const char *end);
 	void Emplace_ID_Content();
 	void Load_ID_Content();
 
-
 	unsigned short ID_Content;
-	unsigned short ID_Content_Size;
 	unsigned short *ID_Content_Array;
 
 	std::string Url_Site_Name;
@@ -113,7 +113,7 @@ public:
 	void Init();  // Build Main Menu
 	void Draw_Sub_Menu(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
 	void Redraw_Button_Advence(const EActive_Button &active_button);
-	void User_Input_Redraw_Button() const;  // Show user_input in sub menu
+	void Draw_User_Input_Button() const;  // Show user_input in sub menu
 	void User_Input_Adjust(const bool is_increment);  // Change active title num
 	void User_Input_Request();  // Draw Request
 	void User_Input_Reset();  // Add to array
@@ -183,6 +183,10 @@ private:
 	std::map<std::wstring, SUser_Input_Data> User_Paused_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Wishlist_Map;
 	std::map<std::wstring, SUser_Input_Data>::iterator It_Current_User;
+	std::thread Thread_First;
+	std::thread Thread_Second;
+	std::thread Thread_Third;
+	std::thread Thread_Fourth;
 
 	static int Context_Button_Length;
 	static int User_Input_Len;  // count user input after press enter set to zero
@@ -817,16 +821,21 @@ V	- Add to clipboard url with id, can go site and watch
 V	- Double click on User_Input_Button to update new watched
 
 */
-// TASKS --- 03.07.2024  --- Current --- 
+// TASKS --- 03.07.2024
 /*
 V	- When press update button
 V		- if not in main array delete ID_Content from base
-X			- or re-save to another falder
+*/
+// TASKS --- 04.07.2024  --- Current --- 
+/*
+V	- Correct delete while title was watching
+V		- While 12 / 12 Add to watched
+V	- Refactoring How to get folder ?
+V	- Good Add ID_Content and delete while 0 - 1
+V	- Have bugs while not show to user input button
+V	- Refactoring
 
-X	- Refactoring How to get folder ?
-
-X		- While 12 / 12 Add to watched
-
+X	- Use Threads for Update_Button
 */
 // TASKS
 /*

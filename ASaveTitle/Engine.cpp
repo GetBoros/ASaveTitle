@@ -316,18 +316,26 @@ void ACurl_Component::Add_ID_Content(const wchar_t *url)
 	size_t len;
 	size_t converted_chars;
 
+	// Init
 	len = std::wcslen(url) + 1; // + char for \0
 	converted_chars = 0;
 	std::vector<char> chars_buffer(len);
 	wcstombs_s(&converted_chars, chars_buffer.data(), len, url, len - 1);  // wchar_t to char
 
+	// Get ID_Content and return if already exists
 	Find_From_Patern(Url_Site_Name = chars_buffer.data(), "/content/", "/");  // Receive ID_Content
 	ID_Content = std::stoi(Url_Site_Name);
+	for (int i = 0; i <= ID_Content_Size; ++i)  // Check the same value, if find exit from component
+		if (ID_Content_Array[i] == ID_Content)
+			return;
 
+	// Find Site pattern to save in .bin
 	Find_From_Patern(Url_Site_Name = chars_buffer.data(), "https://", ".ru/");  // Receive Url_Site_Name url to create folder
 	if (!std::filesystem::exists(Path_Folder) )
 		std::filesystem::create_directories(AsConfig::Path_Sites_Folder);  // If folder does`nt exist create it
 
+	// Resize buffer
+	ID_Content_Array[ID_Content_Size] = ID_Content;
 	Emplace_ID_Content();  // Save all to files 
 }
 //------------------------------------------------------------------------------------------------------------
@@ -348,15 +356,10 @@ bool ACurl_Component::Get_Url(wchar_t *user_input, const int &id_content_index)
 //------------------------------------------------------------------------------------------------------------
 bool ACurl_Component::Erase_ID_Content(const int &if_not_last_id_content)
 {
-	if (ID_Content_Size > if_not_last_id_content)
-	{
-		--ID_Content_Size;
-		ID_Content_Array[if_not_last_id_content] = ID_Content_Array[ID_Content_Size];
-		ID_Content_Array[ID_Content_Size] = 0;
-		Emplace_ID_Content();
-		return true;
-	}
-	return false;
+	--ID_Content_Size;  // Get Array Size
+	ID_Content_Array[if_not_last_id_content] = ID_Content_Array[ID_Content_Size--];  // set last to first short
+	Emplace_ID_Content();
+	return true;
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Component::Find_From_Patern(std::string &url, const char *start, const char *end)  // ~80 000
@@ -374,20 +377,15 @@ void ACurl_Component::Find_From_Patern(std::string &url, const char *start, cons
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Component::Emplace_ID_Content()
 {
-	for (int i = 0; i < ID_Content_Size; ++i)  // Check the same value, if find exit from component
-		if (ID_Content_Array[i] == ID_Content)
-			return;  // !!! Don`t add if already exist
-
-	ID_Content_Array[ID_Content_Size] = ID_Content;
-
 	std::ofstream outfile(Path_Folder, std::ios::out | std::ios::binary | std::ios::trunc);
 	if (!outfile)
 		return;
 
-	for (int i = 0; i <= ID_Content_Size; ++i)
-		outfile.write(reinterpret_cast<const char*>(&ID_Content_Array[i]), sizeof(ID_Content_Array[i]) );
+	if (ID_Content_Size != 65535)
+		for (int i = 0; i <= ID_Content_Size; ++i)
+			outfile.write(reinterpret_cast<const char*>(&ID_Content_Array[i]), sizeof(ID_Content_Array[i]) );
+
 	outfile.close();
-	
 	Load_ID_Content();  // Load to increment buffer for content
 }
 //------------------------------------------------------------------------------------------------------------
@@ -578,7 +576,7 @@ void AsUI_Builder::Redraw_Button_Advence(const EActive_Button &active_button)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Redraw_Button() const
+void AsUI_Builder::Draw_User_Input_Button() const
 {
 	RECT button = Input_Button_Rect;
 
@@ -694,6 +692,7 @@ void AsUI_Builder::User_Input_Reset()
 	}
 	Draw_Sub_Menu(Active_Menu);
 	Draw_Active_Button();
+	Draw_User_Input_Button();
 	Save_All_To_Data(Active_Menu);  // Save by Add
 }
 //------------------------------------------------------------------------------------------------------------
@@ -826,7 +825,7 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 
 				CloseClipboard();
 			}
-			User_Input_Redraw_Button();
+			Draw_User_Input_Button();
 			return;
 		}
 
@@ -916,7 +915,6 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 		{
 			Active_Button = (EActive_Button)i;
 			Draw_Active_Button(); 
-
 			return;
 		}
 	}
@@ -952,7 +950,7 @@ bool AsUI_Builder::Set_User_Input(const wchar_t &user_text)
 	return false;
 }
 //------------------------------------------------------------------------------------------------------------
-bool  AsUI_Builder::Update_ID_Content()
+bool AsUI_Builder::Update_ID_Content()
 {
 	int index;
 	int id_content_index;
@@ -987,9 +985,10 @@ bool  AsUI_Builder::Update_ID_Content()
 			// 2.2 Get url at clipboard and redraw
 			Curl_Component->Get_Url(User_Input, id_content_index);
 			Add_To_Clipboard();  // Set to Clipboard and get url from User_Input
-			User_Input_Redraw_Button();  // redraw
+			Draw_User_Input_Button();  // redraw
 			return true;
 		}
+
 		id_content_index++;
 	}
 	return true;
@@ -1827,43 +1826,38 @@ SUser_Input_Data AsUI_Builder::Init_UI_Data()
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Save_All_To_Data(const EActive_Menu& menu)
 {
-	std::thread th_user_arra;
-	std::thread th_libr_arra;
-	std::thread th_paus_arra;
-	std::thread th_wish_arra;
-
 	switch (menu)
 	{
 	case EAM_Watching:
-		th_user_arra = std::thread([&]() { Init_User_Array_Load(User_Array_Map, "Watching.bin"); });
-		th_user_arra.join();
+		Thread_First = std::thread([&]() { Init_User_Array_Load(User_Array_Map, "Watching.bin"); });
+		Thread_First.join();
 		break;
 
 	case EAM_Library_Menu:
-		th_libr_arra = std::thread([&]() { Init_User_Array_Load(User_Library_Map, "Library.bin"); });
-		th_libr_arra.join();
+		Thread_Second = std::thread([&]() { Init_User_Array_Load(User_Library_Map, "Library.bin"); });
+		Thread_Second.join();
 		break;
 
 	case EAM_Paused_Menu:
-		th_paus_arra = std::thread([&]() { Init_User_Array_Load(User_Paused_Map, "Paused.bin"); });
-		th_paus_arra.join();
+		Thread_Third = std::thread([&]() { Init_User_Array_Load(User_Paused_Map, "Paused.bin"); });
+		Thread_Third.join();
 		break;
 
 	case EAM_Wishlist:
-		th_wish_arra = std::thread([&]() { Init_User_Array_Load(User_Wishlist_Map, "Wishlist.bin"); });
-		th_wish_arra.join();
+		Thread_Fourth = std::thread([&]() { Init_User_Array_Load(User_Wishlist_Map, "Wishlist.bin"); });
+		Thread_Fourth.join();
 		break;
 
 	case EAM_Exit:
-		th_user_arra = std::thread([&]() { Init_User_Array_Load(User_Array_Map, "Watching.bin"); });
-		th_libr_arra = std::thread([&]() { Init_User_Array_Load(User_Library_Map, "Library.bin"); });
-		th_paus_arra = std::thread([&]() { Init_User_Array_Load(User_Paused_Map, "Paused.bin"); });
-		th_wish_arra = std::thread([&]() { Init_User_Array_Load(User_Wishlist_Map, "Wishlist.bin"); });
+		Thread_First = std::thread([&]() { Init_User_Array_Load(User_Array_Map, "Watching.bin"); });
+		Thread_Second = std::thread([&]() { Init_User_Array_Load(User_Library_Map, "Library.bin"); });
+		Thread_Third = std::thread([&]() { Init_User_Array_Load(User_Paused_Map, "Paused.bin"); });
+		Thread_Fourth = std::thread([&]() { Init_User_Array_Load(User_Wishlist_Map, "Wishlist.bin"); });
 
-		th_user_arra.join();
-		th_libr_arra.join();
-		th_paus_arra.join();
-		th_wish_arra.join();
+		Thread_First.join();
+		Thread_Second.join();
+		Thread_Third.join();
+		Thread_Fourth.join();
 		break;
 
 	default:
@@ -2019,7 +2013,7 @@ void AsEngine::Handle_Input()
 
 
 	case EKT_Redraw_User_Input:
-		UI_Builder->User_Input_Redraw_Button();
+		UI_Builder->Draw_User_Input_Button();
 		break;
 
 

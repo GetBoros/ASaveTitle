@@ -128,7 +128,8 @@ public:
 	HDC Ptr_Hdc;
 
 private:
-	bool Update_ID_Content();  // Check only Array_Map
+	void Update_Content_Data_Threaded(const unsigned short &id_content_index);
+	void Update_ID_Content();  // Check only Array_Map for title
 	void Redraw_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array);
 	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
 	void Draw_User_Title_Image(const wchar_t *image_path) const;
@@ -137,13 +138,15 @@ private:
 	void Init_User_Array_Load(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
 	void Init_Context_Menu(const int &x, const int &y);
 	int Init_Seasons(int curr_it) const; 
+
 	RECT Add_Border(const int &x_cord) const;
 	RECT Add_Button(RECT &border_rect, const std::wstring &title) const;
 	void Add_Button_Next_Page();
 	void Add_To_User_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input);  // Save User_Input to User_Array_Map
-	void Add_To_Clipboard();
+	void Add_To_Clipboard_User_Input();
 	void Add_To_Clipboard_Name_Key();
 	void Erase_From_User_Array();  // Errase from Array
+
 	void User_Input_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
 	void User_Input_Save(const char *file_path, wchar_t **user_array, int user_input_counter);  // Write wchar_t to data.bin
 	void Save_Image(const RECT &rect);  // Save image in rect
@@ -187,13 +190,14 @@ private:
 	std::thread Thread_Second;
 	std::thread Thread_Third;
 	std::thread Thread_Fourth;
+	std::mutex Mutex_Lock;
 
 	static int Context_Button_Length;
 	static int User_Input_Len;  // count user input after press enter set to zero
 	
 	static const wchar_t Main_Menu_Title_Name[];
+	static const wchar_t *Sub_Menu_Title;
 	static const std::wstring Button_Text_List[];
-	static const wchar_t* Sub_Menu_Title;
 };
 //------------------------------------------------------------------------------------------------------------
 class AsUI_Book_Reader
@@ -826,7 +830,7 @@ V	- Double click on User_Input_Button to update new watched
 V	- When press update button
 V		- if not in main array delete ID_Content from base
 */
-// TASKS --- 04.07.2024  --- Current --- 
+// TASKS --- 04.07.2024
 /*
 V	- Correct delete while title was watching
 V		- While 12 / 12 Add to watched
@@ -835,24 +839,36 @@ V	- Good Add ID_Content and delete while 0 - 1
 V	- Have bugs while not show to user input button
 V	- Refactoring
 
-X	- Use Threads for Update_Button
-*/
-// TASKS
-/*
-
---- MOST WANTED ---
 V	- Добавить новую кнопку после которой будут происходить такие действия
 V		- Создали enum для кнопок, 3 кнопки для Page Update, Prev, Next
-X			- Update Page || CURL
-X				- Зайти на сайт, найти тайтл, если серия отличаеться от просмотренной:
-X					- перекрасить кнопку в цвет поярче на *50
+V			- Update Page || CURL
+V				- Зайти на сайт, найти тайтл, если серия отличаеться от просмотренной:
+V					- перекрасить кнопку в цвет поярче на *50
 
-X	- Возможно сохранять и сам URL что бы скопирувать его в буфер и легко вставить в бразуер?
+V	- Возможно сохранять и сам URL что бы скопирувать его в буфер и легко вставить в бразуер?
+
+*/
+// TASKS --- 05.07.2024  --- Current --- 
+/*
+X	- Работа на Паттернами
+		- Создать Config.txt:
+			- 
+
+X	- Работа над Потоками
+
+*/
+
+
+
+
+// TASKS
+/*
+--- MOST WANTED ---
+X	- Use Threads for Update_Button
+
 X	- Добавиить опцию, увиличение шрифта?
 		- Не тяжело но нужно ли
 X	- Брать из файла Config pattern для поиска по URL
-X	- Может написать программу которая прочтет мою старую базу и введет с ние данные сюда?
-X	- Создать конфиг что бы можно было настройки под какой сайт выставлять патерны
 
 --- Optional ---
 X	- Добавить функционал сохранения даты последнего редактирувания

@@ -18,6 +18,8 @@
 #include "curl/curl.h"  // NET || BROWSE
 #include "array"
 #include <cwchar>  // wcstombs_s
+#include <mutex>
+
 // TEMP
 /*
 //#include <WS2tcpip.h>

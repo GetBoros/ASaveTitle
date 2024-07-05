@@ -11,7 +11,7 @@ AsMain *AsMain::Main_Window = 0;
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
 	AsMain::Main_Window = AsMain::Set_Instance(hinstance);
-	return AsMain::Main_Window->Get_WParam();  // !!! don`t call ~
+	return AsMain::Main_Window->Get_WParam();
 }
 //------------------------------------------------------------------------------------------------------------
 

@@ -396,7 +396,7 @@ void ACurl_Component::Load_ID_Content()
 	how_much_g = 0;
 	delete[] ID_Content_Array;
 
-	std::ifstream infile(Path_Folder, std::ios::in | std::ios::binary);  // !!! change from const when first time
+	std::ifstream infile(Path_Folder, std::ios::in | std::ios::binary);
 	if (infile)
 	{
 		infile.seekg(0, std::ios::end);
@@ -421,8 +421,8 @@ void ACurl_Component::Load_ID_Content()
 int AsUI_Builder::User_Input_Len = 0;
 int AsUI_Builder::Context_Button_Length = 5;
 const wchar_t AsUI_Builder::Main_Menu_Title_Name[] = L"Сохранить запись";
-const std::wstring AsUI_Builder::Button_Text_List[] = { L"Просмотреть", L"Просмотренные", L"Преостановленные", L"Добавить в желаемое", L"Удалить из списка", L"Выход из программы" };
 const wchar_t *AsUI_Builder::Sub_Menu_Title = L"Вводите текст сюда... Или URL вашего Тайтла";
+const std::wstring AsUI_Builder::Button_Text_List[] = { L"Просмотреть", L"Просмотренные", L"Преостановленные", L"Добавить в желаемое", L"Удалить из списка", L"Выход из программы" };
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::~AsUI_Builder()
 {
@@ -667,7 +667,6 @@ void AsUI_Builder::User_Input_Reset()
 		if (!std::filesystem::exists(AsConfig::Image_Folder) )
 			std::filesystem::create_directories(AsConfig::Image_Folder);
 
-		// !!! THREAD
 		Curl_Component->Add_ID_Content(User_Input);
 		ACurl_Client client_url(EPrograms::ASaver, User_Input);
 	}
@@ -950,48 +949,93 @@ bool AsUI_Builder::Set_User_Input(const wchar_t &user_text)
 	return false;
 }
 //------------------------------------------------------------------------------------------------------------
-bool AsUI_Builder::Update_ID_Content()
+void AsUI_Builder::Update_Content_Data_Threaded(const unsigned short &id_content_index)
 {
 	int index;
-	int id_content_index;
 	SUser_Input_Data new_ui_data;
-
+	wchar_t user_input[180]{};
 	index = 0;
-	id_content_index = 0;
 
-	while (Curl_Component->Get_Url(User_Input, id_content_index) )
-	{// While we have saved ID_Content
+	// 1.0. Init, Get title name
+	Curl_Component->Get_Url(user_input, id_content_index);
+	ACurl_Client reguest(EPrograms::ASaver, user_input);
+	wcsncpy_s(User_Input, wcslen(user_input) + 1, user_input, wcslen(user_input) );
+	new_ui_data = Init_UI_Data();  // User_Input convert to data
 
-		// 1.1 Send reguest to url
-		ACurl_Client reguest(EPrograms::ASaver, User_Input);
-		new_ui_data = Init_UI_Data();  // User_Input convert to data
+	// 1.1. Sleep if doesn`t have title
+	while (It_Current_User != User_Array_Map.end() )
+		std::this_thread::sleep_for(std::chrono::seconds(1) );
 
-		// 1.2 If cant find return
-		It_Current_User = User_Array_Map.find(User_Input);  // !!!
-		if (!(It_Current_User != User_Array_Map.end() ) )
-			return Curl_Component->Erase_ID_Content(id_content_index);  // Delete ID_Content if not in User_Array_Map
-
-		if (new_ui_data.Title_Num > It_Current_User->second.Title_Num)
-		{// If have new series draw button if different color
-
-			for (auto iter = User_Array_Map.begin(); iter != It_Current_User; ++iter)
-				++index;
-
-			// 2.1 Setting to redraw button
-			Active_Button = (EActive_Button)index;
-			Active_Page = EAP_Update;
-			Draw_Active_Button();
-
-			// 2.2 Get url at clipboard and redraw
-			Curl_Component->Get_Url(User_Input, id_content_index);
-			Add_To_Clipboard();  // Set to Clipboard and get url from User_Input
-			Draw_User_Input_Button();  // redraw
-			return true;
+	{// Need lock
+		std::lock_guard<std::mutex> lock(Mutex_Lock);
+		It_Current_User = User_Array_Map.find(new_ui_data.Title_Name_Key);
+		if (!(It_Current_User != User_Array_Map.end()))
+		{
+			Curl_Component->Erase_ID_Content(id_content_index);  // Delete ID_Content if not in User_Array_Map
+			return;
 		}
+		
+	}// End lock
 
-		id_content_index++;
+	// 1.2. Find Button pos, and draw it
+	if (new_ui_data.Title_Num > It_Current_User->second.Title_Num)
+	{// If have new series draw button if different color
+
+		for (auto iter = User_Array_Map.begin(); iter != It_Current_User; ++iter)
+			++index;
+
+		// 2.1 Setting to redraw button
+		Active_Button = (EActive_Button)index;
+		Active_Page = EAP_Update;
+		Draw_Active_Button();  // !!! Redraw Previus Button bad in this moment
+
+		Curl_Component->Get_Url(user_input, id_content_index);
+		wcsncpy_s(User_Input, wcslen(user_input) + 1, user_input, wcslen(user_input) );
+		Add_To_Clipboard_User_Input();
+		Draw_User_Input_Button();
 	}
-	return true;
+	It_Current_User = User_Array_Map.end();
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Update_ID_Content()
+{
+	short i;
+	short thread_count;
+	short data_index_starts;
+	short id_content_size;
+	std::vector<std::thread> threads;
+
+	i = 0;
+	data_index_starts = -1;
+	It_Current_User = User_Array_Map.end();
+	id_content_size = Curl_Component->ID_Content_Size;
+	thread_count = (unsigned short)std::thread::hardware_concurrency();
+
+	do
+	{
+		for (i = 0; i < thread_count; i++)
+			threads.emplace_back([&]
+				{
+					short content_data_index = data_index_starts;
+
+					if (content_data_index > id_content_size - 2)
+						return;
+					else
+						data_index_starts++;
+
+					content_data_index++;
+
+					Update_Content_Data_Threaded(content_data_index);
+				});
+
+		for (auto &th : threads)
+			th.join();
+		threads.clear();
+
+		if (data_index_starts > 25)
+			return;  // !!! it`s for debugg
+
+	} while (data_index_starts > id_content_size - 1);
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Redraw_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array)
@@ -1392,7 +1436,7 @@ void AsUI_Builder::Add_To_User_Array(std::map<std::wstring, SUser_Input_Data> &u
 	User_Input_Len = 0;
 }
 //------------------------------------------------------------------------------------------------------------
- void AsUI_Builder::Add_To_Clipboard()
+ void AsUI_Builder::Add_To_Clipboard_User_Input()
 {// Need refactoring, can delete url
 
 	wchar_t *url;

@@ -110,50 +110,51 @@ public:
 	~AsUI_Builder();
 	AsUI_Builder(HDC hdc);
 
-	void Init();  // Build Main Menu
-	void Draw_Sub_Menu(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
-	void Redraw_Button_Advence(const EActive_Button &active_button);
+	void Draw_Menu_Main();  // Build Main Menu
+	void Draw_Menu_Sub(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
 	void Draw_User_Input_Button() const;  // Show user_input in sub menu
-	void User_Input_Adjust(const bool is_increment);  // Change active title num
-	void User_Input_Request();  // Draw Request
-	void User_Input_Reset();  // Add to array
-
-	// Getters & Setters Mouse Handler
+	void User_Input_Handle();  // Add to array
+	
+	// Getters  &Setters Mouse Handler
 	void Set_RM_Cord(const RECT &mouse_cord);
 	void Set_LM_Cord(const RECT &mouse_cord);
-	void Set_Sub_Menu_Curr_Page(const int &set_page_to);
 	bool Set_User_Input(const wchar_t &text);
 
 	EActive_Menu Active_Menu;
 	HDC Ptr_Hdc;
 
 private:
-	void Update_Content_Data_Threaded(const unsigned short &id_content_index);
-	void Update_ID_Content();  // Check only Array_Map for title
-	void Redraw_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array);
-	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
+	void Handle_ID_Content(const unsigned short &id_content_index);
+	void Handle_Update_Button();  // Check only Array_Map for title
+	void Handle_Active_Button_Advence();
+	void Handle_Active_Button(const EActive_Button& active_button);  // Redraw Button in current Active Menu
+	void Draw_Active_Button(const EActive_Button& active_button, std::map<std::wstring, SUser_Input_Data>& user_array);
+	void Draw_User_Input_Request();  // Draw Request
 	void Draw_User_Title_Image(const wchar_t *image_path) const;
-	void Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser_Input_Data> &map);
-	void Draw_Active_Button();
-	void Init_User_Array_Load(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
-	void Init_Context_Menu(const int &x, const int &y);
-	int Init_Seasons(int curr_it) const; 
-
+	void Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser_Input_Data> &map);  // Draw Button in subMenu
+	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
+	void Draw_Context_Menu(const int &x, const int &y);
+	
+	int Get_Season(int season_int) const;  // format int to season | I V X
+	
 	RECT Add_Border(const int &x_cord) const;
 	RECT Add_Button(RECT &border_rect, const std::wstring &title) const;
 	void Add_Button_Next_Page();
-	void Add_To_User_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input);  // Save User_Input to User_Array_Map
+	void Add_To_User_Map(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input);  // Save User_Input to User_Map
 	void Add_To_Clipboard_User_Input();
 	void Add_To_Clipboard_Name_Key();
-	void Erase_From_User_Array();  // Errase from Array
+	
+	void Erase_From_User_Map();  // Errase from Array
 
-	void User_Input_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
-	void User_Input_Save(const char *file_path, wchar_t **user_array, int user_input_counter);  // Write wchar_t to data.bin
 	void Save_Image(const RECT &rect);  // Save image in rect
 	void Restore_Image(RECT &rect);  // redraw image
-	void Convert(int &ch, const bool &is_in_file);
+	void Convert(int &ch, const bool &is_in_file);  // !!! Refactoring
 	SUser_Input_Data Init_UI_Data();
 	void Save_All_To_Data(const EActive_Menu &menu);
+	void Init_User_Array_Load(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
+	void User_Input_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
+	void User_Input_Save(const char *file_path, wchar_t **user_array, int user_input_counter);  // Write wchar_t to data.bin
+	void User_Input_Value_Is_Changet(const bool is_increment);  // Change active title num
 
 	wchar_t User_Input[AsConfig::User_Input_Buffer];  // User Input Buffer | or border_width / 8 = Max_Char_Length
 	int Rect_Menu_List_Length;
@@ -846,18 +847,19 @@ V				- Зайти на сайт, найти тайтл, если серия от
 V					- перекрасить кнопку в цвет поярче на *50
 
 V	- Возможно сохранять и сам URL что бы скопирувать его в буфер и легко вставить в бразуер?
-
 */
-// TASKS --- 05.07.2024  --- Current --- 
+// TASKS --- 05.07.2024
+/*
+V	- Работа над Потоками
+*/
+// TASKS --- 07.07.2024  --- Current --- 
 /*
 X	- Работа на Паттернами
 		- Создать Config.txt:
-			- 
+			-
 
-X	- Работа над Потоками
-
+X	- Пофиксить баг когда User_Input не отображаеться, и при клике на него мерджаться тайтлы
 */
-
 
 
 

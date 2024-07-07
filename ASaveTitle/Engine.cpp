@@ -460,7 +460,7 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 	Rect_User_Input_Change = new RECT[2]{};
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Init()
+void AsUI_Builder::Draw_Menu_Main()
 {
 	int x, y;
 	int str_length;
@@ -496,7 +496,7 @@ void AsUI_Builder::Init()
 	Draw_User_Title_Image(AsConfig::Main_Image_Folder);
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Sub_Menu(const EActive_Menu &active_menu)
+void AsUI_Builder::Draw_Menu_Sub(const EActive_Menu &active_menu)
 {
 	int border_offset;
 	RECT border_rect;
@@ -554,28 +554,6 @@ void AsUI_Builder::Draw_Sub_Menu(const EActive_Menu &active_menu)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Redraw_Button_Advence(const EActive_Button &active_button)
-{
-	switch (Active_Menu)
-	{
-	case EAM_Main:
-	case EAM_Watching:
-		Redraw_Button(active_button, User_Array_Map);
-		break;
-
-	case EAM_Library_Menu:
-		Redraw_Button(active_button, User_Library_Map);
-		break;
-
-	case EAM_Paused_Menu:
-		Redraw_Button(active_button, User_Paused_Map);
-		break;
-
-	case EAM_Wishlist:
-		Redraw_Button(active_button, User_Wishlist_Map);
-	}
-}
-//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_User_Input_Button() const
 {
 	RECT button = Input_Button_Rect;
@@ -592,105 +570,60 @@ void AsUI_Builder::Draw_User_Input_Button() const
 		TextOutW(Ptr_Hdc, button.left + AsConfig::Global_Scale, button.top + AsConfig::Global_Scale, L"Enter Text Here...", 19);  // activ_button  text ( x its text out in middle
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Adjust(const bool is_increment)
+void AsUI_Builder::User_Input_Handle()
 {
-	if (is_increment)
-		It_Current_User->second.Title_Num++;
-	else
-		It_Current_User->second.Title_Num--;
+	int index;
 
-	It_Current_User->second.Title_Name_Num.erase();
+	index = 0;
 
-	if (It_Current_User->second.Title_Season != 0)
-		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + AsConfig::Season[It_Current_User->second.Title_Season - 1] + L" " + std::to_wstring(It_Current_User->second.Title_Num);
-	else
-		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + std::to_wstring(It_Current_User->second.Title_Num);
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Request()
-{
-	int button_offset;
-	int box_size;
-	int scale;
-	int half_box;
-	RECT ui_rect_offset {};
-
-	button_offset = 9;
-	box_size = 21;
-	half_box = (int)( (float)box_size / 2.0f);
-	scale = AsConfig::Global_Scale;
-
-	// 1. Get and set current button and drow near sub option to increase or dercrese last char
-	if (Active_Menu == EAM_Main)
-	{// clear prev request
-		FillRect(Ptr_Hdc, &Rect_User_Input_Change[0], AsConfig::Brush_Background);
-		FillRect(Ptr_Hdc, &Rect_User_Input_Change[1], AsConfig::Brush_Background);
-
-		Rect_User_Input_Change[0] = ui_rect_offset;
-		Rect_User_Input_Change[1] = ui_rect_offset;
-		return;
-	}
-	
-	ui_rect_offset = User_Input_Rect[Prev_Button];
-	FillRect(Ptr_Hdc, &Rect_User_Input_Change[0], AsConfig::Brush_Background);
-	FillRect(Ptr_Hdc, &Rect_User_Input_Change[1], AsConfig::Brush_Background);
-
-	// 1.1 Draw first Rectangle decrease 
-	ui_rect_offset.left = ui_rect_offset.right + button_offset;
-	ui_rect_offset.top = ui_rect_offset.top;
-	ui_rect_offset.right = ui_rect_offset.right + button_offset + box_size;
-	ui_rect_offset.bottom = ui_rect_offset.top + box_size;
-	if (Rect_User_Input_Change != 0)
-		Rect_User_Input_Change[0] = ui_rect_offset;
-	Rectangle(Ptr_Hdc, ui_rect_offset.left, ui_rect_offset.top, ui_rect_offset.right, ui_rect_offset.bottom);
-	MoveToEx(Ptr_Hdc, ui_rect_offset.left + scale, ui_rect_offset.top + half_box, 0);
-	LineTo(Ptr_Hdc, ui_rect_offset.right - scale, ui_rect_offset.top + half_box);
-
-	// 1.2 Draw second Rectangle increment
-	ui_rect_offset.left = ui_rect_offset.left + box_size + scale;
-	ui_rect_offset.top = ui_rect_offset.top;
-	ui_rect_offset.right = ui_rect_offset.right + box_size + scale;
-	ui_rect_offset.bottom = ui_rect_offset.bottom;
-	if (Rect_User_Input_Change != 0)
-		Rect_User_Input_Change[1] = ui_rect_offset;
-	Rectangle(Ptr_Hdc, ui_rect_offset.left, ui_rect_offset.top, ui_rect_offset.right, ui_rect_offset.bottom);
-	MoveToEx(Ptr_Hdc, ui_rect_offset.left + scale, ui_rect_offset.top + half_box, 0);
-	LineTo(Ptr_Hdc, ui_rect_offset.right - scale, ui_rect_offset.top + half_box);
-	MoveToEx(Ptr_Hdc, ui_rect_offset.left + half_box, ui_rect_offset.top + scale,0);
-	LineTo(Ptr_Hdc, ui_rect_offset.left + half_box, ui_rect_offset.bottom - scale);
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Reset()
-{
+	// 1.0 Handle User_Input
 	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
-	{
-		if (!std::filesystem::exists(AsConfig::Image_Folder) )
+	{// If it`s url check it
+		if (!std::filesystem::exists(AsConfig::Image_Folder))
 			std::filesystem::create_directories(AsConfig::Image_Folder);
 
 		Curl_Component->Add_ID_Content(User_Input);
 		ACurl_Client client_url(EPrograms::ASaver, User_Input);
 	}
+	else
+	{
+		try
+		{// Try get correct User_Input if not do it correnct
+			User_Input_Len = (int)wcslen(User_Input);
+			std::wstring tempStr(1, User_Input_Len); // создаем строку из одного символа
+			index = std::stoi(tempStr); // преобразуем строку в целое число
+		}
+		catch (const std::exception&)
+		{
+			User_Input[User_Input_Len++] = L' ';
+			User_Input[User_Input_Len++] = L'1';
+			User_Input[User_Input_Len] = L'\0';
+		}
+	}
 
-	switch (Active_Menu)
+	// 2.0. Add User_Input to opened SubMenu
+	switch (Active_Menu)  // With add to
 	{
 	case EAM_Watching:
-		Add_To_User_Array(User_Array_Map, User_Input);
+		Add_To_User_Map(User_Array_Map, User_Input);
 		break;
 
 	case EAM_Library_Menu:
-		Add_To_User_Array(User_Library_Map, User_Input);
+		Add_To_User_Map(User_Library_Map, User_Input);
 		break;
 
 	case EAM_Paused_Menu:
-		Add_To_User_Array(User_Paused_Map, User_Input);
+		Add_To_User_Map(User_Paused_Map, User_Input);
 		break;
 
 	case EAM_Wishlist:
-		Add_To_User_Array(User_Wishlist_Map, User_Input);
+		Add_To_User_Map(User_Wishlist_Map, User_Input);
 		break;
 	}
-	Draw_Sub_Menu(Active_Menu);
-	Draw_Active_Button();
+
+	// 3.0. Redraw All and Save
+	Draw_Menu_Sub(Active_Menu);
+	Handle_Active_Button_Advence();
 	Draw_User_Input_Button();
 	Save_All_To_Data(Active_Menu);  // Save by Add
 }
@@ -711,10 +644,10 @@ void AsUI_Builder::Set_RM_Cord(const RECT &mouse_cord)
 		if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]) )
 		{
 			Active_Menu = EAM_Main;  // Don`t touch
-			Redraw_Button_Advence( (EActive_Button)i);  // Change button color
-			Draw_Sub_Menu( (EActive_Menu)i);
+			Handle_Active_Button( (EActive_Button)i);  // Change button color
+			Draw_Menu_Sub( (EActive_Menu)i);
 
-			Init_Context_Menu(mouse_cord.right, mouse_cord.top);
+			Draw_Context_Menu(mouse_cord.right, mouse_cord.top);
 			return;
 		}
 	}
@@ -725,13 +658,13 @@ void AsUI_Builder::Set_RM_Cord(const RECT &mouse_cord)
 		return;
 
 
-	// 4. Draw Init_Context_Menu if at buttons
+	// 4. Draw Draw_Context_Menu if at buttons
 	for (i = Sub_Menu_Curr_Page * Sub_Menu_Max_Line; i < Rect_Sub_Menu_Length; i++)
 	{
 		if (IntersectRect(&intersect_rect, &mouse_cord, &User_Input_Rect[i]) )
 		{
-			Redraw_Button_Advence( (EActive_Button)i);
-			Init_Context_Menu(mouse_cord.right, mouse_cord.top);
+			Handle_Active_Button( (EActive_Button)i);
+			Draw_Context_Menu(mouse_cord.right, mouse_cord.top);
 			return;
 		}
 	}
@@ -751,24 +684,24 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 			else
 				Sub_Menu_Curr_Page--;
 
-			Draw_Sub_Menu(Active_Menu);
+			Draw_Menu_Sub(Active_Menu);
 			return;
 		}
 		else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Next]) )
 		{
 			Sub_Menu_Curr_Page++;
-			Draw_Sub_Menu(Active_Menu);
+			Draw_Menu_Sub(Active_Menu);
 			
 			Active_Menu = EAM_Main;
 			if (Active_Button != (EActive_Button)-1)
-				User_Input_Request();
+				Draw_User_Input_Request();
 			
 			Active_Menu = EAM_Watching;
 
 			return;
 		} else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Update]) )  // Update Button
 		{
-			Update_ID_Content();  // While press Update Page
+			Handle_Update_Button();  // While press Update Page
 			return;
 		}
 	}
@@ -780,21 +713,21 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 		for (int i = 0; i < 2; i++)
 			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_User_Input_Change[i]) )
 			{
-				User_Input_Adjust(i);
-				Redraw_Button_Advence( (EActive_Button)Prev_Button);
+				User_Input_Value_Is_Changet(i);
+				Handle_Active_Button( (EActive_Button)Prev_Button);
 				return;
 			}
 	}
 
 
-	if (!IsRectEmpty(&Input_Button_Rect) )
+	if (!IsRectEmpty(&Input_Button_Rect) )  // !!! Refactoring
 	{// User_Input Handle || doubl click on User_Input ||
 
 		if (IntersectRect(&intersect_rect, &mouse_cord, &Input_Button_Rect) )
 		{
 			if (User_Input[0] != 0)
 			{
-				User_Input_Reset();
+				User_Input_Handle();
 				return;
 			}
 			else if (OpenClipboard(0) )
@@ -845,39 +778,39 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 				if (Active_Menu != EAM_Main)
 				{
 					Active_Menu = EAM_Main;
-					User_Input_Request();
+					Draw_User_Input_Request();
 					Active_Menu = prev_active_mune;
 				}
 
 				switch ( (EActive_Menu)i)
 				{
 				case EAM_Watching:
-					Add_To_User_Array(User_Array_Map, It_Current_User->second.Title_Name_Num.c_str() );
-					Erase_From_User_Array();
-					Draw_Sub_Menu(Active_Menu);
+					Add_To_User_Map(User_Array_Map, It_Current_User->second.Title_Name_Num.c_str() );
+					Erase_From_User_Map();
+					Draw_Menu_Sub(Active_Menu);
 					break;
 
 				case EAM_Library_Menu:
-					Add_To_User_Array(User_Library_Map, It_Current_User->second.Title_Name_Num.c_str() );
-					Erase_From_User_Array();
-					Draw_Sub_Menu(Active_Menu);
+					Add_To_User_Map(User_Library_Map, It_Current_User->second.Title_Name_Num.c_str() );
+					Erase_From_User_Map();
+					Draw_Menu_Sub(Active_Menu);
 					break;
 
 				case EAM_Paused_Menu:
-					Add_To_User_Array(User_Paused_Map, It_Current_User->second.Title_Name_Num.c_str() );
-					Erase_From_User_Array();
-					Draw_Sub_Menu(Active_Menu);
+					Add_To_User_Map(User_Paused_Map, It_Current_User->second.Title_Name_Num.c_str() );
+					Erase_From_User_Map();
+					Draw_Menu_Sub(Active_Menu);
 					break;
 
 				case EAM_Wishlist:
-					Add_To_User_Array(User_Wishlist_Map, It_Current_User->second.Title_Name_Num.c_str());
-					Erase_From_User_Array();
-					Draw_Sub_Menu(Active_Menu);
+					Add_To_User_Map(User_Wishlist_Map, It_Current_User->second.Title_Name_Num.c_str());
+					Erase_From_User_Map();
+					Draw_Menu_Sub(Active_Menu);
 					break;
 
 				case EAM_Erase:
-					Erase_From_User_Array();
-					Draw_Sub_Menu(Active_Menu);
+					Erase_From_User_Map();
+					Draw_Menu_Sub(Active_Menu);
 					break;
 				}
 				Save_All_To_Data( (EActive_Menu)i);
@@ -896,12 +829,12 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 			if (Active_Menu != EAM_Main)
 			{
 				Active_Menu = EAM_Main;
-				User_Input_Request();
+				Draw_User_Input_Request();
 			}
 
 			Active_Menu = EAM_Main;  // if enter here we clk on main menu border
-			Redraw_Button_Advence( (EActive_Button)i);
-			Draw_Sub_Menu( (EActive_Menu)i);
+			Handle_Active_Button( (EActive_Button)i);
+			Draw_Menu_Sub( (EActive_Menu)i);
 			return;
 		}
 	}
@@ -913,24 +846,10 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 		if (IntersectRect(&intersect_rect, &mouse_cord, &User_Input_Rect[i] ) )
 		{
 			Active_Button = (EActive_Button)i;
-			Draw_Active_Button(); 
+			Handle_Active_Button_Advence();
 			return;
 		}
 	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Set_Sub_Menu_Curr_Page(const int &set_page_to)
-{
-	int curr_page = 0, max_page = 0, max_page_line = 0;
-
-	curr_page = Sub_Menu_Curr_Page + 1;
-	max_page_line = 31;
-	max_page = (int)User_Array_Map.size() / max_page_line;
-
-	if (curr_page > max_page)
-		curr_page = 0;
-
-	Sub_Menu_Curr_Page = curr_page;
 }
 //------------------------------------------------------------------------------------------------------------
 bool AsUI_Builder::Set_User_Input(const wchar_t &user_text)
@@ -949,7 +868,7 @@ bool AsUI_Builder::Set_User_Input(const wchar_t &user_text)
 	return false;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Update_Content_Data_Threaded(const unsigned short &id_content_index)
+void AsUI_Builder::Handle_ID_Content(const unsigned short &id_content_index)
 {
 	int index;
 	SUser_Input_Data new_ui_data;
@@ -969,12 +888,11 @@ void AsUI_Builder::Update_Content_Data_Threaded(const unsigned short &id_content
 	{// Need lock
 		std::lock_guard<std::mutex> lock(Mutex_Lock);
 		It_Current_User = User_Array_Map.find(new_ui_data.Title_Name_Key);
-		if (!(It_Current_User != User_Array_Map.end()))
+		if (!(It_Current_User != User_Array_Map.end() ) )
 		{
 			Curl_Component->Erase_ID_Content(id_content_index);  // Delete ID_Content if not in User_Array_Map
 			return;
 		}
-		
 	}// End lock
 
 	// 1.2. Find Button pos, and draw it
@@ -987,8 +905,9 @@ void AsUI_Builder::Update_Content_Data_Threaded(const unsigned short &id_content
 		// 2.1 Setting to redraw button
 		Active_Button = (EActive_Button)index;
 		Active_Page = EAP_Update;
-		Draw_Active_Button();  // !!! Redraw Previus Button bad in this moment
+		Handle_Active_Button_Advence();  // !!! Redraw Previus Button bad in this moment
 
+		std::this_thread::sleep_for(std::chrono::seconds(1) );
 		Curl_Component->Get_Url(user_input, id_content_index);
 		wcsncpy_s(User_Input, wcslen(user_input) + 1, user_input, wcslen(user_input) );
 		Add_To_Clipboard_User_Input();
@@ -997,7 +916,7 @@ void AsUI_Builder::Update_Content_Data_Threaded(const unsigned short &id_content
 	It_Current_User = User_Array_Map.end();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Update_ID_Content()
+void AsUI_Builder::Handle_Update_Button()
 {
 	short i;
 	short thread_count;
@@ -1016,16 +935,16 @@ void AsUI_Builder::Update_ID_Content()
 		for (i = 0; i < thread_count; i++)
 			threads.emplace_back([&]
 				{
-					short content_data_index = data_index_starts;
+					short saved_content_id = data_index_starts;
 
-					if (content_data_index > id_content_size - 2)
+					if (saved_content_id > id_content_size - 2)
 						return;
 					else
 						data_index_starts++;
 
-					content_data_index++;
+					saved_content_id++;
 
-					Update_Content_Data_Threaded(content_data_index);
+					Handle_ID_Content(saved_content_id);
 				});
 
 		for (auto &th : threads)
@@ -1036,10 +955,51 @@ void AsUI_Builder::Update_ID_Content()
 			return;  // !!! it`s for debugg
 
 	} while (data_index_starts > id_content_size - 1);
+
+	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
+		return;
+	else
+		User_Input[0] = L'\0';
+
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Redraw_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array)
+void AsUI_Builder::Handle_Active_Button_Advence()
 {
+	Handle_Active_Button(Active_Button);  // Draw Active button
+	Draw_User_Input_Request();  // Draw Requests and clear prev requests
+
+	std::wstring image_path = AsConfig::Image_Folder + It_Current_User->second.Title_Name_Key + L".png";
+	Draw_User_Title_Image(image_path.c_str());  // Initialize Title Image Folder
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Active_Button(const EActive_Button &active_button)
+{
+	switch (Active_Menu)
+	{
+	case EAM_Main:
+	case EAM_Watching:
+		Draw_Active_Button(active_button, User_Array_Map);
+		break;
+
+	case EAM_Library_Menu:
+		Draw_Active_Button(active_button, User_Library_Map);
+		break;
+
+	case EAM_Paused_Menu:
+		Draw_Active_Button(active_button, User_Paused_Map);
+		break;
+
+	case EAM_Wishlist:
+		Draw_Active_Button(active_button, User_Wishlist_Map);
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Draw_Active_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array)
+{
+	int title_name_length;
+
+	title_name_length = 0;
+
 	if (Active_Menu != EAM_Main)
 	{
 		if (Prev_Button == 99)
@@ -1056,6 +1016,9 @@ void AsUI_Builder::Redraw_Button(const EActive_Button &active_button, std::map<s
 		{
 			Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, User_Input_Rect[(int)active_button], It_Current_User->second.Title_Name_Num.c_str());
 			Add_To_Clipboard_Name_Key();
+			title_name_length = (int)wcslen(It_Current_User->second.Title_Name_Num.c_str() ) + 1;
+			wcsncpy_s(User_Input, title_name_length, It_Current_User->second.Title_Name_Num.c_str(), wcslen(It_Current_User->second.Title_Name_Num.c_str() ) );
+			Draw_User_Input_Button();
 		}
 		else
 		{
@@ -1073,14 +1036,61 @@ void AsUI_Builder::Redraw_Button(const EActive_Button &active_button, std::map<s
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Button_Text(const HBRUSH& background, const COLORREF& color_bk, const COLORREF& color_tx, const RECT& rect, const wchar_t *str) const
+void AsUI_Builder::Draw_User_Input_Request()
 {
-	SelectObject(Ptr_Hdc, background);
-	SetBkColor(Ptr_Hdc, color_bk);
-	SetTextColor(Ptr_Hdc, color_tx);
+	int button_offset;
+	int box_size;
+	int scale;
+	int half_box;
+	RECT ui_rect_offset {};
 
-	Rectangle(Ptr_Hdc, rect.left, rect.top, rect.right, rect.bottom);  // draw rect
-	TextOutW(Ptr_Hdc, rect.left + AsConfig::Global_Scale, rect.top + AsConfig::Global_Scale, str, (int)wcslen(str));  // button_prev text ( x its text out in middle
+	button_offset = 9;
+	box_size = 21;
+	half_box = (int)( (float)box_size / 2.0f);
+	scale = AsConfig::Global_Scale;
+
+	// 1. Get and set current button and drow near sub option to increase or dercrese last char
+	if (Active_Menu == EAM_Main)
+	{// clear prev request
+
+		FillRect(Ptr_Hdc, &Rect_User_Input_Change[0], AsConfig::Brush_Background);
+		FillRect(Ptr_Hdc, &Rect_User_Input_Change[1], AsConfig::Brush_Background);
+
+		Rect_User_Input_Change[0] = ui_rect_offset;
+		Rect_User_Input_Change[1] = ui_rect_offset;
+		return;
+	}
+	
+	ui_rect_offset = User_Input_Rect[Prev_Button];
+	FillRect(Ptr_Hdc, &Rect_User_Input_Change[0], AsConfig::Brush_Background);
+	FillRect(Ptr_Hdc, &Rect_User_Input_Change[1], AsConfig::Brush_Background);
+
+	// Change Background
+	SelectObject(Ptr_Hdc, AsConfig::Brush_Green_Dark);
+
+	// 1.1 Draw first Rectangle decrease 
+	ui_rect_offset.left = ui_rect_offset.right + button_offset;
+	ui_rect_offset.top = ui_rect_offset.top;
+	ui_rect_offset.right = ui_rect_offset.right + button_offset + box_size;
+	ui_rect_offset.bottom = ui_rect_offset.top + box_size;
+	if (Rect_User_Input_Change != 0)
+		Rect_User_Input_Change[0] = ui_rect_offset;
+	Rectangle(Ptr_Hdc, ui_rect_offset.left, ui_rect_offset.top, ui_rect_offset.right, ui_rect_offset.bottom);
+	MoveToEx(Ptr_Hdc, ui_rect_offset.left + scale, ui_rect_offset.top + half_box, 0);
+	LineTo(Ptr_Hdc, ui_rect_offset.right - scale, ui_rect_offset.top + half_box);
+
+	// 1.2 Draw second Rectangle increment
+	ui_rect_offset.left = ui_rect_offset.left + box_size + scale;
+	ui_rect_offset.top = ui_rect_offset.top;
+	ui_rect_offset.right = ui_rect_offset.right + box_size + scale;
+	ui_rect_offset.bottom = ui_rect_offset.bottom;
+	if (Rect_User_Input_Change != 0)
+		Rect_User_Input_Change[1] = ui_rect_offset;
+	Rectangle(Ptr_Hdc, ui_rect_offset.left, ui_rect_offset.top, ui_rect_offset.right, ui_rect_offset.bottom);
+	MoveToEx(Ptr_Hdc, ui_rect_offset.left + scale, ui_rect_offset.top + half_box, 0);
+	LineTo(Ptr_Hdc, ui_rect_offset.right - scale, ui_rect_offset.top + half_box);
+	MoveToEx(Ptr_Hdc, ui_rect_offset.left + half_box, ui_rect_offset.top + scale,0);
+	LineTo(Ptr_Hdc, ui_rect_offset.left + half_box, ui_rect_offset.bottom - scale);
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_User_Title_Image(const wchar_t *image_path) const
@@ -1162,50 +1172,17 @@ void AsUI_Builder::Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser
 	Add_Button_Next_Page();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Active_Button()
+void AsUI_Builder::Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const
 {
-	Redraw_Button_Advence(Active_Button);  // Draw Active button
-	User_Input_Request();  // Draw Requests and clear prev requests
+	SelectObject(Ptr_Hdc, background);
+	SetBkColor(Ptr_Hdc, color_bk);
+	SetTextColor(Ptr_Hdc, color_tx);
 
-	std::wstring image_path = AsConfig::Image_Folder;
-	image_path += It_Current_User->second.Title_Name_Key;
-	image_path += L".png";
-	Draw_User_Title_Image(image_path.c_str());  // Initialize Title Image Folder
+	Rectangle(Ptr_Hdc, rect.left, rect.top, rect.right, rect.bottom);  // draw rect
+	TextOutW(Ptr_Hdc, rect.left + AsConfig::Global_Scale, rect.top + AsConfig::Global_Scale, str, (int)wcslen(str) );  // button_prev text ( x its text out in middle
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Init_User_Array_Load(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
-{
-	int i = 0, len = 0;
-	int user_array_size;
-	wchar_t **user_array;
-
-	user_array_size = (int)user_arr.size();
-	user_array = new wchar_t *[user_array_size];
-
-	// init array for save
-	for (auto &it : user_arr)
-	{
-		const std::wstring &key = it.second.Title_Name_Num;
-		len = (int)key.length() + 1;
-		if (i < user_array_size)
-		{
-			user_array[i] = new wchar_t[len];
-			wcscpy_s(user_array[i], len, key.c_str() );
-			i++;
-		}
-	}
-
-	// save data to disk
-	User_Input_Save(file_path, user_array, user_array_size);
-
-	// free memory
-	for (int i = 0; i < user_array_size; i++)
-		delete[] user_array[i];  // Удаление данных на которых указивают указателеи
-
-	delete[] user_array;  // Удаление указателей
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Init_Context_Menu(const int& x, const int& y)
+void AsUI_Builder::Draw_Context_Menu(const int &x, const int &y)
 {
 	int button_text_len;
 	int scale;
@@ -1258,7 +1235,7 @@ void AsUI_Builder::Init_Context_Menu(const int& x, const int& y)
 	Prev_Context_Menu_Cords = context_rect;
 }
 //------------------------------------------------------------------------------------------------------------
-int AsUI_Builder::Init_Seasons(int curr_it) const
+int AsUI_Builder::Get_Season(int season_int) const
 {
 	int ch;
 	int season = 0;
@@ -1266,7 +1243,7 @@ int AsUI_Builder::Init_Seasons(int curr_it) const
 	int ch_rus = 1000;  // russian chars
 	int i = 73, v = 86, x = 88;  // maybe make enumeration, it`s means I V X numbers in chars
 
-	ch = User_Input[++curr_it];
+	ch = User_Input[++season_int];
 
 	while (ch != L' ')
 	{
@@ -1290,7 +1267,7 @@ int AsUI_Builder::Init_Seasons(int curr_it) const
 		else if (ch == x && season > 0)
 			season = 10 - season;
 
-		ch = User_Input[++curr_it];
+		ch = User_Input[++season_int];
 	}
 	return season;
 }
@@ -1388,7 +1365,7 @@ void AsUI_Builder::Add_Button_Next_Page()
 	Rect_Pages[EActive_Page::EAP_Next] = button_next;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Add_To_User_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input)
+void AsUI_Builder::Add_To_User_Map(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input)
 {
 	int curr_it = 0;
 	SUser_Input_Data ui_data = {};
@@ -1514,7 +1491,7 @@ void AsUI_Builder::Add_To_Clipboard_Name_Key()
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Erase_From_User_Array()
+void AsUI_Builder::Erase_From_User_Map()
 {
 	if (Prev_Button == 99)
 		return;
@@ -1542,161 +1519,6 @@ void AsUI_Builder::Erase_From_User_Array()
 	Save_All_To_Data(Active_Menu);  // Save by Erase
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
-{
-	bool is_add_to_user_array = false;
-	wchar_t *user_input;
-	wchar_t ch;
-	int how_much_g;
-	int block_sum;
-	int ptr = 0, str = 0;
-	unsigned long long *block_array;
-	unsigned long long number;
-	unsigned long long ch_long;
-	unsigned long long index;
-	
-	user_input = new wchar_t[100];
-	ch = 0;
-	how_much_g = 0;
-	block_sum = 0;
-	number = 0;
-	ch_long = 0;
-	index = 0;
-
-	std::ifstream infile(file_path, std::ios::binary);  // Откриваем файл по названию
-	if (!infile)
-		return;
-
-	infile.seekg(0, std::ios::end);  // Вычисляем количество чисел в файле тем самим переходя в конец файла
-	how_much_g = (int)infile.tellg();
-
-	block_sum = how_much_g / sizeof(unsigned long long);  // (long long) 8 / size = how manny in unsigned long long data
-
-	infile.seekg(0, std::ios::beg);  // Переходим в начало файла
-	block_array = new unsigned long long[block_sum];  // Выделяем память для чтения чисел из файла
-	infile.read(reinterpret_cast<char*>(block_array), how_much_g);  // Читаем и записиваем числа из файла в массив!
-
-	while (ptr < block_sum)
-	{
-		number = block_array[ptr];
-		index = 10000000000000000LL;
-
-		while (index != 0)
-		{
-			ch_long = number / index;
-			ch_long %= 100;
-			index /= 100;
-
-			while (ch_long == 0)
-			{
-				ch_long = number / index;
-				ch_long %= 100;
-				index /= 100;
-
-				if (index == 0)
-					break;
-			}
-
-			// Конвертируем в рус символы
-			int converted_char = (int)ch_long;
-
-			if (converted_char <= 64 && converted_char > 55)
-				is_add_to_user_array = true;
-
-			if (is_add_to_user_array && converted_char > 64 || is_add_to_user_array && converted_char < 55)
-			{
-				user_input[str] = L'\0';
-				str = str + 1;
-
-				user_input[0] = user_input[0] - 32;  // Делаем заглавной
-				Add_To_User_Array(user_arr, user_input);
-				is_add_to_user_array = false;
-				str = 0;
-			}
-
-			Convert(converted_char, false);
-
-			wchar_t ch = (wchar_t)converted_char;
-			user_input[str] = ch;
-			str++;
-		}
-		ptr++;
-
-		if (ptr == block_sum)
-		{
-			user_input[str] = L'\0';
-			str = str + 1;
-
-			user_input[0] = user_input[0] - 32;  // Делаем заглавной
-			Add_To_User_Array(user_arr, user_input);
-		}
-
-		if (!infile)
-			return;
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Save(const char *file_path, wchar_t **user_array, int user_input_counter)
-{
-	int ptr = 0, str = 0, counter_write = 0;
-	unsigned long long numbers = 0;
-	std::string user_input_saved_folder = "Data/";
-
-	if (!std::filesystem::exists(user_input_saved_folder) )
-		std::filesystem::create_directory(user_input_saved_folder);
-	
-	user_input_saved_folder += file_path;
-
-	std::ofstream outfile(user_input_saved_folder, std::ios::out | std::ios::binary);  // Создаем новые данные
-
-	if (!outfile)
-		return;
-
-	while (user_input_counter != 0)
-	{
-		while (user_array[ptr][str] != L'\0')  // Пока не достигнем конца обрабативаем строку
-		{
-			wchar_t ch;
-			int ch_int;
-
-			ch = user_array[ptr][str];
-			ch_int = (int)ch;  // 1105
-
-			Convert(ch_int, true);
-
-			if (counter_write % 9 == 0 && counter_write != 0)  // Заходим каждый 9 раз
-			{
-				outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
-				numbers = 0;
-			}
-
-			if (numbers == 0)
-				numbers = ch_int;
-			else
-				numbers = numbers * 100 + ch_int;  // 100 - смещение на 2 числа
-
-			counter_write++;
-			str++;
-		}
-
-		user_input_counter--;
-		ptr++;  // переходим на следующую строку
-		str = 0;  // переходим в начало строки
-
-		bool is_nine = counter_write % 9 != 0;
-
-		if (user_input_counter == 0 && is_nine)  // если в конце массива то записиваем остаток символов
-			outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
-		else if (!is_nine && user_input_counter == 0)
-			outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
-	}
-
-	if (!outfile)
-		return;
-
-	outfile.close();
-}
-//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Save_Image(const RECT &rect)
 {
 	Hdc_Memory = CreateCompatibleDC(Ptr_Hdc);
@@ -1711,7 +1533,7 @@ void AsUI_Builder::Save_Image(const RECT &rect)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Restore_Image(RECT& rect)
+void AsUI_Builder::Restore_Image(RECT &rect)
 {
 	if (Hdc_Memory != NULL && H_Bitmap != NULL && Saved_Object != NULL) {
 		BitBlt(Ptr_Hdc, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, Hdc_Memory, 0, 0, SRCCOPY);
@@ -1812,32 +1634,32 @@ SUser_Input_Data AsUI_Builder::Init_UI_Data()
 {
 	wchar_t *num;
 	int is_space = 0;
-	int curr_it;
+	int season;
 	SUser_Input_Data ui_data;
 	User_Input_Len = (int)wcslen(User_Input);
 
 	// Initialize & Find were key starts
-	curr_it = User_Input_Len;
-	while (User_Input[curr_it] < 1000)
+	season = User_Input_Len;
+	while (User_Input[season] < 1000)
 	{
-		curr_it--;
-		if (User_Input[curr_it] == L' ')  // if space
+		season--;
+		if (User_Input[season] == L' ')  // if space
 		{
 			is_space++;
 			switch (is_space)
 			{
 			case 1:
-				num = User_Input + curr_it;
+				num = User_Input + season;
 				ui_data.Title_Num = std::stoi(num);  // Initialize TITLE_NUM
 				break;
 
 
 			case 2:
-				User_Input[curr_it + 3 + 1] = L'\0';
-				num = User_Input + curr_it + 1;
+				User_Input[season + 3 + 1] = L'\0';
+				num = User_Input + season + 1;
 
 				// Initialize TITLE_SEASON
-				ui_data.Title_Season = Init_Seasons(curr_it);
+				ui_data.Title_Season = Get_Season(season);
 				if (ui_data.Title_Season == 0)
 					ui_data.Title_Season = (int)std::stoi(num);
 				break;
@@ -1850,7 +1672,7 @@ SUser_Input_Data AsUI_Builder::Init_UI_Data()
 	}
 
 	// Initialize TITLE_NAME_KEY
-	User_Input[++curr_it] = L'\0';
+	User_Input[++season] = L'\0';
 	ui_data.Title_Name_Key = User_Input;
 
 	// Initialize TITLE_NAME_NUM
@@ -1868,7 +1690,7 @@ SUser_Input_Data AsUI_Builder::Init_UI_Data()
 	return ui_data;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Save_All_To_Data(const EActive_Menu& menu)
+void AsUI_Builder::Save_All_To_Data(const EActive_Menu &menu)
 {
 	switch (menu)
 	{
@@ -1908,6 +1730,208 @@ void AsUI_Builder::Save_All_To_Data(const EActive_Menu& menu)
 		break;
 	}
 
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Init_User_Array_Load(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
+{
+	int i = 0, len = 0;
+	int user_array_size;
+	wchar_t **user_array;
+
+	user_array_size = (int)user_arr.size();
+	user_array = new wchar_t *[user_array_size];
+
+	// init array for save
+	for (auto &it : user_arr)
+	{
+		const std::wstring &key = it.second.Title_Name_Num;
+		len = (int)key.length() + 1;
+		if (i < user_array_size)
+		{
+			user_array[i] = new wchar_t[len];
+			wcscpy_s(user_array[i], len, key.c_str() );
+			i++;
+		}
+	}
+
+	// save data to disk
+	User_Input_Save(file_path, user_array, user_array_size);
+
+	// free memory
+	for (int i = 0; i < user_array_size; i++)
+		delete[] user_array[i];  // Удаление данных на которых указивают указателеи
+
+	delete[] user_array;  // Удаление указателей
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Input_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
+{
+	bool is_add_to_user_array = false;
+	wchar_t *user_input;
+	wchar_t ch;
+	int how_much_g;
+	int block_sum;
+	int ptr = 0, str = 0;
+	unsigned long long *block_array;
+	unsigned long long number;
+	unsigned long long ch_long;
+	unsigned long long index;
+	
+	user_input = new wchar_t[100];
+	ch = 0;
+	how_much_g = 0;
+	block_sum = 0;
+	number = 0;
+	ch_long = 0;
+	index = 0;
+
+	std::ifstream infile(file_path, std::ios::binary);  // Откриваем файл по названию
+	if (!infile)
+		return;
+
+	infile.seekg(0, std::ios::end);  // Вычисляем количество чисел в файле тем самим переходя в конец файла
+	how_much_g = (int)infile.tellg();
+
+	block_sum = how_much_g / sizeof(unsigned long long);  // (long long) 8 / size = how manny in unsigned long long data
+
+	infile.seekg(0, std::ios::beg);  // Переходим в начало файла
+	block_array = new unsigned long long[block_sum];  // Выделяем память для чтения чисел из файла
+	infile.read(reinterpret_cast<char*>(block_array), how_much_g);  // Читаем и записиваем числа из файла в массив!
+
+	while (ptr < block_sum)
+	{
+		number = block_array[ptr];
+		index = 10000000000000000LL;
+
+		while (index != 0)
+		{
+			ch_long = number / index;
+			ch_long %= 100;
+			index /= 100;
+
+			while (ch_long == 0)
+			{
+				ch_long = number / index;
+				ch_long %= 100;
+				index /= 100;
+
+				if (index == 0)
+					break;
+			}
+
+			// Конвертируем в рус символы
+			int converted_char = (int)ch_long;
+
+			if (converted_char <= 64 && converted_char > 55)
+				is_add_to_user_array = true;
+
+			if (is_add_to_user_array && converted_char > 64 || is_add_to_user_array && converted_char < 55)
+			{
+				user_input[str] = L'\0';
+				str = str + 1;
+
+				user_input[0] = user_input[0] - 32;  // Делаем заглавной
+				Add_To_User_Map(user_arr, user_input);
+				is_add_to_user_array = false;
+				str = 0;
+			}
+
+			Convert(converted_char, false);
+
+			wchar_t ch = (wchar_t)converted_char;
+			user_input[str] = ch;
+			str++;
+		}
+		ptr++;
+
+		if (ptr == block_sum)
+		{
+			user_input[str] = L'\0';
+			str = str + 1;
+
+			user_input[0] = user_input[0] - 32;  // Делаем заглавной
+			Add_To_User_Map(user_arr, user_input);
+		}
+
+		if (!infile)
+			return;
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Input_Save(const char *file_path, wchar_t **user_array, int user_input_counter)
+{
+	int ptr = 0, str = 0, counter_write = 0;
+	unsigned long long numbers = 0;
+	std::string user_input_saved_folder = "Data/";
+
+	if (!std::filesystem::exists(user_input_saved_folder) )
+		std::filesystem::create_directory(user_input_saved_folder);
+	
+	user_input_saved_folder += file_path;
+
+	std::ofstream outfile(user_input_saved_folder, std::ios::out | std::ios::binary);  // Создаем новые данные
+
+	if (!outfile)
+		return;
+
+	while (user_input_counter != 0)
+	{
+		while (user_array[ptr][str] != L'\0')  // Пока не достигнем конца обрабативаем строку
+		{
+			wchar_t ch;
+			int ch_int;
+
+			ch = user_array[ptr][str];
+			ch_int = (int)ch;  // 1105
+
+			Convert(ch_int, true);
+
+			if (counter_write % 9 == 0 && counter_write != 0)  // Заходим каждый 9 раз
+			{
+				outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
+				numbers = 0;
+			}
+
+			if (numbers == 0)
+				numbers = ch_int;
+			else
+				numbers = numbers * 100 + ch_int;  // 100 - смещение на 2 числа
+
+			counter_write++;
+			str++;
+		}
+
+		user_input_counter--;
+		ptr++;  // переходим на следующую строку
+		str = 0;  // переходим в начало строки
+
+		bool is_nine = counter_write % 9 != 0;
+
+		if (user_input_counter == 0 && is_nine)  // если в конце массива то записиваем остаток символов
+			outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
+		else if (!is_nine && user_input_counter == 0)
+			outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
+	}
+
+	if (!outfile)
+		return;
+
+	outfile.close();
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Input_Value_Is_Changet(const bool is_increment)
+{
+	if (is_increment)
+		It_Current_User->second.Title_Num++;
+	else
+		It_Current_User->second.Title_Num--;
+
+	It_Current_User->second.Title_Name_Num.erase();
+
+	if (It_Current_User->second.Title_Season != 0)
+		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + AsConfig::Season[It_Current_User->second.Title_Season - 1] + L" " + std::to_wstring(It_Current_User->second.Title_Num);
+	else
+		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + std::to_wstring(It_Current_User->second.Title_Num);
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -1996,8 +2020,8 @@ void AsEngine::Draw_Frame(HWND hwnd)
 	if (!Is_After_Maximazied)
 	{
 		Is_After_Maximazied = !Is_After_Maximazied;
-		UI_Builder->Init();  // draw after maximazed window
-		UI_Builder->Draw_Sub_Menu();
+		UI_Builder->Draw_Menu_Main();  // draw after maximazed window
+		UI_Builder->Draw_Menu_Sub();
 		return;
 	}
 
@@ -2052,7 +2076,7 @@ void AsEngine::Handle_Input()
 	switch (Key_Type)
 	{
 	case EKT_Draw_Main_Menu:
-		UI_Builder->Init();
+		UI_Builder->Draw_Menu_Main();
 		break;
 
 
@@ -2072,7 +2096,7 @@ void AsEngine::Handle_Input()
 
 
 	case EKT_Enter:
-		UI_Builder->User_Input_Reset();
+		UI_Builder->User_Input_Handle();
 		break;
 
 

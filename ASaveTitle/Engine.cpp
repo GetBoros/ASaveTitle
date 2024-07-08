@@ -1,4 +1,5 @@
 ﻿#include "Engine.h"
+#include "Engine.h"
 
 // ACurl_Client
 std::wstring ACurl_Client::Response_Buffer;
@@ -433,7 +434,7 @@ AsUI_Builder::~AsUI_Builder()
 		DeleteObject(H_Bitmap);
 
 	// 1.3 Save map to Data/...
-	Save_All_To_Data(Active_Menu = EAM_Exit);  // Exit from Program
+	User_Map_Save_All_To(Active_Menu = EAM_Exit);  // Exit from Program
 
 	// 1.5 Free memory
 	delete Curl_Component;
@@ -445,15 +446,16 @@ AsUI_Builder::~AsUI_Builder()
 }
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::AsUI_Builder(HDC hdc)
- : Active_Menu(EAM_Main), Active_Button(EActive_Button::EAB_Main_Menu), Rect_Menu_List{}, User_Input{}, Rect_Menu_List_Length(0), Rect_Sub_Menu_Length(0),
-	Main_Menu_Titles_Length_Max(50), Curl_Component(0), Active_Page(EActive_Page::EAP_None), Sub_Menu_Curr_Page(0), Prev_Main_Menu_Button(0), Prev_Button(99), User_Input_Rect{}, Prev_Context_Menu_Cords{},
-	Rect_Buttons_Context{}, Input_Button_Rect{}, Rect_Pages{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), Rect_User_Input_Change{}, Ptr_Hdc(hdc)
+: Active_Menu(EAM_Main), Ptr_Hdc(hdc), Rect_Menu_List{}, User_Input{}, Rect_Menu_List_Length(0), Rect_Sub_Menu_Length(0), Sub_Menu_Curr_Page(0), Prev_Main_Menu_Button(0),
+  Prev_Button(99), Main_Menu_Titles_Length_Max(50), Sub_Menu_Max_Line(31), User_Array_Max_Size(0), Active_Button(EActive_Button::EAB_Main_Menu),
+  Active_Page(EActive_Page::EAP_None), User_Input_Rect{}, Rect_User_Input_Change{}, Rect_Buttons_Context{}, Prev_Context_Menu_Cords{},
+  Rect_Pages{}, Input_Button_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Input_Data{}, Curl_Component(0)
 {
 	// Load map from Data/...
-	User_Input_Load(User_Array_Map, "Data/Watching.bin");
-	User_Input_Load(User_Library_Map, "Data/Library.bin");
-	User_Input_Load(User_Paused_Map, "Data/Paused.bin");
-	User_Input_Load(User_Wishlist_Map, "Data/Wishlist.bin");
+	User_Input_Load_Array(User_Array_Map, "Data/Watching.bin");
+	User_Input_Load_Array(User_Library_Map, "Data/Library.bin");
+	User_Input_Load_Array(User_Paused_Map, "Data/Paused.bin");
+	User_Input_Load_Array(User_Wishlist_Map, "Data/Wishlist.bin");
 
 	Curl_Component = new ACurl_Component;
 
@@ -567,7 +569,7 @@ void AsUI_Builder::Draw_User_Input_Button() const
 	if (User_Input[0] != 0)
 		TextOutW(Ptr_Hdc, button.left + AsConfig::Global_Scale, button.top + AsConfig::Global_Scale, User_Input, (int)wcslen(User_Input) );  // activ_button  text ( x its text out in middle
 	else
-		TextOutW(Ptr_Hdc, button.left + AsConfig::Global_Scale, button.top + AsConfig::Global_Scale, L"Enter Text Here...", 19);  // activ_button  text ( x its text out in middle
+		TextOutW(Ptr_Hdc, button.left + AsConfig::Global_Scale, button.top + AsConfig::Global_Scale, Sub_Menu_Title, (int)wcslen(Sub_Menu_Title) );  // activ_button  text ( x its text out in middle
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Handle()
@@ -605,19 +607,19 @@ void AsUI_Builder::User_Input_Handle()
 	switch (Active_Menu)  // With add to
 	{
 	case EAM_Watching:
-		Add_To_User_Map(User_Array_Map, User_Input);
+		User_Map_Emplace(User_Array_Map, User_Input);
 		break;
 
 	case EAM_Library_Menu:
-		Add_To_User_Map(User_Library_Map, User_Input);
+		User_Map_Emplace(User_Library_Map, User_Input);
 		break;
 
 	case EAM_Paused_Menu:
-		Add_To_User_Map(User_Paused_Map, User_Input);
+		User_Map_Emplace(User_Paused_Map, User_Input);
 		break;
 
 	case EAM_Wishlist:
-		Add_To_User_Map(User_Wishlist_Map, User_Input);
+		User_Map_Emplace(User_Wishlist_Map, User_Input);
 		break;
 	}
 
@@ -625,7 +627,7 @@ void AsUI_Builder::User_Input_Handle()
 	Draw_Menu_Sub(Active_Menu);
 	Handle_Active_Button_Advence();
 	Draw_User_Input_Button();
-	Save_All_To_Data(Active_Menu);  // Save by Add
+	User_Map_Save_All_To(Active_Menu);  // Save by Add
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Set_RM_Cord(const RECT &mouse_cord)
@@ -726,41 +728,12 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 		if (IntersectRect(&intersect_rect, &mouse_cord, &Input_Button_Rect) )
 		{
 			if (User_Input[0] != 0)
-			{
-				User_Input_Handle();
-				return;
-			}
-			else if (OpenClipboard(0) )
-			{
-				HANDLE handle_data = GetClipboardData(CF_UNICODETEXT);
-
-				if (handle_data != 0)
-				{
-					WCHAR *psz_text = static_cast<WCHAR*>(GlobalLock(handle_data) );  // Text from clipboard
-
-					int clipboard_length;
-					int index;
-
-					index = 0;
-					if (psz_text != 0)
-					{
-						clipboard_length = (int)wcslen(psz_text);
-						while (psz_text[index] != '\0')
-						{
-							Set_User_Input(psz_text[index]);
-							index++;
-						}
-					}
-
-					GlobalUnlock(handle_data);
-				}
-
-				CloseClipboard();
-			}
-			Draw_User_Input_Button();
+				User_Input_Handle();  // Handle URL
+			else
+				User_Input_Set_To_Clipboard();
+			
 			return;
 		}
-
 	}
 
 
@@ -785,35 +758,35 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 				switch ( (EActive_Menu)i)
 				{
 				case EAM_Watching:
-					Add_To_User_Map(User_Array_Map, It_Current_User->second.Title_Name_Num.c_str() );
-					Erase_From_User_Map();
+					User_Map_Emplace(User_Array_Map, It_Current_User->second.Title_Name_Num.c_str() );
+					User_Map_Erase();
 					Draw_Menu_Sub(Active_Menu);
 					break;
 
 				case EAM_Library_Menu:
-					Add_To_User_Map(User_Library_Map, It_Current_User->second.Title_Name_Num.c_str() );
-					Erase_From_User_Map();
+					User_Map_Emplace(User_Library_Map, It_Current_User->second.Title_Name_Num.c_str() );
+					User_Map_Erase();
 					Draw_Menu_Sub(Active_Menu);
 					break;
 
 				case EAM_Paused_Menu:
-					Add_To_User_Map(User_Paused_Map, It_Current_User->second.Title_Name_Num.c_str() );
-					Erase_From_User_Map();
+					User_Map_Emplace(User_Paused_Map, It_Current_User->second.Title_Name_Num.c_str() );
+					User_Map_Erase();
 					Draw_Menu_Sub(Active_Menu);
 					break;
 
 				case EAM_Wishlist:
-					Add_To_User_Map(User_Wishlist_Map, It_Current_User->second.Title_Name_Num.c_str());
-					Erase_From_User_Map();
+					User_Map_Emplace(User_Wishlist_Map, It_Current_User->second.Title_Name_Num.c_str() );
+					User_Map_Erase();
 					Draw_Menu_Sub(Active_Menu);
 					break;
 
 				case EAM_Erase:
-					Erase_From_User_Map();
+					User_Map_Erase();
 					Draw_Menu_Sub(Active_Menu);
 					break;
 				}
-				Save_All_To_Data( (EActive_Menu)i);
+				User_Map_Save_All_To( (EActive_Menu)i);
 				return;
 			}
 		}
@@ -871,23 +844,23 @@ bool AsUI_Builder::Set_User_Input(const wchar_t &user_text)
 void AsUI_Builder::Handle_ID_Content(const unsigned short &id_content_index)
 {
 	int index;
-	SUser_Input_Data new_ui_data;
-	wchar_t user_input[180]{};
+	SUser_Input_Data converted_data;
+	wchar_t user_input[AsConfig::User_Input_Buffer]{};
 	index = 0;
 
 	// 1.0. Init, Get title name
 	Curl_Component->Get_Url(user_input, id_content_index);
 	ACurl_Client reguest(EPrograms::ASaver, user_input);
 	wcsncpy_s(User_Input, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-	new_ui_data = Init_UI_Data();  // User_Input convert to data
+	User_Input_Convert_Data(converted_data);  // User_Input convert to data
 
 	// 1.1. Sleep if doesn`t have title
 	while (It_Current_User != User_Array_Map.end() )
 		std::this_thread::sleep_for(std::chrono::seconds(1) );
-
+	
 	{// Need lock
 		std::lock_guard<std::mutex> lock(Mutex_Lock);
-		It_Current_User = User_Array_Map.find(new_ui_data.Title_Name_Key);
+		It_Current_User = User_Array_Map.find(converted_data.Title_Name_Key);
 		if (!(It_Current_User != User_Array_Map.end() ) )
 		{
 			Curl_Component->Erase_ID_Content(id_content_index);  // Delete ID_Content if not in User_Array_Map
@@ -896,7 +869,7 @@ void AsUI_Builder::Handle_ID_Content(const unsigned short &id_content_index)
 	}// End lock
 
 	// 1.2. Find Button pos, and draw it
-	if (new_ui_data.Title_Num > It_Current_User->second.Title_Num)
+	if (converted_data.Title_Num > It_Current_User->second.Title_Num)
 	{// If have new series draw button if different color
 
 		for (auto iter = User_Array_Map.begin(); iter != It_Current_User; ++iter)
@@ -907,11 +880,9 @@ void AsUI_Builder::Handle_ID_Content(const unsigned short &id_content_index)
 		Active_Page = EAP_Update;
 		Handle_Active_Button_Advence();  // !!! Redraw Previus Button bad in this moment
 
-		std::this_thread::sleep_for(std::chrono::seconds(1) );
+		//std::this_thread::sleep_for(std::chrono::seconds(1) );  // !!!
 		Curl_Component->Get_Url(user_input, id_content_index);
-		wcsncpy_s(User_Input, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-		Add_To_Clipboard_User_Input();
-		Draw_User_Input_Button();
+		User_Input_Get_From_Clipboard(user_input);
 	}
 	It_Current_User = User_Array_Map.end();
 }
@@ -1013,13 +984,7 @@ void AsUI_Builder::Draw_Active_Button(const EActive_Button &active_button, std::
 		std::advance(It_Current_User, (int)active_button);
 
 		if (Active_Page != EAP_Update)  // if from update button change color
-		{
 			Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, User_Input_Rect[(int)active_button], It_Current_User->second.Title_Name_Num.c_str());
-			Add_To_Clipboard_Name_Key();
-			title_name_length = (int)wcslen(It_Current_User->second.Title_Name_Num.c_str() ) + 1;
-			wcsncpy_s(User_Input, title_name_length, It_Current_User->second.Title_Name_Num.c_str(), wcslen(It_Current_User->second.Title_Name_Num.c_str() ) );
-			Draw_User_Input_Button();
-		}
 		else
 		{
 			Active_Page = EAP_None;
@@ -1209,7 +1174,7 @@ void AsUI_Builder::Draw_Context_Menu(const int &x, const int &y)
 	Rect_Buttons_Context = new RECT[Context_Button_Length];
 
 	// 3. Before draw Context Menu save Image where we draw it to reload
-	Save_Image(context_rect);  // Save image to buffer while we can restore with condition
+	Save_Image_To(context_rect);  // Save image to buffer while we can restore with condition
 
 	// 4. Draw Context Menu
 	Rectangle(Ptr_Hdc, context_rect.left, context_rect.top, context_rect.right, context_rect.bottom);
@@ -1235,7 +1200,7 @@ void AsUI_Builder::Draw_Context_Menu(const int &x, const int &y)
 	Prev_Context_Menu_Cords = context_rect;
 }
 //------------------------------------------------------------------------------------------------------------
-int AsUI_Builder::Get_Season(int season_int) const
+int AsUI_Builder::Get_Title_Season(int season_int) const
 {
 	int ch;
 	int season = 0;
@@ -1365,172 +1330,78 @@ void AsUI_Builder::Add_Button_Next_Page()
 	Rect_Pages[EActive_Page::EAP_Next] = button_next;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Add_To_User_Map(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input)
+void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &converted_data)
 {
-	int curr_it = 0;
-	SUser_Input_Data ui_data = {};
+	wchar_t *num;
+	int is_space = 0;
+	int season;
+	SUser_Input_Data ui_data;
+	User_Input_Len = (int)wcslen(User_Input);
 
-	if (user_input[0] == L'\0')
-		return;
-
-	// 1. If User_Input not empty init if we can || Use while load from file
-	if (User_Input[0] == L'\0')
+	// Initialize & Find were key starts
+	season = User_Input_Len;
+	while (User_Input[season] < 1000)
 	{
-		if (user_input != 0)
+		season--;
+		if (User_Input[season] == L' ')  // if space
 		{
-			while (user_input[curr_it] != '\0')
-				Set_User_Input(user_input[curr_it++]);
+			is_space++;
+			switch (is_space)
+			{
+			case 1:
+				num = User_Input + season;
+				ui_data.Title_Num = std::stoi(num);  // Initialize TITLE_NUM
+				break;
+
+
+			case 2:
+				User_Input[season + 3 + 1] = L'\0';
+				num = User_Input + season + 1;
+
+				// Initialize TITLE_SEASON
+				ui_data.Title_Season = Get_Title_Season(season);
+				if (ui_data.Title_Season == 0)
+					ui_data.Title_Season = (int)std::stoi(num);
+				break;
+
+
+			default:
+				break;
+			}
 		}
 	}
 
-	// 1.2  Check User_Input orphography
-	while (User_Input[wcslen(User_Input) - 1] == L' ')  // if last ch = space delete
-		User_Input[--User_Input_Len] = L'\0';
+	// Initialize TITLE_NAME_KEY
+	User_Input[++season] = L'\0';
+	ui_data.Title_Name_Key = User_Input;
 
-	// 1.3 Init_Data before set to map
-	ui_data = Init_UI_Data();
-
-	// 1.4. Check if containts the same key if not save to map
-	if (user_arr.contains(ui_data.Title_Name_Key) )
-		user_arr[ui_data.Title_Name_Key] = ui_data;
-	else
-		user_arr.emplace(ui_data.Title_Name_Key, ui_data);  // if not add new title
-
-	if (std::filesystem::exists("Pictures/Temporary.png") )
-		std::filesystem::rename("Pictures/Temporary.png", (std::wstring(AsConfig::Image_Folder) + ui_data.Title_Name_Key + std::wstring(L".png") ) );
-
-	if (Active_Menu != -1)
+	// Initialize TITLE_NAME_NUM
+	ui_data.Title_Name_Num += ui_data.Title_Name_Key;
+	ui_data.Title_Name_Num.append(L" ");
+	if (ui_data.Title_Season != 0)
 	{
-		It_Current_User = user_arr.find(User_Input);
-		Active_Button = (EActive_Button)std::distance(user_arr.begin(), It_Current_User);
-		Sub_Menu_Curr_Page = ((int)Active_Button - 1) / Sub_Menu_Max_Line;  // Find Page
+		ui_data.Title_Name_Num += AsConfig::Season[ui_data.Title_Season - 1];
+		ui_data.Title_Name_Num.append(L" ");
 	}
-
-	// Reset User_Input
-	for (int i = 0; i < User_Input_Len; i++)
-		User_Input[i] = 0;
-
-	User_Input_Len = 0;
-}
-//------------------------------------------------------------------------------------------------------------
- void AsUI_Builder::Add_To_Clipboard_User_Input()
-{// Need refactoring, can delete url
-
-	wchar_t *url;
-	size_t size_in_bytes;
-	HGLOBAL global_handle;
-	LPVOID global_ptr;
-
-	if (!OpenClipboard(0) )
-		return;
-
-	if (!EmptyClipboard() )  // clean, if cant close and return
-	{
-		CloseClipboard();
-		return;
-	}
-
-	url = new wchar_t[wcslen(User_Input) + 1];  // Выделение памяти для url с учетом завершающего нуля
-	wcsncpy_s(url , wcslen(User_Input) + 1, User_Input, wcslen(User_Input));  // Копирование строки User_Input в url 
-	size_in_bytes = (wcslen(User_Input) + 1) * sizeof(wchar_t);  // Вычисление размера памяти с учетом правильных скобок
-	global_handle = GlobalAlloc(GMEM_MOVEABLE, size_in_bytes);
-
-	if (!global_handle)
-		CloseClipboard();
-	else
-	{
-		global_ptr = GlobalLock(global_handle);
-
-		if (!global_ptr)
-			return;
-
-		memcpy(global_ptr, url, size_in_bytes);  // Скопировать текст в выделенную память
-		GlobalUnlock(global_handle);  // Разблокировать глобальную память
-
-		if (SetClipboardData(CF_UNICODETEXT, global_handle) )  // Поместить текст в буфер обмена
-			CloseClipboard();  // Закрыть буфер обмена
-		else
-		{
-			GlobalFree(global_handle);  // Освободить глобальную память в случае ошибки
-			CloseClipboard();
-		}
-	}
-	delete []url;
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Add_To_Clipboard_Name_Key()
-{
-	HGLOBAL global_handle;
-	LPVOID global_ptr;
-
-	if (!OpenClipboard(0) )
-		return;
 	
-	if (!EmptyClipboard() )  // clean, if cant close and return
-	{
-		CloseClipboard();
-		return;
-	}
+	ui_data.Title_Name_Num += std::to_wstring(ui_data.Title_Num);
+	ui_data.Title_Data;
 
-	if (global_handle = GlobalAlloc(GMEM_MOVEABLE, (It_Current_User->second.Title_Name_Key.size() + 1) * sizeof(wchar_t) ) )  // Выделить глобальную память для текста
-	{
-		if (global_ptr = GlobalLock(global_handle) )  // Заблокировать глобальную память и получить указатель на нее
-		{
-			memcpy(global_ptr, It_Current_User->second.Title_Name_Key.c_str(), (It_Current_User->second.Title_Name_Key.size() + 1) * sizeof(wchar_t) );  // Скопировать текст в выделенную память
-			GlobalUnlock(global_handle);  // Разблокировать глобальную память
-
-			if (SetClipboardData(CF_UNICODETEXT, global_handle) )  // Поместить текст в буфер обмена
-				CloseClipboard();  // Закрыть буфер обмена
-		}
-	}
-	else
-	{
-		GlobalFree(global_handle);
-		CloseClipboard();
-		return;
-	}
+	converted_data = ui_data;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Erase_From_User_Map()
-{
-	if (Prev_Button == 99)
-		return;
-
-	switch (Active_Menu)
-	{
-	case EAM_Watching:
-		User_Array_Map.erase(It_Current_User->first);
-		break;
-
-	case EAM_Library_Menu:
-		User_Library_Map.erase(It_Current_User->first);
-		break;
-
-	case EAM_Paused_Menu:
-		User_Paused_Map.erase(It_Current_User->first);
-		break;
-
-	case EAM_Wishlist:
-		User_Wishlist_Map.erase(It_Current_User->first);
-		break;
-	}
-
-	Prev_Button = 99;  // set to no prev_button
-	Save_All_To_Data(Active_Menu);  // Save by Erase
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Save_Image(const RECT &rect)
+void AsUI_Builder::Save_Image_To(const RECT &rect)
 {
 	Hdc_Memory = CreateCompatibleDC(Ptr_Hdc);
-	if (Hdc_Memory != 0)
-	{
-		H_Bitmap = CreateCompatibleBitmap(Ptr_Hdc, rect.right - rect.left, rect.bottom - rect.top);
-		if (H_Bitmap != NULL)
-		{
-			Saved_Object = SelectObject(Hdc_Memory, H_Bitmap);
-			BitBlt(Hdc_Memory, 0, 0, rect.right - rect.left, rect.bottom - rect.top, Ptr_Hdc, rect.left, rect.top, SRCCOPY);
-		}
-	}
+	if (!Hdc_Memory != 0)
+		return;
+
+	H_Bitmap = CreateCompatibleBitmap(Ptr_Hdc, rect.right - rect.left, rect.bottom - rect.top);
+	if (!H_Bitmap != 0)
+		return;
+
+	Saved_Object = SelectObject(Hdc_Memory, H_Bitmap);
+	BitBlt(Hdc_Memory, 0, 0, rect.right - rect.left, rect.bottom - rect.top, Ptr_Hdc, rect.left, rect.top, SRCCOPY);
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Restore_Image(RECT &rect)
@@ -1548,7 +1419,7 @@ void AsUI_Builder::Restore_Image(RECT &rect)
 	rect = {};  // обнуляем
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Convert(int &ch, const bool &is_in_file)
+void AsUI_Builder::User_Input_Convert_Char(int &ch, const bool &is_in_file)
 {
 	if (!is_in_file)
 	{// If load
@@ -1630,141 +1501,87 @@ void AsUI_Builder::Convert(int &ch, const bool &is_in_file)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-SUser_Input_Data AsUI_Builder::Init_UI_Data()
+void AsUI_Builder::User_Input_Value_Is_Changet(const bool is_increment)
 {
-	wchar_t *num;
-	int is_space = 0;
-	int season;
-	SUser_Input_Data ui_data;
-	User_Input_Len = (int)wcslen(User_Input);
+	if (is_increment)
+		It_Current_User->second.Title_Num++;
+	else
+		It_Current_User->second.Title_Num--;
 
-	// Initialize & Find were key starts
-	season = User_Input_Len;
-	while (User_Input[season] < 1000)
-	{
-		season--;
-		if (User_Input[season] == L' ')  // if space
-		{
-			is_space++;
-			switch (is_space)
-			{
-			case 1:
-				num = User_Input + season;
-				ui_data.Title_Num = std::stoi(num);  // Initialize TITLE_NUM
-				break;
+	It_Current_User->second.Title_Name_Num.erase();
 
-
-			case 2:
-				User_Input[season + 3 + 1] = L'\0';
-				num = User_Input + season + 1;
-
-				// Initialize TITLE_SEASON
-				ui_data.Title_Season = Get_Season(season);
-				if (ui_data.Title_Season == 0)
-					ui_data.Title_Season = (int)std::stoi(num);
-				break;
-
-
-			default:
-				break;
-			}
-		}
-	}
-
-	// Initialize TITLE_NAME_KEY
-	User_Input[++season] = L'\0';
-	ui_data.Title_Name_Key = User_Input;
-
-	// Initialize TITLE_NAME_NUM
-	ui_data.Title_Name_Num += ui_data.Title_Name_Key;
-	ui_data.Title_Name_Num.append(L" ");
-	if (ui_data.Title_Season != 0)
-	{
-		ui_data.Title_Name_Num += AsConfig::Season[ui_data.Title_Season - 1];
-		ui_data.Title_Name_Num.append(L" ");
-	}
+	if (It_Current_User->second.Title_Season != 0)
+		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + AsConfig::Season[It_Current_User->second.Title_Season - 1] + L" " + std::to_wstring(It_Current_User->second.Title_Num);
+	else
+		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + std::to_wstring(It_Current_User->second.Title_Num);
+}
+//------------------------------------------------------------------------------------------------------------
+bool AsUI_Builder::User_Input_Set_To_Clipboard()
+{
+	WCHAR *psz_text;
+	if (!OpenClipboard(0) )
+		return false;
 	
-	ui_data.Title_Name_Num += std::to_wstring(ui_data.Title_Num);
-	ui_data.Title_Data;
+	HANDLE handle_data = GetClipboardData(CF_UNICODETEXT);
+	if (!handle_data != 0)
+		return false;
 
-	return ui_data;
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Save_All_To_Data(const EActive_Menu &menu)
-{
-	switch (menu)
+	if (!(psz_text = static_cast<WCHAR*>(GlobalLock(handle_data) ) ) )
+		return false;
+
+	if (wcsstr(psz_text, L"http://") != 0 || wcsstr(psz_text, L"https://") != 0)  // If it`s url check it
 	{
-	case EAM_Watching:
-		Thread_First = std::thread([&]() { Init_User_Array_Load(User_Array_Map, "Watching.bin"); });
-		Thread_First.join();
-		break;
+		if (!std::filesystem::exists(AsConfig::Image_Folder) )
+			std::filesystem::create_directories(AsConfig::Image_Folder);
 
-	case EAM_Library_Menu:
-		Thread_Second = std::thread([&]() { Init_User_Array_Load(User_Library_Map, "Library.bin"); });
-		Thread_Second.join();
-		break;
-
-	case EAM_Paused_Menu:
-		Thread_Third = std::thread([&]() { Init_User_Array_Load(User_Paused_Map, "Paused.bin"); });
-		Thread_Third.join();
-		break;
-
-	case EAM_Wishlist:
-		Thread_Fourth = std::thread([&]() { Init_User_Array_Load(User_Wishlist_Map, "Wishlist.bin"); });
-		Thread_Fourth.join();
-		break;
-
-	case EAM_Exit:
-		Thread_First = std::thread([&]() { Init_User_Array_Load(User_Array_Map, "Watching.bin"); });
-		Thread_Second = std::thread([&]() { Init_User_Array_Load(User_Library_Map, "Library.bin"); });
-		Thread_Third = std::thread([&]() { Init_User_Array_Load(User_Paused_Map, "Paused.bin"); });
-		Thread_Fourth = std::thread([&]() { Init_User_Array_Load(User_Wishlist_Map, "Wishlist.bin"); });
-
-		Thread_First.join();
-		Thread_Second.join();
-		Thread_Third.join();
-		Thread_Fourth.join();
-		break;
-
-	default:
-		break;
+		if (psz_text != 0)
+			wcsncpy_s(User_Input, wcslen(psz_text) + 1, psz_text, wcslen(psz_text) );
 	}
+	else
+		EmptyClipboard();
 
+	GlobalUnlock(handle_data);
+	CloseClipboard();
+	Draw_User_Input_Button();
+	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Init_User_Array_Load(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
-{
-	int i = 0, len = 0;
-	int user_array_size;
-	wchar_t **user_array;
+bool AsUI_Builder::User_Input_Get_From_Clipboard(wchar_t *to_clipboard)
+{// Need refactoring, can delete url
 
-	user_array_size = (int)user_arr.size();
-	user_array = new wchar_t *[user_array_size];
+	size_t size_in_bytes;
+	HGLOBAL global_handle;
+	LPVOID global_ptr;
 
-	// init array for save
-	for (auto &it : user_arr)
-	{
-		const std::wstring &key = it.second.Title_Name_Num;
-		len = (int)key.length() + 1;
-		if (i < user_array_size)
-		{
-			user_array[i] = new wchar_t[len];
-			wcscpy_s(user_array[i], len, key.c_str() );
-			i++;
-		}
-	}
+	if (!OpenClipboard(0) )
+		return false;
 
-	// save data to disk
-	User_Input_Save(file_path, user_array, user_array_size);
+	if (!EmptyClipboard() )  // clean, if cant close and return
+		return CloseClipboard();
 
-	// free memory
-	for (int i = 0; i < user_array_size; i++)
-		delete[] user_array[i];  // Удаление данных на которых указивают указателеи
+	size_in_bytes = (wcslen(to_clipboard) + 1) * sizeof(wchar_t);  // Вычисление размера памяти с учетом правильных скобок
+	global_handle = GlobalAlloc(GMEM_MOVEABLE, size_in_bytes);
 
-	delete[] user_array;  // Удаление указателей
+	if (!global_handle != 0)
+		return CloseClipboard();
+
+	global_ptr = GlobalLock(global_handle);
+	if (!global_ptr)
+		return CloseClipboard();
+
+	memcpy(global_ptr, to_clipboard, size_in_bytes);  // Скопировать текст в выделенную память
+	GlobalUnlock(global_handle);  // Разблокировать глобальную память
+	wcsncpy_s(User_Input, wcslen(to_clipboard) + 1, to_clipboard, wcslen(to_clipboard));
+
+	if (!SetClipboardData(CF_UNICODETEXT, global_handle))  // Поместить текст в буфер обмена
+		GlobalFree(global_handle);  // Освободить глобальную память в случае ошибки
+
+	CloseClipboard();
+	Draw_User_Input_Button();
+	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
+void AsUI_Builder::User_Input_Load_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
 {
 	bool is_add_to_user_array = false;
 	wchar_t *user_input;
@@ -1831,12 +1648,12 @@ void AsUI_Builder::User_Input_Load(std::map<std::wstring, SUser_Input_Data> &use
 				str = str + 1;
 
 				user_input[0] = user_input[0] - 32;  // Делаем заглавной
-				Add_To_User_Map(user_arr, user_input);
+				User_Map_Emplace(user_arr, user_input);
 				is_add_to_user_array = false;
 				str = 0;
 			}
 
-			Convert(converted_char, false);
+			User_Input_Convert_Char(converted_char, false);
 
 			wchar_t ch = (wchar_t)converted_char;
 			user_input[str] = ch;
@@ -1850,7 +1667,7 @@ void AsUI_Builder::User_Input_Load(std::map<std::wstring, SUser_Input_Data> &use
 			str = str + 1;
 
 			user_input[0] = user_input[0] - 32;  // Делаем заглавной
-			Add_To_User_Map(user_arr, user_input);
+			User_Map_Emplace(user_arr, user_input);
 		}
 
 		if (!infile)
@@ -1858,7 +1675,7 @@ void AsUI_Builder::User_Input_Load(std::map<std::wstring, SUser_Input_Data> &use
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Save(const char *file_path, wchar_t **user_array, int user_input_counter)
+void AsUI_Builder::User_Input_Save_Array(const char *file_path, wchar_t **user_array, int user_input_counter)
 {
 	int ptr = 0, str = 0, counter_write = 0;
 	unsigned long long numbers = 0;
@@ -1884,7 +1701,7 @@ void AsUI_Builder::User_Input_Save(const char *file_path, wchar_t **user_array, 
 			ch = user_array[ptr][str];
 			ch_int = (int)ch;  // 1105
 
-			Convert(ch_int, true);
+			User_Input_Convert_Char(ch_int, true);
 
 			if (counter_write % 9 == 0 && counter_write != 0)  // Заходим каждый 9 раз
 			{
@@ -1919,19 +1736,154 @@ void AsUI_Builder::User_Input_Save(const char *file_path, wchar_t **user_array, 
 	outfile.close();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Value_Is_Changet(const bool is_increment)
+void AsUI_Builder::User_Map_Save_All_To(const EActive_Menu &active_menu)
 {
-	if (is_increment)
-		It_Current_User->second.Title_Num++;
-	else
-		It_Current_User->second.Title_Num--;
+	switch (active_menu)
+	{
+	case EAM_Watching:
+		Thread_First = std::thread([&]() { User_Map_Init_Buffer(User_Array_Map, "Watching.bin"); });
+		Thread_First.join();
+		break;
 
-	It_Current_User->second.Title_Name_Num.erase();
+	case EAM_Library_Menu:
+		Thread_Second = std::thread([&]() { User_Map_Init_Buffer(User_Library_Map, "Library.bin"); });
+		Thread_Second.join();
+		break;
 
-	if (It_Current_User->second.Title_Season != 0)
-		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + AsConfig::Season[It_Current_User->second.Title_Season - 1] + L" " + std::to_wstring(It_Current_User->second.Title_Num);
+	case EAM_Paused_Menu:
+		Thread_Third = std::thread([&]() { User_Map_Init_Buffer(User_Paused_Map, "Paused.bin"); });
+		Thread_Third.join();
+		break;
+
+	case EAM_Wishlist:
+		Thread_Fourth = std::thread([&]() { User_Map_Init_Buffer(User_Wishlist_Map, "Wishlist.bin"); });
+		Thread_Fourth.join();
+		break;
+
+	case EAM_Exit:
+		Thread_First = std::thread([&]() { User_Map_Init_Buffer(User_Array_Map, "Watching.bin"); });
+		Thread_Second = std::thread([&]() { User_Map_Init_Buffer(User_Library_Map, "Library.bin"); });
+		Thread_Third = std::thread([&]() { User_Map_Init_Buffer(User_Paused_Map, "Paused.bin"); });
+		Thread_Fourth = std::thread([&]() { User_Map_Init_Buffer(User_Wishlist_Map, "Wishlist.bin"); });
+
+		Thread_First.join();
+		Thread_Second.join();
+		Thread_Third.join();
+		Thread_Fourth.join();
+		break;
+
+	default:
+		break;
+	}
+
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Map_Init_Buffer(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
+{
+	int i = 0, len = 0;
+	int user_array_size;
+	wchar_t **user_array;
+
+	user_array_size = (int)user_arr.size();
+	user_array = new wchar_t *[user_array_size];
+
+	// init array for save
+	for (auto &it : user_arr)
+	{
+		const std::wstring &key = it.second.Title_Name_Num;
+		len = (int)key.length() + 1;
+		if (i < user_array_size)
+		{
+			user_array[i] = new wchar_t[len];
+			wcscpy_s(user_array[i], len, key.c_str() );
+			i++;
+		}
+	}
+
+	// save data to disk
+	User_Input_Save_Array(file_path, user_array, user_array_size);
+
+	// free memory
+	for (int i = 0; i < user_array_size; i++)
+		delete[] user_array[i];  // Удаление данных на которых указивают указателеи
+
+	delete[] user_array;  // Удаление указателей
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input)
+{
+	int curr_it = 0;
+	SUser_Input_Data converted_data = {};
+
+	if (user_input[0] == L'\0')
+		return;
+
+	// 1. If User_Input not empty init if we can || Use while load from file
+	if (User_Input[0] == L'\0')
+	{
+		if (user_input != 0)
+		{
+			while (user_input[curr_it] != '\0')
+				Set_User_Input(user_input[curr_it++]);
+		}
+	}
+
+	// 1.2  Check User_Input orphography
+	while (User_Input[wcslen(User_Input) - 1] == L' ')  // if last ch = space delete
+		User_Input[--User_Input_Len] = L'\0';
+
+	// 1.3 Init_Data before set to map
+	User_Input_Convert_Data(converted_data);
+
+	// 1.4. Check if containts the same key if not save to map
+	if (user_arr.contains(converted_data.Title_Name_Key) )
+		user_arr[converted_data.Title_Name_Key] = converted_data;
 	else
-		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + std::to_wstring(It_Current_User->second.Title_Num);
+		user_arr.emplace(converted_data.Title_Name_Key, converted_data);  // if not add new title
+
+	if (std::filesystem::exists("Pictures/Temporary.png") )
+		std::filesystem::rename("Pictures/Temporary.png", (std::wstring(AsConfig::Image_Folder) + converted_data.Title_Name_Key + std::wstring(L".png") ) );
+
+	if (Active_Menu != -1)
+	{
+		It_Current_User = user_arr.find(User_Input);
+		Active_Button = (EActive_Button)std::distance(user_arr.begin(), It_Current_User);
+		Sub_Menu_Curr_Page = ((int)Active_Button - 1) / Sub_Menu_Max_Line;  // Find Page
+	}
+
+	// Reset User_Input
+	for (int i = 0; i < User_Input_Len; i++)
+		User_Input[i] = 0;
+
+	User_Input_Len = 0;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Map_Erase()
+{
+	if (Prev_Button == 99)
+		return;
+
+	switch (Active_Menu)
+	{
+	case EAM_Watching:
+		User_Array_Map.erase(It_Current_User->first);
+		break;
+
+	case EAM_Library_Menu:
+		User_Library_Map.erase(It_Current_User->first);
+		break;
+
+	case EAM_Paused_Menu:
+		User_Paused_Map.erase(It_Current_User->first);
+		break;
+
+	case EAM_Wishlist:
+		User_Wishlist_Map.erase(It_Current_User->first);
+		break;
+	}
+
+	Prev_Button = 99;  // set to no prev_button
+	User_Map_Save_All_To(Active_Menu);  // Save by Erase
 }
 //------------------------------------------------------------------------------------------------------------
 

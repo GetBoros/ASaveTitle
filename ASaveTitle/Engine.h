@@ -60,6 +60,10 @@ struct SUser_Input_Data
 	std::wstring Title_Name_Num = L"";
 };
 //------------------------------------------------------------------------------------------------------------
+
+
+
+// ACurl_Client
 class ACurl_Client
 {
 
@@ -80,6 +84,10 @@ private:
 	static std::wstring Response_Buffer;  // respnse from url
 };
 //------------------------------------------------------------------------------------------------------------
+
+
+
+// ACurl_Component
 class ACurl_Component
 {
 public:
@@ -104,6 +112,10 @@ private:
 	std::string Path_Folder;
 };
 //------------------------------------------------------------------------------------------------------------
+
+
+
+// AsUI_Builder
 class AsUI_Builder
 {
 public:
@@ -115,7 +127,6 @@ public:
 	void Draw_User_Input_Button() const;  // Show user_input in sub menu
 	void User_Input_Handle();  // Add to array
 	
-	// Getters  &Setters Mouse Handler
 	void Set_RM_Cord(const RECT &mouse_cord);
 	void Set_LM_Cord(const RECT &mouse_cord);
 	bool Set_User_Input(const wchar_t &text);
@@ -124,37 +135,37 @@ public:
 	HDC Ptr_Hdc;
 
 private:
+
 	void Handle_ID_Content(const unsigned short &id_content_index);
 	void Handle_Update_Button();  // Check only Array_Map for title
 	void Handle_Active_Button_Advence();
-	void Handle_Active_Button(const EActive_Button& active_button);  // Redraw Button in current Active Menu
-	void Draw_Active_Button(const EActive_Button& active_button, std::map<std::wstring, SUser_Input_Data>& user_array);
+	void Handle_Active_Button(const EActive_Button &active_button);  // Redraw Button in current Active Menu
+
+	void Draw_Active_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array);
 	void Draw_User_Input_Request();  // Draw Request
 	void Draw_User_Title_Image(const wchar_t *image_path) const;
 	void Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser_Input_Data> &map);  // Draw Button in subMenu
 	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
 	void Draw_Context_Menu(const int &x, const int &y);
 	
-	int Get_Season(int season_int) const;  // format int to season | I V X
-	
+	int Get_Title_Season(int season_int) const;  // format int to season | I V X
 	RECT Add_Border(const int &x_cord) const;
 	RECT Add_Button(RECT &border_rect, const std::wstring &title) const;
 	void Add_Button_Next_Page();
-	void Add_To_User_Map(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input);  // Save User_Input to User_Map
-	void Add_To_Clipboard_User_Input();
-	void Add_To_Clipboard_Name_Key();
-	
-	void Erase_From_User_Map();  // Errase from Array
 
-	void Save_Image(const RECT &rect);  // Save image in rect
+	void Save_Image_To(const RECT &rect);  // Save image in rect
 	void Restore_Image(RECT &rect);  // redraw image
-	void Convert(int &ch, const bool &is_in_file);  // !!! Refactoring
-	SUser_Input_Data Init_UI_Data();
-	void Save_All_To_Data(const EActive_Menu &menu);
-	void Init_User_Array_Load(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
-	void User_Input_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
-	void User_Input_Save(const char *file_path, wchar_t **user_array, int user_input_counter);  // Write wchar_t to data.bin
+	void User_Input_Convert_Data(SUser_Input_Data &converted_data);  // !!! Refactoring
+	void User_Input_Convert_Char(int &ch, const bool &is_in_file);  // !!! Refactoring
 	void User_Input_Value_Is_Changet(const bool is_increment);  // Change active title num
+	bool User_Input_Set_To_Clipboard();
+	bool User_Input_Get_From_Clipboard(wchar_t* to_clipboard);  // and Re-Draw_User_Input
+	void User_Input_Load_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const char* file_path);
+	void User_Input_Save_Array(const char* file_path, wchar_t** user_array, int user_input_counter);  // Write wchar_t to data.bin
+	void User_Map_Save_All_To(const EActive_Menu &active_menu);  // Threaded
+	void User_Map_Init_Buffer(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
+	void User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t* user_input);  // Save User_Input to User_Map
+	void User_Map_Erase();  // Errase from Array
 
 	wchar_t User_Input[AsConfig::User_Input_Buffer];  // User Input Buffer | or border_width / 8 = Max_Char_Length
 	int Rect_Menu_List_Length;
@@ -167,7 +178,7 @@ private:
 	const int Sub_Menu_Max_Line = 31;  // Нужен алгоритм что бы понять сколько влезет в пользувательский экран, или настроить через config
 	const int User_Array_Max_Size = 50;  // нужно будет выгрузить из конфига
 
-	ACurl_Component *Curl_Component;
+	AsConfig Config;
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
 	EActive_Page Active_Page;
 	RECT *Rect_Menu_List;  // main menu buttons cords here when they`r created
@@ -176,12 +187,12 @@ private:
 	RECT *Rect_Buttons_Context;
 	RECT Prev_Context_Menu_Cords;  // prev context cords
 	RECT Rect_Pages[EActive_Page::EAP_Last];
+	RECT Input_Button_Rect;  // User Input RECT
 	HDC Hdc_Memory;
 	HBITMAP H_Bitmap;
 	HGDIOBJ Saved_Object;
-	RECT Input_Button_Rect;  // User Input RECT
-	AsConfig Config;
 	SUser_Input_Data User_Input_Data;
+	ACurl_Component *Curl_Component;
 	std::map<std::wstring, SUser_Input_Data> User_Array_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Library_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Paused_Map;
@@ -195,12 +206,15 @@ private:
 
 	static int Context_Button_Length;
 	static int User_Input_Len;  // count user input after press enter set to zero
-	
 	static const wchar_t Main_Menu_Title_Name[];
 	static const wchar_t *Sub_Menu_Title;
 	static const std::wstring Button_Text_List[];
 };
 //------------------------------------------------------------------------------------------------------------
+
+
+
+// AsUI_Book_Reader
 class AsUI_Book_Reader
 {
 public:
@@ -211,6 +225,10 @@ public:
 	HDC Ptr_Hdc;
 };
 //------------------------------------------------------------------------------------------------------------
+
+
+
+// AsEngine
 class AsEngine
 {
 public:
@@ -281,7 +299,7 @@ V				- висота + 6px от конца последней кнопки
 				-	-||-
 V			- создаем 2-4 Add_Button
 V		- Сохранять координаты контекстного меню что бы потом зарисувать его
-V			- Создать функции Save_Image and Restore image
+V			- Создать функции Save_Image_To and Restore image
 V				- use bitmap to save image
 V				- use bitmap to restore image
 V		- также нужна обработка кнопок самого контекстного меню
@@ -645,7 +663,7 @@ V			- Сохраняем картинку в главную папку под н
 
 V	- Обработать сезон при чтении URL если Боево 2 345 нужно 2 перевести в II или что то придумать посмотрим
 V		- Рабочая вверсия хоть и ограниченная
-V	- Рефакторинг Init_UI_Data()
+V	- Рефакторинг User_Input_Convert_Data()
 V		- Обработка сезонов пробелами
 V		- Если вставлять через URL теперь работает обработка
 
@@ -854,6 +872,9 @@ V	- Работа над Потоками
 */
 // TASKS --- 07.07.2024  --- Current --- 
 /*
+
+V	- Убрать функционал добавления в clipboard
+
 X	- Работа на Паттернами
 		- Создать Config.txt:
 			-

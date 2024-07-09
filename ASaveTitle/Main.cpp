@@ -7,9 +7,85 @@ AsMain *AsMain::Main_Window = 0;
 
 
 
+enum EConvert  // !!!
+{
+	EChar_Rus_Beg = 1040,  // 1040(А) - 68(40 + 28)
+	EChar_Rus_End = 1071,  // 1071(Я) - 99(71 + 28)
+	ENum_Beg = 39,  // 0(48)
+	ENum_End = 48,  // 9(57)
+	ENum_Test_0 = 49,  // :(58)
+	ENum_Test_4 = 50,  // !(33)
+	ENum_Test_1 = 51,  // "(34)
+	ENum_Test_2 = 52,  // '(39)
+	ENum_Test_3_0 = 53,  // ,(44) -(45) .(46)
+	ENum_Test_3_3 = 56,  // /(47)
+	ENum_Test_5 = 57,  // ?(63)
+	ENum_Test_6 = 58  // ?(63)
+
+};
+unsigned short Convert_Rus(unsigned short &ch)
+{
+	if (ch >= 1025 && ch <= 1103)
+	{
+		// 1.0. Rus Symbols
+		if (ch >= 1072 && ch <= 1103)  // а - я
+			return ch = (ch - 1000) - 30 - 32;  // if a = 10 | я = 41
+
+		if (ch >= 1040 && ch <= 1071)  // А - Я
+			return ch = (ch - 1000) - 30;    // if A = 10 | Я = 41
+
+		if (ch == 1105)  // ё
+			return ch = (ch - 1000) - 30 - 32 - 1;  // ё = 42
+
+		if (ch == 1025)  // Ё
+			return ch = (ch - 1000) + 17;  // ё = 42
+	}
+	else if (ch >= 65 && ch <= 122)
+	{
+		// 3.0 English Symbols
+		if (ch >= 97 && ch <= 122)  // а = 97 || z = 122
+			return ch = ch - 24;  // a = 73 | z = 98
+
+		if (ch >= 65 && ch <= 90)  // A = 65 Z = 90  | 25 
+			return ch = ch + 8;  // A = 73 | Z = 98
+
+		if (ch == 96)  // `
+			return ch = (ch - 24);  // ` = 72
+	}
+	else
+	{
+		// 2.0. Standart symbols || Les than < 100
+		if (ch >= 48 && ch <= 59)  // 0 - 9 - :
+			return ch = (ch - 5);  // 0 = 43 | 9 = 52 | : = 53 | ; = 54
+
+		if (ch == 63)  // ?
+			return ch = (ch - 8);  // ? = 55
+
+		if (ch >= 32 && ch <= 47)  // space || ! " # ( ) * + , - . / $ %
+			return ch = (ch + 24);  // space = 56 || / = 71
+	}
+	return 0;  // Reserver for 99
+}
+
+
+
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
+	//int index = 0;
+	//unsigned short yy = 0;
+	//wchar_t word[] = L"ФZ3zAZнкарнация безработного: История о приключениях в другом мире 2.2";
+
+	//while (index < 100)
+	//{
+	//	unsigned short w_ch = (unsigned short)word[index];
+	//	yy = Convert_Rus(w_ch);
+
+	//	yy++;
+	//	index++;
+	//}
+
+	//return 0;
 	AsMain::Main_Window = AsMain::Set_Instance(hinstance);
 	return AsMain::Main_Window->Get_WParam();
 }

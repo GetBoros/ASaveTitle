@@ -156,15 +156,16 @@ private:
 	void Save_Image_To(const RECT &rect);  // Save image in rect
 	void Restore_Image(RECT &rect);  // redraw image
 	void User_Input_Convert_Data(SUser_Input_Data &converted_data);  // !!! Refactoring
+	void User_Input_Convert_Char_Beta(int &ch, const bool &is_in_file);  // !!! Refactoring
 	void User_Input_Convert_Char(int &ch, const bool &is_in_file);  // !!! Refactoring
 	void User_Input_Value_Is_Changet(const bool is_increment);  // Change active title num
 	bool User_Input_Set_To_Clipboard();
-	bool User_Input_Get_From_Clipboard(wchar_t* to_clipboard);  // and Re-Draw_User_Input
-	void User_Input_Load_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const char* file_path);
-	void User_Input_Save_Array(const char* file_path, wchar_t** user_array, int user_input_counter);  // Write wchar_t to data.bin
+	bool User_Input_Get_From_Clipboard(wchar_t *to_clipboard);  // and Re-Draw_User_Input
+	void User_Input_Load_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
+	void User_Input_Save_Array(const char *file_path, wchar_t **user_array, int user_input_counter);  // Write wchar_t to data.bin
 	void User_Map_Save_All_To(const EActive_Menu &active_menu);  // Threaded
 	void User_Map_Init_Buffer(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
-	void User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t* user_input);  // Save User_Input to User_Map
+	void User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input);  // Save User_Input to User_Map
 	void User_Map_Erase();  // Errase from Array
 
 	wchar_t User_Input[AsConfig::User_Input_Buffer];  // User Input Buffer | or border_width / 8 = Max_Char_Length
@@ -836,7 +837,7 @@ V	- Make url to start parsing
 V		- При нажатии кнопки пройтись по массиву, взять из структуры ID зайти на сайт, проверить доступную серию.
 
 */
-// TASKS --- 01.07.2024
+// TASKS --- 01.07.2024  --- 
 /*
 
 V	- Если серия другая изменить цвет кнопки и перерисувать
@@ -844,12 +845,12 @@ V	- Add to clipboard url with id, can go site and watch
 V	- Double click on User_Input_Button to update new watched
 
 */
-// TASKS --- 03.07.2024
+// TASKS --- 03.07.2024  --- 
 /*
 V	- When press update button
 V		- if not in main array delete ID_Content from base
 */
-// TASKS --- 04.07.2024
+// TASKS --- 04.07.2024  --- 
 /*
 V	- Correct delete while title was watching
 V		- While 12 / 12 Add to watched
@@ -866,20 +867,27 @@ V					- перекрасить кнопку в цвет поярче на *50
 
 V	- Возможно сохранять и сам URL что бы скопирувать его в буфер и легко вставить в бразуер?
 */
-// TASKS --- 05.07.2024
+// TASKS --- 05.07.2024  --- 
 /*
 V	- Работа над Потоками
 */
-// TASKS --- 07.07.2024  --- Current --- 
+// TASKS --- 07.07.2024  --- 
 /*
 
 V	- Убрать функционал добавления в clipboard
 
-X	- Работа на Паттернами
+
+V	- Пофиксить баг когда User_Input не отображаеться, и при клике на него мерджаться тайтлы
+*/
+// TASKS --- 09.07.2024  --- Current --- 
+/*
+X	- Работа над Паттернами
 		- Создать Config.txt:
 			-
 
-X	- Пофиксить баг когда User_Input не отображаеться, и при клике на него мерджаться тайтлы
+V	- Рефакторинг Convert
+V	- fix while ID_Content less then 1000 it`s have access to wrong url, fixed.
+V	- better converting, performance ++
 */
 
 

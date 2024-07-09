@@ -151,10 +151,10 @@ size_t ACurl_Client::Write_Callback_Update(void *contents, size_t size, size_t n
 		Response_Buffer.pop_back();  // Удаляем завершающий нулевой символ
 	
 	// 1.1 Find new Add Title with seasons
-	if (const wchar_t* pattern_begining = wcsstr(Response_Buffer.c_str(), pattern_title_name_begin))
+	if (const wchar_t *pattern_begining = wcsstr(Response_Buffer.c_str(), pattern_title_name_begin))
 	{
-		const wchar_t* ptr_end = wcsstr(pattern_begining, pattern_title_name_end);
-		const wchar_t* ptr_beg = pattern_begining + wcslen(pattern_title_name_begin);
+		const wchar_t *ptr_end = wcsstr(pattern_begining, pattern_title_name_end);
+		const wchar_t *ptr_beg = pattern_begining + wcslen(pattern_title_name_begin);
 		const size_t pattern_title_length = ptr_end - ptr_beg;
 
 		user_input[0] = new wchar_t[64];  // !!!
@@ -197,7 +197,7 @@ size_t ACurl_Client::Write_Callback(void *contents, size_t size, size_t nmemb, v
 
 	is_image = false;
 	total_size = size * nmemb;
-	wideStringLength = MultiByteToWideChar(CP_UTF8, 0, (char*)contents, -1, 0, 0);  // Вычисляем размер буфера, необходимый для конвертации
+	wideStringLength = MultiByteToWideChar(CP_UTF8, 0, (char *)contents, -1, 0, 0);  // Вычисляем размер буфера, необходимый для конвертации
 
 	if (wideStringLength == 0)  // Обработка ошибки, если MultiByteToWideChar вернула 0
 		return 0;
@@ -343,13 +343,19 @@ void ACurl_Component::Add_ID_Content(const wchar_t *url)
 bool ACurl_Component::Get_Url(wchar_t *user_input, const int &id_content_index)
 {
 	std::wstring url;
-	
+
 	if (id_content_index >= ID_Content_Size)
 		return false;
-	
-	url = L"https://anime-bit.ru/content/" + std::to_wstring(ID_Content_Array[id_content_index]) + L"/";  // !!! Constant chang to dynamic
-	const wchar_t *c_url = url.c_str();
+	url = L"https://anime-bit.ru/content/";
 
+	if (ID_Content_Array[id_content_index] < 100)
+		url += L"00" + std::to_wstring(ID_Content_Array[id_content_index]) + L"/";
+	else if (ID_Content_Array[id_content_index] < 1000)
+		url += L"0" + std::to_wstring(ID_Content_Array[id_content_index]) + L"/";
+	else
+		url += std::to_wstring(ID_Content_Array[id_content_index]) + L"/";
+
+	const wchar_t *c_url = url.c_str();
 	wcsncpy_s(user_input, wcslen(c_url) + 1, c_url, wcslen(c_url) );
 
 	return true;
@@ -574,10 +580,6 @@ void AsUI_Builder::Draw_User_Input_Button() const
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Handle()
 {
-	int index;
-
-	index = 0;
-
 	// 1.0 Handle User_Input
 	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
 	{// If it`s url check it
@@ -592,8 +594,8 @@ void AsUI_Builder::User_Input_Handle()
 		try
 		{// Try get correct User_Input if not do it correnct
 			User_Input_Len = (int)wcslen(User_Input);
-			std::wstring tempStr(1, User_Input_Len); // создаем строку из одного символа
-			index = std::stoi(tempStr); // преобразуем строку в целое число
+			std::wstring last_char(1, User_Input_Len); // создаем строку из одного символа
+			const int index = std::stoi(last_char); // преобразуем строку в целое число
 		}
 		catch (const std::exception&)
 		{
@@ -921,11 +923,7 @@ void AsUI_Builder::Handle_Update_Button()
 		for (auto &th : threads)
 			th.join();
 		threads.clear();
-
-		if (data_index_starts > 25)
-			return;  // !!! it`s for debugg
-
-	} while (data_index_starts > id_content_size - 1);
+	} while (data_index_starts < id_content_size - 1);
 
 	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
 		return;
@@ -1070,7 +1068,7 @@ void AsUI_Builder::Draw_User_Title_Image(const wchar_t *image_path) const
 	else
 		DirectX::LoadFromWICFile(image_path, DirectX::WIC_FLAGS_NONE, 0, image_title);
 
-	const DirectX::Image* img = image_title.GetImage(0, 0, 0);
+	const DirectX::Image *img = image_title.GetImage(0, 0, 0);
 	if (img)
 	{
 		DXGI_FORMAT format = img->format;
@@ -1330,6 +1328,35 @@ void AsUI_Builder::Add_Button_Next_Page()
 	Rect_Pages[EActive_Page::EAP_Next] = button_next;
 }
 //------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Save_Image_To(const RECT &rect)
+{
+	Hdc_Memory = CreateCompatibleDC(Ptr_Hdc);
+	if (!Hdc_Memory != 0)
+		return;
+
+	H_Bitmap = CreateCompatibleBitmap(Ptr_Hdc, rect.right - rect.left, rect.bottom - rect.top);
+	if (!H_Bitmap != 0)
+		return;
+
+	Saved_Object = SelectObject(Hdc_Memory, H_Bitmap);
+	BitBlt(Hdc_Memory, 0, 0, rect.right - rect.left, rect.bottom - rect.top, Ptr_Hdc, rect.left, rect.top, SRCCOPY);
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Restore_Image(RECT &rect)
+{
+	if (Hdc_Memory != NULL && H_Bitmap != NULL && Saved_Object != NULL) {
+		BitBlt(Ptr_Hdc, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, Hdc_Memory, 0, 0, SRCCOPY);
+		SelectObject(Hdc_Memory, Saved_Object);
+		DeleteObject(H_Bitmap);
+		DeleteDC(Hdc_Memory);
+		// Сброс сохраненных значений
+		Hdc_Memory = 0;
+		H_Bitmap = 0;
+		Saved_Object = NULL;
+	}
+	rect = {};  // обнуляем
+}
+//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &converted_data)
 {
 	wchar_t *num;
@@ -1390,33 +1417,24 @@ void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &converted_data)
 	converted_data = ui_data;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Save_Image_To(const RECT &rect)
+void AsUI_Builder::User_Input_Convert_Char_Beta(int& ch, const bool& is_in_file)
 {
-	Hdc_Memory = CreateCompatibleDC(Ptr_Hdc);
-	if (!Hdc_Memory != 0)
-		return;
+	enum EConvert  // !!!
+	{
+		EChar_Beg = 10,  // 1040(А) - 68(40 + 28)
+		EChar_End = 38,  // 1071(Я) - 99(71 + 28)
+		ENum_Beg = 39,  // 0(48)
+		ENum_End = 48,  // 9(57)
+		ENum_Test_0 = 49,  // :(58)
+		ENum_Test_4 = 50,  // !(33)
+		ENum_Test_1 = 51,  // "(34)
+		ENum_Test_2 = 52,  // '(39)
+		ENum_Test_3_0 = 53,  // ,(44) -(45) .(46)
+		ENum_Test_3_3 = 56,  // /(47)
+		ENum_Test_5 = 57,  // ?(63)
+		ENum_Test_6 = 57  // ?(63)
 
-	H_Bitmap = CreateCompatibleBitmap(Ptr_Hdc, rect.right - rect.left, rect.bottom - rect.top);
-	if (!H_Bitmap != 0)
-		return;
-
-	Saved_Object = SelectObject(Hdc_Memory, H_Bitmap);
-	BitBlt(Hdc_Memory, 0, 0, rect.right - rect.left, rect.bottom - rect.top, Ptr_Hdc, rect.left, rect.top, SRCCOPY);
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Restore_Image(RECT &rect)
-{
-	if (Hdc_Memory != NULL && H_Bitmap != NULL && Saved_Object != NULL) {
-		BitBlt(Ptr_Hdc, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, Hdc_Memory, 0, 0, SRCCOPY);
-		SelectObject(Hdc_Memory, Saved_Object);
-		DeleteObject(H_Bitmap);
-		DeleteDC(Hdc_Memory);
-		// Сброс сохраненных значений
-		Hdc_Memory = 0;
-		H_Bitmap = 0;
-		Saved_Object = NULL;
-	}
-	rect = {};  // обнуляем
+	};
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Convert_Char(int &ch, const bool &is_in_file)
@@ -1452,7 +1470,7 @@ void AsUI_Builder::User_Input_Convert_Char(int &ch, const bool &is_in_file)
 		}
 
 		if (ch >= 68)
-			ch = ((ch + 1000) - 28) + 32;  // low case to top case 
+			ch = ( (ch + 1000) - 28) + 32;  // low case to top case 
 
 	}
 	else
@@ -2008,7 +2026,7 @@ void AsEngine::Get_Clipboard_From_Else()
 	{
 		if (HANDLE hData = GetClipboardData(CF_UNICODETEXT) )
 		{
-			if (WCHAR* psz_text = static_cast<WCHAR*>(GlobalLock(hData) ) )
+			if (WCHAR *psz_text = static_cast<WCHAR*>(GlobalLock(hData) ) )
 				while (psz_text[index] != '\0')
 					UI_Builder->Set_User_Input(psz_text[index++]);  // Set Text from clipboard
 			

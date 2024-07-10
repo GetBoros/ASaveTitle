@@ -155,7 +155,7 @@ private:
 
 	void Save_Image_To(const RECT &rect);  // Save image in rect
 	void Restore_Image(RECT &rect);  // redraw image
-	void User_Input_Convert_Data(SUser_Input_Data &converted_data);  // !!! Refactoring
+	void User_Input_Convert_Data(SUser_Input_Data &converted_data, wchar_t *user_input);  // !!! Refactoring
 	void User_Input_Convert_Char_Beta(int &ch, const bool &is_in_file);  // !!! Refactoring
 	void User_Input_Convert_Char(int &ch, const bool &is_in_file);  // !!! Refactoring
 	void User_Input_Value_Is_Changet(const bool is_increment);  // Change active title num
@@ -879,15 +879,32 @@ V	- Убрать функционал добавления в clipboard
 
 V	- Пофиксить баг когда User_Input не отображаеться, и при клике на него мерджаться тайтлы
 */
-// TASKS --- 09.07.2024  --- Current --- 
+// TASKS --- 09.07.2024  ---  
 /*
+V	- fix while ID_Content less then 1000 it`s have access to wrong url, fixed.
+V		- Потоки не конфликтуют
+*/
+// TASKS --- 10.07.2024  ---
+/*
+V	- Улучшить конвертацию, добавил english
+V	- Рефакторинг Convert
+V	- better converting, performance ++
+*/
+// TASKS --- 11.07.2024  --- Current --- 
+/*
+
+X	- Внедрить новую конвертацию
+		- Протестирувать сохранения
+		- Добавлять english Titles
+
+X	- Переделать ACurl:
+		- Сохранять в файл, потом его редактирувать
+			- Причина, может попасть половина данных, и это никак не обрабативаеться
+
 X	- Работа над Паттернами
 		- Создать Config.txt:
 			-
-
-V	- Рефакторинг Convert
-V	- fix while ID_Content less then 1000 it`s have access to wrong url, fixed.
-V	- better converting, performance ++
+X	- Sometimes bugs threads
 */
 
 

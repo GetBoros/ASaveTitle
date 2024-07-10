@@ -48,7 +48,7 @@ void ACurl_Client::Handle_Saver_URL(wchar_t *user_input)
 	void *user_input_void;
 	FILE *file;
 
-	url_pair = new wchar_t*[2];
+	url_pair = new wchar_t *[2];
 	user_input_void = static_cast<void*>(url_pair);
 	size = WideCharToMultiByte(CP_UTF8, 0, user_input, -1, 0, 0, 0, 0);
 	url = new char[size];
@@ -94,7 +94,8 @@ void ACurl_Client::Handle_Saver_URL(wchar_t *user_input)
 		fclose(file);
 	}
 	
-	wcscpy_s(user_input, wcslen(url_pair[1]) + 1, url_pair[1]);
+	//wcscpy_s(user_input, wcslen(url_pair[1]) + 1, url_pair[1]);
+	wcsncpy_s(user_input, wcslen(url_pair[1]) + 1, url_pair[1], wcslen(url_pair[1]) );
 	delete url_pair[0];
 	delete url_pair[1];
 	delete[] url_pair;
@@ -845,48 +846,40 @@ bool AsUI_Builder::Set_User_Input(const wchar_t &user_text)
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_ID_Content(const unsigned short &id_content_index)
 {
-	int index;
+	int title_position;
 	SUser_Input_Data converted_data;
+	std::map<std::wstring, SUser_Input_Data>::iterator it;
 	wchar_t user_input[AsConfig::User_Input_Buffer]{};
-	index = 0;
+
+	title_position = 0;
+	it = User_Array_Map.begin();
 
 	// 1.0. Init, Get title name
 	Curl_Component->Get_Url(user_input, id_content_index);
 	ACurl_Client reguest(EPrograms::ASaver, user_input);
-	wcsncpy_s(User_Input, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-	User_Input_Convert_Data(converted_data);  // User_Input convert to data
+	User_Input_Convert_Data(converted_data, user_input);  // user_input convert to data
 
-	// 1.1. Sleep if doesn`t have title
-	while (It_Current_User != User_Array_Map.end() )
-		std::this_thread::sleep_for(std::chrono::seconds(1) );
-	
-	{// Need lock
-		std::lock_guard<std::mutex> lock(Mutex_Lock);
-		It_Current_User = User_Array_Map.find(converted_data.Title_Name_Key);
-		if (!(It_Current_User != User_Array_Map.end() ) )
-		{
-			Curl_Component->Erase_ID_Content(id_content_index);  // Delete ID_Content if not in User_Array_Map
-			return;
-		}
-	}// End lock
+	if (!( (it = User_Array_Map.find(converted_data.Title_Name_Key) ) != User_Array_Map.end() ) )
+	{
+		Curl_Component->Erase_ID_Content(id_content_index);
+		return;
+	}
 
-	// 1.2. Find Button pos, and draw it
-	if (converted_data.Title_Num > It_Current_User->second.Title_Num)
-	{// If have new series draw button if different color
-
-		for (auto iter = User_Array_Map.begin(); iter != It_Current_User; ++iter)
-			++index;
+	// 1.2. Find Button position
+	if (converted_data.Title_Num > it->second.Title_Num)
+	{
+		for (auto iter = User_Array_Map.begin(); iter != it; ++iter)  // Get 
+			++title_position;
 
 		// 2.1 Setting to redraw button
-		Active_Button = (EActive_Button)index;
+		Active_Button = (EActive_Button)title_position;
 		Active_Page = EAP_Update;
 		Handle_Active_Button_Advence();  // !!! Redraw Previus Button bad in this moment
 
-		//std::this_thread::sleep_for(std::chrono::seconds(1) );  // !!!
+		// 2.2. Set URL to clipboard
 		Curl_Component->Get_Url(user_input, id_content_index);
 		User_Input_Get_From_Clipboard(user_input);
 	}
-	It_Current_User = User_Array_Map.end();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Update_Button()
@@ -899,11 +892,11 @@ void AsUI_Builder::Handle_Update_Button()
 
 	i = 0;
 	data_index_starts = -1;
-	It_Current_User = User_Array_Map.end();
+	//It_Current_User = User_Array_Map.end();
 	id_content_size = Curl_Component->ID_Content_Size;
 	thread_count = (unsigned short)std::thread::hardware_concurrency();
 
-	do
+	while (data_index_starts < id_content_size - 1)
 	{
 		for (i = 0; i < thread_count; i++)
 			threads.emplace_back([&]
@@ -920,10 +913,32 @@ void AsUI_Builder::Handle_Update_Button()
 					Handle_ID_Content(saved_content_id);
 				});
 
-		for (auto &th : threads)
+		for (std::thread &th : threads)
 			th.join();
 		threads.clear();
-	} while (data_index_starts < id_content_size - 1);
+	}
+
+	//do
+	//{
+	//	for (i = 0; i < thread_count; i++)
+	//		threads.emplace_back([&]
+	//			{
+	//				short saved_content_id = data_index_starts;
+
+	//				if (saved_content_id > id_content_size - 2)
+	//					return;
+	//				else
+	//					data_index_starts++;
+
+	//				saved_content_id++;
+
+	//				Handle_ID_Content(saved_content_id);
+	//			});
+
+	//	for (auto &th : threads)
+	//		th.join();
+	//	threads.clear();
+	//} while (data_index_starts < id_content_size - 1);
 
 	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
 		return;
@@ -1357,33 +1372,33 @@ void AsUI_Builder::Restore_Image(RECT &rect)
 	rect = {};  // обнуляем
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &converted_data)
+void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &converted_data, wchar_t *user_input)
 {
 	wchar_t *num;
 	int is_space = 0;
 	int season;
 	SUser_Input_Data ui_data;
-	User_Input_Len = (int)wcslen(User_Input);
+	User_Input_Len = (int)wcslen(user_input);
 
 	// Initialize & Find were key starts
 	season = User_Input_Len;
-	while (User_Input[season] < 1000)
+	while (user_input[season] < 1000)
 	{
 		season--;
-		if (User_Input[season] == L' ')  // if space
+		if (user_input[season] == L' ')  // if space
 		{
 			is_space++;
 			switch (is_space)
 			{
 			case 1:
-				num = User_Input + season;
+				num = user_input + season;
 				ui_data.Title_Num = std::stoi(num);  // Initialize TITLE_NUM
 				break;
 
 
 			case 2:
-				User_Input[season + 3 + 1] = L'\0';
-				num = User_Input + season + 1;
+				user_input[season + 3 + 1] = L'\0';
+				num = user_input + season + 1;
 
 				// Initialize TITLE_SEASON
 				ui_data.Title_Season = Get_Title_Season(season);
@@ -1399,8 +1414,8 @@ void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &converted_data)
 	}
 
 	// Initialize TITLE_NAME_KEY
-	User_Input[++season] = L'\0';
-	ui_data.Title_Name_Key = User_Input;
+	user_input[++season] = L'\0';
+	ui_data.Title_Name_Key = user_input;
 
 	// Initialize TITLE_NAME_NUM
 	ui_data.Title_Name_Num += ui_data.Title_Name_Key;
@@ -1851,7 +1866,7 @@ void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &us
 		User_Input[--User_Input_Len] = L'\0';
 
 	// 1.3 Init_Data before set to map
-	User_Input_Convert_Data(converted_data);
+	User_Input_Convert_Data(converted_data, User_Input);
 
 	// 1.4. Check if containts the same key if not save to map
 	if (user_arr.contains(converted_data.Title_Name_Key) )

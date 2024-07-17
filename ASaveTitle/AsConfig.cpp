@@ -1,22 +1,24 @@
 #include "AsConfig.h"
 
 // AsConfig
-const char *AsConfig::Settings[] = { "Standart Background = ;", "Coordinates = ;", "Something Else = ;" };
 const char AsConfig::Dictionary_Main_Folder[] = "Map.bin";
+const char AsConfig::Path_Saves_Folder[] = "Data/";
 const char AsConfig::Path_Sites_Folder[] = "Data/Sites/";
+const char *AsConfig::Settings[] = { "Standart Background = ;", "Coordinates = ;", "Something Else = ;" };
+const char *AsConfig::Folders_Save[] = { "Watching.bin", "Library.bin", "Paused.bin", "Wishlist.bin" };
 
-const wchar_t AsConfig::Seasons[3] = { 'I', 'V', 'X' };
-const wchar_t AsConfig::Image_Folder[] = L"Pictures/";
+const wchar_t AsConfig::Seasons[] = { 'I', 'V', 'X' };
 const wchar_t AsConfig::Main_Image_Folder[] = L"Main_Image.png";
-const wchar_t *AsConfig::Season[] = { L"I", L"II", L"III", L"IV", L"V", L"VI", L"VII", L"VIII", L"IX", L"X" };
+const wchar_t AsConfig::Image_Folder[] = L"Pictures/";
+const wchar_t AsConfig::Invalid_Chars_Valid[] = { L',', L'å', L'å' };
 const wchar_t *AsConfig::Invalid_Chars[] = { L":", L"¸", L"¨" };
+const wchar_t *AsConfig::Season_Case_Up[] = { L"I", L"II", L"III", L"IV", L"V", L"VI", L"VII", L"VIII", L"IX", L"X" };
+const wchar_t *AsConfig::Season_Case_Low[] = { L"i", L"ii", L"iii", L"iv", L"v", L"vi", L"vii", L"viii", L"ix", L"x" };
 const wchar_t *AsConfig::Text_Program_Names[] = {L"Saver", L"Book Reader", L"Invalid"};
 
-const wchar_t AsConfig::Invalid_Chars_Valid[] = { L',', L'å', L'å' };
 
 const int AsConfig::Settings_Size = sizeof(AsConfig::Settings) / sizeof(AsConfig::Settings[0]);
 RECT AsConfig::Window_Rect {};
-
 
 const COLORREF AsConfig::Color_White = RGB(255, 255, 255);
 const COLORREF AsConfig::Color_Green = RGB(0, 255, 0);
@@ -32,6 +34,11 @@ const HBRUSH AsConfig::Brush_Green = CreateSolidBrush(RGB(0, 255, 0) );
 const HBRUSH AsConfig::Brush_Green_Dark = CreateSolidBrush(RGB(80, 146, 56) );
 const HBRUSH AsConfig::Brush_Background = CreateSolidBrush(RGB(30, 30, 30) );
 const HBRUSH AsConfig::Brush_Background_Button_Update = CreateSolidBrush(RGB(185, 122, 87) );
+
+const unsigned long long AsConfig::LL_Max = 9223372036854775807LL;  // 9 22 33 72 03 68 54 77 58 07 LL || 8
+const unsigned long long AsConfig::ULL_Max = 18446744073709551615ULL;  // 18 [44 67 44] [07 37 09] [55 16 15] ULL || 9
+const unsigned long long AsConfig::ULL_Length = 1000000000000000000ULL;  // 18 [44 67 44] [07 37 09] [55 16 15] ULL || 9
+const unsigned long long AsConfig::ULL_Index_Length = 10000000000000000ULL;  // !!!
 //------------------------------------------------------------------------------------------------------------
 AsConfig::~AsConfig()
 {

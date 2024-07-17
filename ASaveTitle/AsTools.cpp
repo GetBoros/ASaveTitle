@@ -1,7 +1,6 @@
 ﻿#include "AsTools.h"
 
 // AsTools
-bool AsTools::Is_Button_Pressed = false;
 AsTools::~AsTools()
 {
 	end_tick = __rdtsc();
@@ -36,10 +35,5 @@ void AsTools::Format_Text_Using_Patterns(const wchar_t *url, const wchar_t *patt
 	*result = new wchar_t[context_length] {};
 	const int context_end = context_length - 1;
 	wcsncpy_s(*result, context_length, ptr_start, context_end);
-}
-//------------------------------------------------------------------------------------------------------------
-void AsTools::Format_Text_Using_Patterns_Extended(const wchar_t* url, const wchar_t* pattern_str, const wchar_t* pattern_end, wchar_t** result)
-{
-
 }
 //------------------------------------------------------------------------------------------------------------

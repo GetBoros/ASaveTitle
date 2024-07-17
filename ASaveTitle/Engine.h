@@ -5,7 +5,7 @@
 //------------------------------------------------------------------------------------------------------------
 const int Timer_ID = WM_USER + 1;
 //------------------------------------------------------------------------------------------------------------
-enum class EPrograms
+enum class EProgram
 {
 	Invalid = -1,
 	ASaver = 0,
@@ -69,19 +69,17 @@ class ACurl_Client
 
 public:
 	~ACurl_Client();
-	ACurl_Client(const EPrograms &program, wchar_t *user_input = 0);
+	ACurl_Client(const EProgram &program, wchar_t *&user_input);
 
 private:
-	void Handle_Saver_URL(wchar_t *user_input);  // ASaver basics
-	void Saver_Update();
+	void CURL_Handler(wchar_t *&user_input_url);  // !!! Need Refactoring
+	bool CURL_Download_To_File(const wchar_t *w_user_input_url);  // download page to file
+	bool CURL_Content_Get_From_Line(std::wstring &content_data_converted, const size_t &starting_line);  // get line from starting line
+	bool CURL_Content_Find_Pattern_Title(const wchar_t *content, const wchar_t *title_bgn, const wchar_t *title_end, const wchar_t *title_num_bgn, const wchar_t *title_num_end, wchar_t *&user_input_result);
+	bool CURL_Content_Find_Pattern_Image(const wchar_t *content, const wchar_t *pattern_img_source_bgn, const wchar_t *pattern_img_source_end);
+	bool Convert_Str_To_WStr(const std::string &str, std::wstring &wstr_to);
 
-	CURL *Url_Easy;  // ref to easy handle
-	CURLcode Response;
-
-	static size_t Write_Callback_Update(void *contents, size_t size, size_t nmemb, void *void_ptr);  // Convert to rus or save img to file 
-	static size_t Write_Callback(void *contents, size_t size, size_t nmemb, void *userp);  // Convert to rus or save img to file 
-	static size_t Save_Img(void *contents, size_t size, size_t nmemb, FILE *userp);  // Save img to folder
-	static std::wstring Response_Buffer;  // respnse from url
+	static size_t Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream);
 };
 //------------------------------------------------------------------------------------------------------------
 
@@ -135,38 +133,33 @@ public:
 	HDC Ptr_Hdc;
 
 private:
-
 	void Handle_ID_Content(const unsigned short &id_content_index);
 	void Handle_Update_Button();  // Check only Array_Map for title
 	void Handle_Active_Button_Advence();
 	void Handle_Active_Button(const EActive_Button &active_button);  // Redraw Button in current Active Menu
-
 	void Draw_Active_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array);
 	void Draw_User_Input_Request();  // Draw Request
 	void Draw_User_Title_Image(const wchar_t *image_path) const;
 	void Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser_Input_Data> &map);  // Draw Button in subMenu
 	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
-	void Draw_Context_Menu(const int &x, const int &y);
-	
-	int Get_Title_Season(int season_int) const;  // format int to season | I V X
 	RECT Add_Border(const int &x_cord) const;
 	RECT Add_Button(RECT &border_rect, const std::wstring &title) const;
 	void Add_Button_Next_Page();
-
-	void Save_Image_To(const RECT &rect);  // Save image in rect
-	void Restore_Image(RECT &rect);  // redraw image
-	void User_Input_Convert_Data(SUser_Input_Data &converted_data, wchar_t *user_input);  // !!! Refactoring
-	void User_Input_Convert_Char_Beta(int &ch, const bool &is_in_file);  // !!! Refactoring
-	void User_Input_Convert_Char(int &ch, const bool &is_in_file);  // !!! Refactoring
-	void User_Input_Value_Is_Changet(const bool is_increment);  // Change active title num
+	void Context_Menu_Draw(const int &x, const int &y);
+	void Context_Image_Save(const RECT &rect);  // Save image in rect
+	void Context_Image_Restore(RECT &rect);  // redraw image
+	void User_Input_Value_Is_Changed(const bool is_increment);  // Change active title num
 	bool User_Input_Set_To_Clipboard();
 	bool User_Input_Get_From_Clipboard(wchar_t *to_clipboard);  // and Re-Draw_User_Input
-	void User_Input_Load_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
-	void User_Input_Save_Array(const char *file_path, wchar_t **user_array, int user_input_counter);  // Write wchar_t to data.bin
-	void User_Map_Save_All_To(const EActive_Menu &active_menu);  // Threaded
-	void User_Map_Init_Buffer(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
-	void User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input);  // Save User_Input to User_Map
+	unsigned long long User_Map_Load_Convert(unsigned long long &ch);
+	void User_Map_Main_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
+	void User_Map_Main_Save(const EActive_Menu &active_menu);  // Main Save | Threaded || Call this to save current std::map
+	void User_Map_Init_Buffer(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);  // Format std::map to wchar_t ** after save
+	void User_Map_Save_Array(const char *file_path, wchar_t **user_array, int user_input_counter);
+	unsigned short User_Map_Save_Convert(unsigned short ch);
+	void User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, wchar_t *user_input);  // Save User_Input to User_Map
 	void User_Map_Erase();  // Errase from Array
+	void User_Input_Convert_Data(SUser_Input_Data &converted_data, wchar_t *user_input);
 
 	wchar_t User_Input[AsConfig::User_Input_Buffer];  // User Input Buffer | or border_width / 8 = Max_Char_Length
 	int Rect_Menu_List_Length;
@@ -256,7 +249,7 @@ private:
 	void Set_Current_Data();
 	int Connect_To_Server();  // Send to server ULL; change IP ADDRESS of serv || NEED TURN ON SERVER prog
 
-	AsTools Tools;  // to see tacts place f8 destryctor
+	AsTools Tools;  // to see tacts place f9 destructor
 	HWND Ptr_Hwnd;
 	HDC Ptr_Hdc;
 	PAINTSTRUCT Paint_Struct;
@@ -300,7 +293,7 @@ V				- висота + 6px от конца последней кнопки
 				-	-||-
 V			- создаем 2-4 Add_Button
 V		- Сохранять координаты контекстного меню что бы потом зарисувать его
-V			- Создать функции Save_Image_To and Restore image
+V			- Создать функции Context_Image_Save and Restore image
 V				- use bitmap to save image
 V				- use bitmap to restore image
 V		- также нужна обработка кнопок самого контекстного меню
@@ -664,7 +657,7 @@ V			- Сохраняем картинку в главную папку под н
 
 V	- Обработать сезон при чтении URL если Боево 2 345 нужно 2 перевести в II или что то придумать посмотрим
 V		- Рабочая вверсия хоть и ограниченная
-V	- Рефакторинг User_Input_Convert_Data()
+V	- Рефакторинг User Input Convert Data()
 V		- Обработка сезонов пробелами
 V		- Если вставлять через URL теперь работает обработка
 

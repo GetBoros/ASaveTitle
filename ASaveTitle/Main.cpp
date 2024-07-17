@@ -7,144 +7,11 @@ AsMain *AsMain::Main_Window = 0;
 
 
 
-// Convert_Temp
-unsigned short Convert_Temp(unsigned short &ch)
-{
-	// 1.1 Russian
-	if (ch >= 1025 && ch <= 1105)
-	{
-		// 1.0. Rus Symbols
-		if (ch >= 1072 && ch <= 1103)  // а - я
-			return ch = (ch - 1000) - 30 - 32;  // if a = 10 | я = 41
-
-		if (ch >= 1040 && ch <= 1071)  // А - Я
-			return ch = (ch - 1000) - 30;    // if A = 10 | Я = 41
-
-		if (ch == 1105)  // ё
-			return ch = (ch - 1000) - 30 - 32 - 1;  // ё = 42
-
-		if (ch == 1025)  // Ё
-			return ch = (ch - 1000) + 17;  // ё = 42
-	}
-	
-	// 1.2. English
-	if (ch >= 65 && ch <= 122)
-	{
-		// 3.0 English Symbols
-		if (ch >= 97 && ch <= 122)  // а = 97 || z = 122
-			return ch = ch - 24;  // a = 73 | z = 98
-
-		if (ch >= 65 && ch <= 90)  // A = 65 Z = 90  | 25 
-			return ch = ch + 8;  // A = 73 | Z = 98
-
-		if (ch == 96)  // `
-			return ch = (ch - 24);  // ` = 72
-	}
-	
-	// 1.3. Symbols
-	if (ch >= 32 && ch <= 63)
-	{
-		if (ch >= 32 && ch <= 47)  // space || ! " # ( ) * + , - . / $ %
-			return ch = (ch + 24);  // space = 56 || / = 71
-
-		if (ch >= 48 && ch <= 59)  // 0 - 9 - :
-			return ch = (ch - 5);  // 0 = 43 | 9 = 52 | : = 53 | ; = 54
-
-		if (ch == 63)  // ?
-			return ch = (ch - 8);  // ? = 55
-	}
-	
-	return 0;  // Reserved 99
-}
-//------------------------------------------------------------------------------------------------------------
-
-
-
-
-// Convert_Temp_Reverse
-unsigned short Convert_Temp_Reverse(unsigned short &ch)
-{
-	// 1.1 Russian
-	if (ch >= 10 && ch <= 42)  // Rus Symb
-	{
-		if (ch >= 10 && ch <= 41)  // а - я
-			return ch = (ch + 1000) + 30 + 32;  // a = 10 | я = 41
-		else  // ё
-			return ch = (ch + 1000) + 30 + 32 + 1;  // ё = 42
-	}
-
-	// 1.2. English
-	if (ch >= 72 && ch <= 98)  // Eng Symb
-	{
-		if (ch >= 73 && ch <= 98)  // а = 97 || z = 122
-			return ch = ch + 24;  // a = 73 | z = 98
-		else  // `
-			return ch = (ch + 24);  // ` = 72
-	}
-
-	// 1.3. Symbols
-	if (ch >= 43 && ch <= 71)  // Standart Help symbols
-	{
-		if (ch >= 43 && ch <= 54)
-			return ch = (ch + 5);  // 0 = 43 | 9 = 52 | : = 53 | ; = 54
-
-		if (ch == 55)  // ?
-			return ch = (ch + 8);  // ? = 55
-
-		if (ch >= 56 && ch <= 71)  // space || ! " # ( ) * + , - . / $ %
-			return ch = (ch - 24);  // space = 56 || / = 71
-	}
-
-	return 0;
-}
-//------------------------------------------------------------------------------------------------------------
-
-
-
-
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	// Test 2
-	int index = 0;
-	unsigned short yy = 0;
-	wchar_t word[] = L"AZАЯ1_/?";
-	wchar_t word_1[9]{};
-	
-	unsigned long long data = 0LL;
-
-	while (index < 100)
-	{
-		unsigned short w_ch = (unsigned short)word[index++];
-		yy = Convert_Temp(w_ch);
-		if (index % 9 == 0)
-		{
-			data = (data + yy);
-			//data += 17000000000000000000LL;
-			break;
-		}
-		else
-			data = (data + yy) * 100;
-
-	}
-	index = 0;
-
-	unsigned long long test_1 = 10000000000000000LL;
-	
-	while (index < 100)
-	{
-		unsigned long long nums = data / test_1;
-		nums %= 100;
-		test_1 /= 100;
-		yy = (unsigned short)nums;
-		word_1[index] = (wchar_t)Convert_Temp_Reverse(yy);
-		index++;
-	}
-	return 0;
-	
-	// Main
-	//AsMain::Main_Window = AsMain::Set_Instance(hinstance);
-	//return AsMain::Main_Window->Get_WParam();
+	AsMain::Main_Window = AsMain::Set_Instance(hinstance);
+	return AsMain::Main_Window->Get_WParam();
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -153,7 +20,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_
 
 // AsMain
 bool AsMain::Is_Hwnd_Created = false;
-EPrograms AsMain::Programs = EPrograms::ASaver;
+EProgram AsMain::Programs = EProgram::ASaver;
 WCHAR AsMain::SZ_Title[] = L"ASaver";
 WCHAR AsMain::SZ_Window[] = L"Book_Reader";
 //------------------------------------------------------------------------------------------------------------
@@ -254,7 +121,7 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		switch (Programs)
 		{
-		case EPrograms::Invalid:
+		case EProgram::Invalid:
 		{
 			const int round = 75;
 			const int x = 100;
@@ -272,7 +139,7 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				const RECT rect_mouse{ cord_mouse_x - 1, cord_mouse_x - 1, cord_mouse_x + 1, cord_mouse_x + 1 };
 				rect_intersecte = rect_programs;
 
-				for (i = 0; i < (int)EPrograms::End; i++)
+				for (i = 0; i < (int)EProgram::End; i++)
 				{
 					const int width_offset = i * width;
 					
@@ -281,7 +148,7 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 					if (IntersectRect(&rect_intersecte, &rect_intersecte, &rect_mouse) )
 					{
-						Programs = (EPrograms)i;
+						Programs = (EProgram)i;
 						InvalidateRect(hWnd, 0, TRUE);
 						return 0;
 					}
@@ -291,7 +158,7 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			// Draw Main Menu
 			hdc = BeginPaint(hWnd, &paint_struct);
 			
-			for (i = 0; i < (int)EPrograms::End; i++)
+			for (i = 0; i < (int)EProgram::End; i++)
 			{
 				RoundRect(hdc, rect_programs.left + (i * width), rect_programs.top, rect_programs.right + (i * width), rect_programs.bottom, round, round);
 				TextOutW(hdc, rect_programs.left + (i * width) + (width / 3), rect_programs.top + 70, AsConfig::Text_Program_Names[i], (int)wcslen(AsConfig::Text_Program_Names[i]) );
@@ -302,17 +169,17 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 
 
-		case EPrograms::ASaver:
+		case EProgram::ASaver:
 			AsMain::Main_Window->Engine.Draw_Frame(hWnd);
 			break;
 
 
-		case EPrograms::ABook_Reader:
+		case EProgram::ABook_Reader:
 			AsMain::Main_Window->Engine.Draw_Frame_Book_Reader(hWnd);
 			break;
 
 
-		case EPrograms::End:
+		case EProgram::End:
 			break;
 
 

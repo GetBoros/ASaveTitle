@@ -1,38 +1,32 @@
 ﻿#include "Engine.h"
-#include "Engine.h"
 
 // ACurl_Client
-std::wstring ACurl_Client::Response_Buffer;
-//------------------------------------------------------------------------------------------------------------
 ACurl_Client::~ACurl_Client()
-{//Tear Dowm
+{
 
-	// Last Cleanuping & EASY
-	curl_easy_cleanup(Url_Easy);
-	curl_global_cleanup();
 }
 //------------------------------------------------------------------------------------------------------------
-ACurl_Client::ACurl_Client(const EPrograms &program, wchar_t *user_input)
- : Url_Easy(0), Response{}
+ACurl_Client::ACurl_Client(const EProgram &program, wchar_t *&user_input)
 {// Setup
 
 	switch (program)
 	{
-	case EPrograms::Invalid:
+	case EProgram::Invalid:
 		break;
-	case EPrograms::ASaver:
+	case EProgram::ASaver:
 	{
 		if (user_input != 0)
-			Handle_Saver_URL(user_input);  // Anime-bit
+			CURL_Handler(user_input);  // Anime-bit
+			//Handle_Saver_URL(user_input);  // Anime-bit
 		else
-			Saver_Update();
+			int yy = 0;
 	}
 		break;
 
-	case EPrograms::ABook_Reader:
+	case EProgram::ABook_Reader:
 		break;
 
-	case EPrograms::End:
+	case EProgram::End:
 		break;
 
 	default:
@@ -40,262 +34,191 @@ ACurl_Client::ACurl_Client(const EPrograms &program, wchar_t *user_input)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Client::Handle_Saver_URL(wchar_t *user_input)
+void ACurl_Client::CURL_Handler(wchar_t *&user_input_url)
 {
+	int content_start_line = 1474;
+	const wchar_t pattern_title_bgn[] = L"laquo;";  // title start
+	const wchar_t pattern_title_end[] = L"&raquo";  // title start
+	const wchar_t pattern_title_num_bgn[] = L"Серии: [";  // title num start
+	const wchar_t pattern_title_num_end[] = L" ";  // title num start
+	const wchar_t pattern_img_source_bgn[] = L"<img src='";  // title num start
+	const wchar_t pattern_img_source_end[] = L"' width";  // title num start
+	std::wstring content_from_file;
+
+	if (!CURL_Download_To_File(user_input_url) )  // Find and Download url to folder?
+		return;
+	
+	if (!CURL_Content_Get_From_Line(content_from_file, content_start_line) )  // Read and Find what we need
+		return;
+
+	if (!CURL_Content_Find_Pattern_Title(content_from_file.c_str(), pattern_title_bgn, pattern_title_end, pattern_title_num_bgn, pattern_title_num_end, user_input_url) )  // !!!
+		return;
+
+	if (!CURL_Content_Find_Pattern_Image(content_from_file.c_str(), pattern_img_source_bgn, pattern_img_source_end) )
+		return;
+}
+//------------------------------------------------------------------------------------------------------------
+bool ACurl_Client::CURL_Download_To_File(const wchar_t *w_user_input_url)
+{
+	char path[] = "output.bin";
 	char *url;
-	int size;
-	wchar_t **url_pair;
-	void *user_input_void;
-	FILE *file;
+	int size = 0;
+	CURL* curl;
+	CURLcode res;
+	FILE* file;
 
-	url_pair = new wchar_t *[2];
-	user_input_void = static_cast<void*>(url_pair);
-	size = WideCharToMultiByte(CP_UTF8, 0, user_input, -1, 0, 0, 0, 0);
+	size = WideCharToMultiByte(CP_UTF8, 0, w_user_input_url, -1, 0, 0, 0, 0);
 	url = new char[size];
-	WideCharToMultiByte(CP_UTF8, 0, user_input, -1, url, size, 0, 0);
+	WideCharToMultiByte(CP_UTF8, 0, w_user_input_url, -1, url, size, 0, 0);
 
-	// INIT CURL
-	curl_global_init(CURL_GLOBAL_DEFAULT);
-	Url_Easy = curl_easy_init();
-
-	// 1.  First Responds set Options | Maybe Go to function
-	/*
-	Need handle options what to do sticky
-	- SETOPT | CURLOPT:	
-		Independent || Order - Independent | Options set copy data | CURLOPT_URL is MANDATORY OPT | Download is default actions |
-		Timeouts | name resolve alternatives | connectivity | protocol | TLS | authentication | proxies | receive | 
-	*/
-
-	curl_easy_setopt(Url_Easy, CURLOPT_LOW_SPEED_TIME, 60L);  // 60 sec
-	curl_easy_setopt(Url_Easy, CURLOPT_LOW_SPEED_LIMIT, 30L);  // Abort if slower that 30 bytes/sec per seconds above
-	curl_easy_setopt(Url_Easy, CURLOPT_URL, url);
-	curl_easy_setopt(Url_Easy, CURLOPT_VERBOSE, 1L);  // 1L means a one long long type
-	curl_easy_setopt(Url_Easy, CURLOPT_WRITEFUNCTION, Write_Callback);
-	curl_easy_setopt(Url_Easy, CURLOPT_WRITEDATA, user_input_void);
-
-	Response = curl_easy_perform(Url_Easy);
-
-	// 2. Second responds save to Folder picture Temporary
-	delete[] url;
-	errno_t err = fopen_s(&file, "Pictures/Temporary.png", "wb");  // save as Temporary.png
-	if (err == 0 && file != 0)
+	if (!(curl = curl_easy_init()))
+		return false;
+	else
 	{
-		size = WideCharToMultiByte(CP_UTF8, 0, url_pair[0], -1, 0, 0, 0, 0);
-		url = new char[size];
-		WideCharToMultiByte(CP_UTF8, 0, url_pair[0], -1, url, size, 0, 0);
+		errno_t err = fopen_s(&file, path, "wb");
+		if (!file)
+		{
+			curl_easy_cleanup(curl);
+			return false;
+		}
 
-		curl_easy_setopt(Url_Easy, CURLOPT_URL, url);  // save img
-		curl_easy_setopt(Url_Easy, CURLOPT_WRITEFUNCTION, Save_Img);
-		curl_easy_setopt(Url_Easy, CURLOPT_WRITEDATA, file);
-
-		Response = curl_easy_perform(Url_Easy);  // Download image to file
-
-		delete[] url;
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Write_Data);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
 		fclose(file);
-	}
-	
-	//wcscpy_s(user_input, wcslen(url_pair[1]) + 1, url_pair[1]);
-	wcsncpy_s(user_input, wcslen(url_pair[1]) + 1, url_pair[1], wcslen(url_pair[1]) );
-	delete url_pair[0];
-	delete url_pair[1];
-	delete[] url_pair;
 
+		if (res != CURLE_OK)
+			return false;
+
+		return true;
+	}
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Client::Saver_Update()
+bool ACurl_Client::CURL_Content_Get_From_Line(std::wstring &content_data_converted, const size_t &starting_line)
 {
-	char url[] = "https://anime-bit.ru/";
-	wchar_t **url_pair;
-	void *void_ptr;
+	const char path[] = "output.bin";
+	int i = 8;  // Content line from start needed
+	size_t currentLine = 0;
+	std::string line;
+	std::string content_data_str;
 
-	url_pair = new wchar_t *[2] { };
-	void_ptr = static_cast<void *>(url_pair);
+	std::ifstream file(path, std::ios::binary);
+	if (!file)
+		return false;
+
+	while (starting_line > currentLine && std::getline(file, line) )  // Go to our line
+		++currentLine;
+
+	while (std::getline(file, line) &&  i--)  // Start read needed line
+		content_data_str += line + "\n";
+
+	file.close();
+
+	return Convert_Str_To_WStr(content_data_str, content_data_converted);
+}
+//------------------------------------------------------------------------------------------------------------
+bool ACurl_Client::CURL_Content_Find_Pattern_Title(const wchar_t *content, const wchar_t *title_bgn, const wchar_t *title_end, const wchar_t *num_bgn, const wchar_t *num_end, wchar_t *&user_input_result)
+{
+	int title_name_length;
+	int title_nums_len;
+	wchar_t *num_start;
+
+	// 1.0. Find Title Name bgn end
+	const wchar_t *title_name_bgn = wcsstr(content, title_bgn) + wcslen(title_bgn);  // Get title start ptr
+	if (!title_name_bgn != 0)
+		return false;
+	const wchar_t *title_name_end = wcsstr(title_name_bgn, title_end);  // Get title end ptr
+	if (!title_name_end != 0)
+		return false;
+
+	// 1.1. Find Title series bgn end
+	const wchar_t *title_num_bgn = wcsstr(title_name_end, num_bgn) + wcslen(num_bgn);  // Get title num bgn ptr
+	if (!title_num_bgn != 0)
+		return false;
+	const wchar_t *title_num_end = wcsstr(title_num_bgn, num_end);  // Get title num end ptr
+	if (!title_num_end != 0)
+		return false;
+
+	// 2.0. Set Title and season to result
+	title_name_length = (int)(title_name_end - title_name_bgn) + 1;  // Get title name and season length
+	title_nums_len = (int)(title_num_end - title_num_bgn) + 1;  // Get title numbers length(series)
+	user_input_result = new wchar_t[title_name_length + title_nums_len]{};  // mallocate for full user input
+	wcsncpy_s(user_input_result, title_name_length, title_name_bgn, static_cast<rsize_t>(title_name_length - 1) );
+
+	// 2.1. Set number(series) to result
+	num_start = user_input_result + title_name_length - 1;  // find where we need to start put nums
+	num_start[0] = L' ';  // remove '\0' to space
+	num_start++;  // to next index
+	wcsncpy_s(num_start, title_nums_len, title_num_bgn, static_cast<rsize_t>(title_nums_len - 1) );
+
+	return true;
+}
+//------------------------------------------------------------------------------------------------------------
+bool ACurl_Client::CURL_Content_Find_Pattern_Image(const wchar_t *content, const wchar_t *pattern_img_source_bgn, const wchar_t *pattern_img_source_end)
+{
+	char* url;
+	wchar_t* image_url;
+	int image_length;
+	int size;
+	CURLcode Response{};
+	FILE* file = 0;
+	CURL* Url_Easy = 0;
+	std::wstring str_to = L"https://anime-bit.ru";
+
+	const wchar_t *img_source_bgn = wcsstr(content, pattern_img_source_bgn) + wcslen(pattern_img_source_bgn);  // Get title start ptr
+	if (!img_source_bgn != 0)
+		return false;
+	const wchar_t *img_source_end = wcsstr(img_source_bgn, pattern_img_source_end);  // Get title end ptr
+	if (!img_source_end != 0)
+		return false;
+
+	image_length = (int)(img_source_end - img_source_bgn) + 1;
+	image_url = new wchar_t[image_length]{};
+	wcsncpy_s(image_url, image_length, img_source_bgn, static_cast<rsize_t>(image_length - 1) );
+	
+	str_to += image_url;
+	size = WideCharToMultiByte(CP_UTF8, 0, str_to.c_str(), -1, 0, 0, 0, 0);
+	url = new char[size];
+	WideCharToMultiByte(CP_UTF8, 0, str_to.c_str(), -1, url, size, 0, 0);
 
 	// INIT CURL
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 	Url_Easy = curl_easy_init();
 
-	// SETTINGS
-	curl_easy_setopt(Url_Easy, CURLOPT_LOW_SPEED_TIME, 60L);  // 60 sec
-	curl_easy_setopt(Url_Easy, CURLOPT_LOW_SPEED_LIMIT, 30L);  // Abort if slower that 30 bytes/sec per seconds above
-	curl_easy_setopt(Url_Easy, CURLOPT_URL, url);
+	fopen_s(&file, "TemporaryName.png", "wb");
+	curl_easy_setopt(Url_Easy, CURLOPT_URL, url);  // save img
+	curl_easy_setopt(Url_Easy, CURLOPT_WRITEFUNCTION, Write_Data);
+	curl_easy_setopt(Url_Easy, CURLOPT_WRITEDATA, file);
 
-	// HOW TO RESPONSE
-	curl_easy_setopt(Url_Easy, CURLOPT_WRITEFUNCTION, Write_Callback_Update);
-	curl_easy_setopt(Url_Easy, CURLOPT_WRITEDATA, void_ptr);
+	Response = curl_easy_perform(Url_Easy);  // Download image to file
+	curl_easy_cleanup(Url_Easy);
 
-	// FINAL
-	Response = curl_easy_perform(Url_Easy);
+	if (file != 0)
+		fclose(file);
+
+	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-size_t ACurl_Client::Write_Callback_Update(void *contents, size_t size, size_t nmemb, void *void_ptr)
-{// Get a part of bytes we can handle(write to file)
-	const wchar_t *pattern_title_name_begin = L"<img alt='&laquo;";
-	const wchar_t *pattern_title_name_end = L"&raquo";
-	const wchar_t *pattern_title_last_add = L"<div>Добавленно:";
-	wchar_t **user_input = static_cast<wchar_t**>(void_ptr);
-	int wideStringLength;
-	size_t total_size;
-
-	// 1. Get Content from URL to Responce Buffer
-	total_size = size * nmemb;  // !!! Doesn`t work All down code
-	wideStringLength = MultiByteToWideChar(CP_UTF8, 0, (char*)contents, -1, 0, 0);  // Вычисляем размер буфера, необходимый для конвертации
-
-	if (wideStringLength == 0)  // Обработка ошибки, если MultiByteToWideChar вернула 0
-		return 0;
-	else
-		Response_Buffer.resize(wideStringLength);  //
-
-	if (MultiByteToWideChar(CP_UTF8, 0, (char*)contents, -1, &Response_Buffer[0], wideStringLength) == 0)  // Conver ch -> wchar_t
-		return 0;  // Обработка ошибки, если MultiByteToWideChar вернула 0
-	else
-		Response_Buffer.pop_back();  // Удаляем завершающий нулевой символ
-	
-	// 1.1 Find new Add Title with seasons
-	if (const wchar_t *pattern_begining = wcsstr(Response_Buffer.c_str(), pattern_title_name_begin))
-	{
-		const wchar_t *ptr_end = wcsstr(pattern_begining, pattern_title_name_end);
-		const wchar_t *ptr_beg = pattern_begining + wcslen(pattern_title_name_begin);
-		const size_t pattern_title_length = ptr_end - ptr_beg;
-
-		user_input[0] = new wchar_t[64];  // !!!
-		wcsncpy_s(user_input[0], 63, ptr_beg, pattern_title_length);  // cpy title name
-	}
-
-	// 1.2 Find last added date
-	if (const wchar_t *pattern_begining = wcsstr(Response_Buffer.c_str(), pattern_title_last_add) )
-	{
-		const wchar_t *ptr_end = wcsstr(pattern_begining, L"</div>");
-		const wchar_t *ptr_beg = pattern_begining + wcslen(pattern_title_last_add);
-		const __int64 length = ptr_end - ptr_beg;
-
-		wcsncpy_s(user_input[0] + wcslen(user_input[0]), 63, ptr_beg, (int)length);  // cpy data added
-
-		if (!ptr_end != 0)
-			return 0;
-
-		const wchar_t *ptr_beg_01 = wcsstr(ptr_end, L" Серии: [");
-		const wchar_t *ptr_end_01 = wcsstr(ptr_end, L"]</div>") + 1;
-		__int64 length_01 = ptr_end_01 - ptr_beg_01;
-
-		if (ptr_beg_01 != 0)
-			wcsncpy_s(user_input[0] + wcslen(user_input[0]), 63, ptr_beg_01, (int)length_01); // cpy series
-	}
-	return total_size;  // return bytes we have deal with i
-}
-//-----------------------------------------------------------------------------------------------------------
-size_t ACurl_Client::Write_Callback(void *contents, size_t size, size_t nmemb, void *userp)
-{// Get a part of bytes we can handle(write to file)
-	bool is_image;
-	const wchar_t *pattern_img = L"image_src";
-	const wchar_t *pattern_htt = L"https";
-	const wchar_t *pattern_ttl = L"<h1>&laquo;";
-	const wchar_t *pattern_num = L": [";
-	wchar_t **user_input = static_cast<wchar_t**>(userp);
-	int wideStringLength;
-	size_t total_size;
-	unsigned long long ll_ = 17999999999999999999ULL;
-
-	is_image = false;
-	total_size = size * nmemb;
-	wideStringLength = MultiByteToWideChar(CP_UTF8, 0, (char *)contents, -1, 0, 0);  // Вычисляем размер буфера, необходимый для конвертации
-
-	if (wideStringLength == 0)  // Обработка ошибки, если MultiByteToWideChar вернула 0
-		return 0;
-	else
-		Response_Buffer.resize(wideStringLength);  //
-
-	if (MultiByteToWideChar(CP_UTF8, 0, (char*)contents, -1, &Response_Buffer[0], wideStringLength) == 0)  // Conver ch -> wchar_t
-		return 0;  // Обработка ошибки, если MultiByteToWideChar вернула 0
-	else
-		Response_Buffer.pop_back();  // Удаляем завершающий нулевой символ
-	
-	// 1. Получить httl картинки и сохранить её
-	if (const wchar_t *title_img_ptr = wcsstr(Response_Buffer.c_str(), pattern_img) )
-		AsTools::Format_Text_Using_Patterns(title_img_ptr, pattern_htt, L"\"", &user_input[0]);
-
-	// 2. Get title + seasons + nums + find & change invalid chars
-	const wchar_t *title_num_ptr = wcsstr(Response_Buffer.c_str(), pattern_ttl);  // get ptr at pattern_ttl begin
-	if (title_num_ptr != 0 && *(title_num_ptr + 1) != L'\0')
-	{// !!! Refactoring waiting this moment
-		wchar_t *title_name;
-		wchar_t curr_char;  // Write title | write seasons
-		int pattern_length;
-		int i;
-		int buffer_for_nums;
-		int invalid_char_len;
-
-		pattern_length = (int)wcslen(pattern_ttl);
-		i = pattern_length;
-		curr_char = title_num_ptr[i];
-		buffer_for_nums = 6;
-		invalid_char_len = AsConfig::Invalid_Chars_Len;
-
-		// 2.0. Find last title element and cpy to user_input
-		while (curr_char != L'&')
-			curr_char = title_num_ptr[i++];
-
-		i = i - pattern_length + buffer_for_nums;
-		user_input[1] = new wchar_t[--i] {};
-		buffer_for_nums = i - buffer_for_nums;
-		
-
-		AsTools::Format_Text_Using_Patterns(title_num_ptr, title_num_ptr + pattern_length, L"&raquo;", &title_name);
-		wcsncpy_s(user_input[1], wcslen(title_name) + 1, title_name, wcslen(title_name) );
-		delete title_name;
-
-		// 2.1. Change Invalid chars
-		while (--invalid_char_len != -1)
-		{
-			if (const wchar_t *find_invalid_char = wcsstr(user_input[1], AsConfig::Invalid_Chars[invalid_char_len] ) )
-				user_input[1][(int)(find_invalid_char - user_input[1] ) ] = AsConfig::Invalid_Chars_Valid[invalid_char_len];
-		}
-
-		// 2.2. Change Nums to dots, need to save load correctly
-		while (++invalid_char_len < buffer_for_nums - 2)  // - 2 need for seasons
-		{
-			curr_char = user_input[1][invalid_char_len];
-
-			if (curr_char == L'«')
-				user_input[1][invalid_char_len] = L' ';
-
-			if (curr_char <= L'9' && curr_char >= L'0')
-				user_input[1][invalid_char_len] = L' ';
-
-			if (invalid_char_len > 1 && curr_char < L'а' && curr_char >= L'А')
-				user_input[1][invalid_char_len] = curr_char += L' ';
-		}
-
-		// 2.3. Get Numbers to title
-		if (const wchar_t *title_num = wcsstr(title_num_ptr, pattern_num) )
-		{
-			int pattern_len = (int)wcslen(L": [");
-			int index = pattern_len;
-			int title_length = (int)wcslen(user_input[1]);
-
-			user_input[1][title_length] = L' ';
-
-			while (title_num[index] != L' ')
-				user_input[1][++title_length] = title_num[index++];
-
-			user_input[1][++title_length] = L'\0';
-			return 0;
-		}
-	}
-
-	if (!is_image)
-		return total_size;  // return bytes we have deal with i
-	else
-		return fwrite(contents, size, nmemb, (FILE*)userp);   // if write img to file
-}
-//-----------------------------------------------------------------------------------------------------------
-size_t ACurl_Client::Save_Img(void *contents, size_t size, size_t nmemb, FILE *userp)
+bool ACurl_Client::Convert_Str_To_WStr(const std::string &str, std::wstring &wstr_from_str)
 {
-	size_t written = fwrite(contents, size, nmemb, userp);
+	if (str.empty() )
+		return false;
+	
+	const int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), 0, 0);
+	wstr_from_str = std::wstring(size_needed, 0);
+	MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstr_from_str[0], size_needed);
 
+	return true;
+}
+//------------------------------------------------------------------------------------------------------------
+size_t ACurl_Client::Write_Data(void* ptr, size_t size, size_t nmemb, FILE* stream)
+{
+	size_t written = fwrite(ptr, size, nmemb, stream);
 	return written;
 }
-//-----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 
 
 
@@ -428,9 +351,9 @@ void ACurl_Component::Load_ID_Content()
 // AsUI_Builder
 int AsUI_Builder::User_Input_Len = 0;
 int AsUI_Builder::Context_Button_Length = 5;
-const wchar_t AsUI_Builder::Main_Menu_Title_Name[] = L"Сохранить запись";
-const wchar_t *AsUI_Builder::Sub_Menu_Title = L"Вводите текст сюда... Или URL вашего Тайтла";
-const std::wstring AsUI_Builder::Button_Text_List[] = { L"Просмотреть", L"Просмотренные", L"Преостановленные", L"Добавить в желаемое", L"Удалить из списка", L"Выход из программы" };
+const wchar_t AsUI_Builder::Main_Menu_Title_Name[] = L"Title Saver";
+const wchar_t *AsUI_Builder::Sub_Menu_Title = L"Enter text here... or URL your site";
+const std::wstring AsUI_Builder::Button_Text_List[] = { L"Watch", L"Watched", L"Paused", L"Add to wishlist", L"Errase from Array", L"Exit" };
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::~AsUI_Builder()
 {
@@ -441,7 +364,7 @@ AsUI_Builder::~AsUI_Builder()
 		DeleteObject(H_Bitmap);
 
 	// 1.3 Save map to Data/...
-	User_Map_Save_All_To(Active_Menu = EAM_Exit);  // Exit from Program
+	User_Map_Main_Save(Active_Menu = EAM_Exit);  // Exit from Program | if exit save all map
 
 	// 1.5 Free memory
 	delete Curl_Component;
@@ -459,13 +382,12 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
   Rect_Pages{}, Input_Button_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Input_Data{}, Curl_Component(0)
 {
 	// Load map from Data/...
-	User_Input_Load_Array(User_Array_Map, "Data/Watching.bin");
-	User_Input_Load_Array(User_Library_Map, "Data/Library.bin");
-	User_Input_Load_Array(User_Paused_Map, "Data/Paused.bin");
-	User_Input_Load_Array(User_Wishlist_Map, "Data/Wishlist.bin");
+	User_Map_Main_Load(User_Array_Map, "Data/Watching.bin");
+	User_Map_Main_Load(User_Library_Map, "Data/Library.bin");
+	User_Map_Main_Load(User_Paused_Map, "Data/Paused.bin");
+	User_Map_Main_Load(User_Wishlist_Map, "Data/Wishlist.bin");
 
 	Curl_Component = new ACurl_Component;
-
 	Rect_User_Input_Change = new RECT[2]{};
 }
 //------------------------------------------------------------------------------------------------------------
@@ -581,30 +503,41 @@ void AsUI_Builder::Draw_User_Input_Button() const
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Handle()
 {
+	int length;
+
 	// 1.0 Handle User_Input
 	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
 	{// If it`s url check it
-		if (!std::filesystem::exists(AsConfig::Image_Folder))
-			std::filesystem::create_directories(AsConfig::Image_Folder);
 
-		Curl_Component->Add_ID_Content(User_Input);
-		ACurl_Client client_url(EPrograms::ASaver, User_Input);
+		if (!std::filesystem::exists(AsConfig::Image_Folder) )
+			std::filesystem::create_directories(AsConfig::Image_Folder);  // Create Image Foldore if not exist
+
+		length = (int)wcslen(User_Input) + 1;
+		wchar_t *url_content = new wchar_t[length]{};
+		wcsncpy_s(url_content, length, User_Input, static_cast<rsize_t>(length) - 1);  // cpy url to temporary url_content
+
+		Curl_Component->Add_ID_Content(url_content);  // !!! Save url ID init to ACurl_Client
+		ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
+
+		length = (int)wcslen(url_content) + 1;
+		wcsncpy_s(User_Input, length, url_content, static_cast<rsize_t>(length) - 1);
+		delete[] url_content;
 	}
-	else
-	{
-		try
-		{// Try get correct User_Input if not do it correnct
-			User_Input_Len = (int)wcslen(User_Input);
-			std::wstring last_char(1, User_Input_Len); // создаем строку из одного символа
-			const int index = std::stoi(last_char); // преобразуем строку в целое число
-		}
-		catch (const std::exception&)
-		{
-			User_Input[User_Input_Len++] = L' ';
-			User_Input[User_Input_Len++] = L'1';
-			User_Input[User_Input_Len] = L'\0';
-		}
-	}
+	//else
+	//{
+	//	try
+	//	{// Try get correct User_Input if not do it correnct
+	//		User_Input_Len = (int)wcslen(User_Input);
+	//		std::wstring last_char(1, User_Input_Len); // создаем строку из одного символа
+	//		const int index = std::stoi(last_char); // преобразуем строку в целое число
+	//	}
+	//	catch (const std::exception&)
+	//	{
+	//		User_Input[User_Input_Len++] = L' ';
+	//		User_Input[User_Input_Len++] = L'1';
+	//		User_Input[User_Input_Len] = L'\0';
+	//	}
+	//}
 
 	// 2.0. Add User_Input to opened SubMenu
 	switch (Active_Menu)  // With add to
@@ -627,10 +560,10 @@ void AsUI_Builder::User_Input_Handle()
 	}
 
 	// 3.0. Redraw All and Save
-	Draw_Menu_Sub(Active_Menu);
-	Handle_Active_Button_Advence();
-	Draw_User_Input_Button();
-	User_Map_Save_All_To(Active_Menu);  // Save by Add
+	Draw_Menu_Sub(Active_Menu);  // Redraw All Sub Menu
+	Draw_User_Input_Button();  // Redrow User Input
+	Handle_Active_Button_Advence();  // Show Active Button
+	User_Map_Main_Save(Active_Menu);  // Save current map in used sub menu
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Set_RM_Cord(const RECT &mouse_cord)
@@ -640,7 +573,7 @@ void AsUI_Builder::Set_RM_Cord(const RECT &mouse_cord)
 
 	// 1.Restore Image covered by context menu
 	if (!IsRectEmpty(&Prev_Context_Menu_Cords) )  // если контекстное меню есть
-		Restore_Image(Prev_Context_Menu_Cords);
+		Context_Image_Restore(Prev_Context_Menu_Cords);
 
 
 	// 2. While clk on Main menu button redraw it and draw context menu
@@ -652,7 +585,7 @@ void AsUI_Builder::Set_RM_Cord(const RECT &mouse_cord)
 			Handle_Active_Button( (EActive_Button)i);  // Change button color
 			Draw_Menu_Sub( (EActive_Menu)i);
 
-			Draw_Context_Menu(mouse_cord.right, mouse_cord.top);
+			Context_Menu_Draw(mouse_cord.right, mouse_cord.top);
 			return;
 		}
 	}
@@ -663,13 +596,13 @@ void AsUI_Builder::Set_RM_Cord(const RECT &mouse_cord)
 		return;
 
 
-	// 4. Draw Draw_Context_Menu if at buttons
+	// 4. Draw Context_Menu_Draw if at buttons
 	for (i = Sub_Menu_Curr_Page * Sub_Menu_Max_Line; i < Rect_Sub_Menu_Length; i++)
 	{
 		if (IntersectRect(&intersect_rect, &mouse_cord, &User_Input_Rect[i]) )
 		{
 			Handle_Active_Button( (EActive_Button)i);
-			Draw_Context_Menu(mouse_cord.right, mouse_cord.top);
+			Context_Menu_Draw(mouse_cord.right, mouse_cord.top);
 			return;
 		}
 	}
@@ -718,7 +651,7 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 		for (int i = 0; i < 2; i++)
 			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_User_Input_Change[i]) )
 			{
-				User_Input_Value_Is_Changet(i);
+				User_Input_Value_Is_Changed(i);
 				Handle_Active_Button( (EActive_Button)Prev_Button);
 				return;
 			}
@@ -726,15 +659,15 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 
 
 	if (!IsRectEmpty(&Input_Button_Rect) )  // !!! Refactoring
-	{// User_Input Handle || doubl click on User_Input ||
+	{// User_Input Handle || Double click on User_Input ||
 
 		if (IntersectRect(&intersect_rect, &mouse_cord, &Input_Button_Rect) )
 		{
 			if (User_Input[0] != 0)
-				User_Input_Handle();  // Handle URL
+				User_Input_Handle();  // !!! Handle URL || What if thread?
 			else
 				User_Input_Set_To_Clipboard();
-			
+
 			return;
 		}
 	}
@@ -749,7 +682,7 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Buttons_Context[i]) )
 			{
 				EActive_Menu prev_active_mune = Active_Menu;
-				Restore_Image(Prev_Context_Menu_Cords);
+				Context_Image_Restore(Prev_Context_Menu_Cords);
 
 				if (Active_Menu != EAM_Main)
 				{
@@ -761,27 +694,63 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 				switch ( (EActive_Menu)i)
 				{
 				case EAM_Watching:
-					User_Map_Emplace(User_Array_Map, It_Current_User->second.Title_Name_Num.c_str() );
+				{
+					wchar_t *title_name_num;
+					int title_name_num_length;
+					
+					title_name_num_length = (int)wcslen(It_Current_User->second.Title_Name_Num.c_str() + 1);
+					title_name_num = new wchar_t[title_name_num_length];
+					
+					wcsncpy_s(title_name_num, title_name_num_length, It_Current_User->second.Title_Name_Num.c_str(), wcslen(It_Current_User->second.Title_Name_Num.c_str() ) );
+					User_Map_Emplace(User_Array_Map, title_name_num);
 					User_Map_Erase();
 					Draw_Menu_Sub(Active_Menu);
-					break;
+				}
+				break;
 
 				case EAM_Library_Menu:
-					User_Map_Emplace(User_Library_Map, It_Current_User->second.Title_Name_Num.c_str() );
+				{
+					wchar_t *title_name_num;
+					int title_name_num_length;
+					
+					title_name_num_length = (int)wcslen(It_Current_User->second.Title_Name_Num.c_str() ) + 1;
+					title_name_num = new wchar_t[title_name_num_length]{};
+					
+					wcsncpy_s(title_name_num, title_name_num_length, It_Current_User->second.Title_Name_Num.c_str(), wcslen(It_Current_User->second.Title_Name_Num.c_str() ) );
+					User_Map_Emplace(User_Library_Map, title_name_num);
 					User_Map_Erase();
 					Draw_Menu_Sub(Active_Menu);
-					break;
+				}
+				break;
 
 				case EAM_Paused_Menu:
-					User_Map_Emplace(User_Paused_Map, It_Current_User->second.Title_Name_Num.c_str() );
+				{
+					wchar_t *title_name_num;
+					int title_name_num_length;
+					
+					title_name_num_length = (int)wcslen(It_Current_User->second.Title_Name_Num.c_str() + 1);
+					title_name_num = new wchar_t[title_name_num_length];
+					
+					wcsncpy_s(title_name_num, title_name_num_length, It_Current_User->second.Title_Name_Num.c_str(), wcslen(It_Current_User->second.Title_Name_Num.c_str() ) );
+					User_Map_Emplace(User_Paused_Map, title_name_num);
 					User_Map_Erase();
 					Draw_Menu_Sub(Active_Menu);
-					break;
+				}
+				break;
 
 				case EAM_Wishlist:
-					User_Map_Emplace(User_Wishlist_Map, It_Current_User->second.Title_Name_Num.c_str() );
+				{
+					wchar_t *title_name_num;
+					int title_name_num_length;
+					
+					title_name_num_length = (int)wcslen(It_Current_User->second.Title_Name_Num.c_str() + 1);
+					title_name_num = new wchar_t[title_name_num_length];
+					
+					wcsncpy_s(title_name_num, title_name_num_length, It_Current_User->second.Title_Name_Num.c_str(), wcslen(It_Current_User->second.Title_Name_Num.c_str() ) );
+					User_Map_Emplace(User_Wishlist_Map, title_name_num);
 					User_Map_Erase();
 					Draw_Menu_Sub(Active_Menu);
+				}
 					break;
 
 				case EAM_Erase:
@@ -789,11 +758,10 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 					Draw_Menu_Sub(Active_Menu);
 					break;
 				}
-				User_Map_Save_All_To( (EActive_Menu)i);
 				return;
 			}
 		}
-		Restore_Image(Prev_Context_Menu_Cords);
+		Context_Image_Restore(Prev_Context_Menu_Cords);
 	}
 
 
@@ -845,18 +813,20 @@ bool AsUI_Builder::Set_User_Input(const wchar_t &user_text)
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_ID_Content(const unsigned short &id_content_index)
-{
+{// !!! Can be broken
+
 	int title_position;
 	SUser_Input_Data converted_data;
 	std::map<std::wstring, SUser_Input_Data>::iterator it;
-	wchar_t user_input[AsConfig::User_Input_Buffer]{};
+	//wchar_t user_input[AsConfig::User_Input_Buffer]{};
+	wchar_t *user_input = new wchar_t[AsConfig::User_Input_Buffer]{};
 
 	title_position = 0;
 	it = User_Array_Map.begin();
 
 	// 1.0. Init, Get title name
 	Curl_Component->Get_Url(user_input, id_content_index);
-	ACurl_Client reguest(EPrograms::ASaver, user_input);
+	ACurl_Client reguest(EProgram::ASaver, user_input);
 	User_Input_Convert_Data(converted_data, user_input);  // user_input convert to data
 
 	if (!( (it = User_Array_Map.find(converted_data.Title_Name_Key) ) != User_Array_Map.end() ) )
@@ -949,6 +919,9 @@ void AsUI_Builder::Handle_Update_Button()
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Active_Button_Advence()
 {
+	if (Active_Button == EActive_Button::EAB_Main_Menu)
+		return;
+
 	Handle_Active_Button(Active_Button);  // Draw Active button
 	Draw_User_Input_Request();  // Draw Requests and clear prev requests
 
@@ -1160,96 +1133,6 @@ void AsUI_Builder::Draw_Button_Text(const HBRUSH &background, const COLORREF &co
 	TextOutW(Ptr_Hdc, rect.left + AsConfig::Global_Scale, rect.top + AsConfig::Global_Scale, str, (int)wcslen(str) );  // button_prev text ( x its text out in middle
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Context_Menu(const int &x, const int &y)
-{
-	int button_text_len;
-	int scale;
-	int context_offset;
-	int user_input_len;
-	int button_heigh;
-	RECT context_rect;
-
-	button_text_len = (int)Button_Text_List[3].length();
-	scale = AsConfig::Global_Scale;
-	context_offset = 6;
-	user_input_len = button_text_len * AsConfig::Ch_W + context_offset;
-	button_heigh = AsConfig::Ch_H * Context_Button_Length + context_offset;
-	context_rect = {};
-
-	// 1. Start point where RMB pressed, then we take longest word and add his len like width
-	context_rect.left = x;
-	context_rect.top = y;
-	context_rect.right = context_rect.left + user_input_len;
-	context_rect.bottom = context_rect.top + button_heigh;
-
-	// 2. Delete all prev Button Context Rect and create new
-	delete[] Rect_Buttons_Context;
-	Rect_Buttons_Context = new RECT[Context_Button_Length];
-
-	// 3. Before draw Context Menu save Image where we draw it to reload
-	Save_Image_To(context_rect);  // Save image to buffer while we can restore with condition
-
-	// 4. Draw Context Menu
-	Rectangle(Ptr_Hdc, context_rect.left, context_rect.top, context_rect.right, context_rect.bottom);
-
-	for (int i = 0; i < Context_Button_Length; i++)
-	{
-		button_text_len = (int)Button_Text_List[i].length();
-		std::wstring w_title(Button_Text_List[i].begin(), Button_Text_List[i].end() );
-		TextOutW(Ptr_Hdc, context_rect.left + scale + 1, context_rect.top + AsConfig::Ch_H * i + scale + 1, w_title.c_str(), button_text_len);
-
-		// 4.1. Save Context Buttons Rects || handle when LMB pressed
-		Rect_Buttons_Context[i].left = context_rect.left;
-		Rect_Buttons_Context[i].top = context_rect.top;
-		Rect_Buttons_Context[i].right = context_rect.right;
-		Rect_Buttons_Context[i].bottom = context_rect.top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H;
-
-		if (!(i < Context_Button_Length - 1) )
-			break;
-
-		MoveToEx(Ptr_Hdc, context_rect.left + scale, context_rect.top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H, NULL);
-		LineTo(Ptr_Hdc, context_rect.left + scale + button_text_len * 8, context_rect.top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H);
-	}
-	Prev_Context_Menu_Cords = context_rect;
-}
-//------------------------------------------------------------------------------------------------------------
-int AsUI_Builder::Get_Title_Season(int season_int) const
-{
-	int ch;
-	int season = 0;
-	int ch_space = 32;
-	int ch_rus = 1000;  // russian chars
-	int i = 73, v = 86, x = 88;  // maybe make enumeration, it`s means I V X numbers in chars
-
-	ch = User_Input[++season_int];
-
-	while (ch != L' ')
-	{
-		if (ch > ch_rus && season < 1)
-			return 1;  // 73 its I
-		else if (ch > ch_rus && season > 1)
-			return season;
-		else if (ch == '\0')
-			return season;
-
-		if (ch == i)
-			season = season + 1;
-		else if (ch == v && season < 1)
-			season = season + 5;
-		else if (ch == x && season < 1)
-			season = season + 10;
-		else if (ch == i && season >= 5)
-			season = season - 1;
-		else if (ch == v && season > 0)
-			season = 5 - season;
-		else if (ch == x && season > 0)
-			season = 10 - season;
-
-		ch = User_Input[++season_int];
-	}
-	return season;
-}
-//------------------------------------------------------------------------------------------------------------
 RECT AsUI_Builder::Add_Border(const int &x_cord) const
 {
 	bool is_sub_menu = false;
@@ -1343,7 +1226,60 @@ void AsUI_Builder::Add_Button_Next_Page()
 	Rect_Pages[EActive_Page::EAP_Next] = button_next;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Save_Image_To(const RECT &rect)
+void AsUI_Builder::Context_Menu_Draw(const int &x, const int &y)
+{
+	int button_text_len;
+	int scale;
+	int context_offset;
+	int user_input_len;
+	int button_heigh;
+	RECT context_rect;
+
+	button_text_len = (int)Button_Text_List[3].length();
+	scale = AsConfig::Global_Scale;
+	context_offset = 6;
+	user_input_len = button_text_len * AsConfig::Ch_W + context_offset;
+	button_heigh = AsConfig::Ch_H * Context_Button_Length + context_offset;
+	context_rect = {};
+
+	// 1. Start point where RMB pressed, then we take longest word and add his len like width
+	context_rect.left = x;
+	context_rect.top = y;
+	context_rect.right = context_rect.left + user_input_len;
+	context_rect.bottom = context_rect.top + button_heigh;
+
+	// 2. Delete all prev Button Context Rect and create new
+	delete[] Rect_Buttons_Context;
+	Rect_Buttons_Context = new RECT[Context_Button_Length];
+
+	// 3. Before draw Context Menu save Image where we draw it to reload
+	Context_Image_Save(context_rect);  // Save image to buffer while we can restore with condition
+
+	// 4. Draw Context Menu
+	Rectangle(Ptr_Hdc, context_rect.left, context_rect.top, context_rect.right, context_rect.bottom);
+
+	for (int i = 0; i < Context_Button_Length; i++)
+	{
+		button_text_len = (int)Button_Text_List[i].length();
+		std::wstring w_title(Button_Text_List[i].begin(), Button_Text_List[i].end() );
+		TextOutW(Ptr_Hdc, context_rect.left + scale + 1, context_rect.top + AsConfig::Ch_H * i + scale + 1, w_title.c_str(), button_text_len);
+
+		// 4.1. Save Context Buttons Rects || handle when LMB pressed
+		Rect_Buttons_Context[i].left = context_rect.left;
+		Rect_Buttons_Context[i].top = context_rect.top;
+		Rect_Buttons_Context[i].right = context_rect.right;
+		Rect_Buttons_Context[i].bottom = context_rect.top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H;
+
+		if (!(i < Context_Button_Length - 1) )
+			break;
+
+		MoveToEx(Ptr_Hdc, context_rect.left + scale, context_rect.top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H, NULL);
+		LineTo(Ptr_Hdc, context_rect.left + scale + button_text_len * 8, context_rect.top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H);
+	}
+	Prev_Context_Menu_Cords = context_rect;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Context_Image_Save(const RECT &rect)
 {
 	Hdc_Memory = CreateCompatibleDC(Ptr_Hdc);
 	if (!Hdc_Memory != 0)
@@ -1357,184 +1293,22 @@ void AsUI_Builder::Save_Image_To(const RECT &rect)
 	BitBlt(Hdc_Memory, 0, 0, rect.right - rect.left, rect.bottom - rect.top, Ptr_Hdc, rect.left, rect.top, SRCCOPY);
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Restore_Image(RECT &rect)
+void AsUI_Builder::Context_Image_Restore(RECT &rect)
 {
-	if (Hdc_Memory != NULL && H_Bitmap != NULL && Saved_Object != NULL) {
+	if (Hdc_Memory != 0 && H_Bitmap != 0 && Saved_Object != 0)
+	{
 		BitBlt(Ptr_Hdc, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, Hdc_Memory, 0, 0, SRCCOPY);
 		SelectObject(Hdc_Memory, Saved_Object);
 		DeleteObject(H_Bitmap);
 		DeleteDC(Hdc_Memory);
-		// Сброс сохраненных значений
 		Hdc_Memory = 0;
 		H_Bitmap = 0;
-		Saved_Object = NULL;
+		Saved_Object = 0;
 	}
 	rect = {};  // обнуляем
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &converted_data, wchar_t *user_input)
-{
-	wchar_t *num;
-	int is_space = 0;
-	int season;
-	SUser_Input_Data ui_data;
-	User_Input_Len = (int)wcslen(user_input);
-
-	// Initialize & Find were key starts
-	season = User_Input_Len;
-	while (user_input[season] < 1000)
-	{
-		season--;
-		if (user_input[season] == L' ')  // if space
-		{
-			is_space++;
-			switch (is_space)
-			{
-			case 1:
-				num = user_input + season;
-				ui_data.Title_Num = std::stoi(num);  // Initialize TITLE_NUM
-				break;
-
-
-			case 2:
-				user_input[season + 3 + 1] = L'\0';
-				num = user_input + season + 1;
-
-				// Initialize TITLE_SEASON
-				ui_data.Title_Season = Get_Title_Season(season);
-				if (ui_data.Title_Season == 0)
-					ui_data.Title_Season = (int)std::stoi(num);
-				break;
-
-
-			default:
-				break;
-			}
-		}
-	}
-
-	// Initialize TITLE_NAME_KEY
-	user_input[++season] = L'\0';
-	ui_data.Title_Name_Key = user_input;
-
-	// Initialize TITLE_NAME_NUM
-	ui_data.Title_Name_Num += ui_data.Title_Name_Key;
-	ui_data.Title_Name_Num.append(L" ");
-	if (ui_data.Title_Season != 0)
-	{
-		ui_data.Title_Name_Num += AsConfig::Season[ui_data.Title_Season - 1];
-		ui_data.Title_Name_Num.append(L" ");
-	}
-	
-	ui_data.Title_Name_Num += std::to_wstring(ui_data.Title_Num);
-	ui_data.Title_Data;
-
-	converted_data = ui_data;
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Convert_Char_Beta(int& ch, const bool& is_in_file)
-{
-	enum EConvert  // !!!
-	{
-		EChar_Beg = 10,  // 1040(А) - 68(40 + 28)
-		EChar_End = 38,  // 1071(Я) - 99(71 + 28)
-		ENum_Beg = 39,  // 0(48)
-		ENum_End = 48,  // 9(57)
-		ENum_Test_0 = 49,  // :(58)
-		ENum_Test_4 = 50,  // !(33)
-		ENum_Test_1 = 51,  // "(34)
-		ENum_Test_2 = 52,  // '(39)
-		ENum_Test_3_0 = 53,  // ,(44) -(45) .(46)
-		ENum_Test_3_3 = 56,  // /(47)
-		ENum_Test_5 = 57,  // ?(63)
-		ENum_Test_6 = 57  // ?(63)
-
-	};
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Convert_Char(int &ch, const bool &is_in_file)
-{
-	if (!is_in_file)
-	{// If load
-		if (ch == 38)
-		{
-			ch = 88;
-			return;
-		}
-		if (ch == 39)
-		{
-			ch = 86;
-			return;
-		}
-		if (ch >= 40 && ch <= 65)
-		{
-			ch = ch - 7;
-			return;
-		}
-
-		if (ch == 66)
-		{
-			ch = ch - 3;
-			return;
-		}
-
-		if (ch == 67)  // Обработка символов I & V на латиници
-		{
-			ch = ch + 6;
-			return;
-		}
-
-		if (ch >= 68)
-			ch = ( (ch + 1000) - 28) + 32;  // low case to top case 
-
-	}
-	else
-	{// If Save
-		if (ch == 63)
-		{
-			ch = ch + 3;
-			return;
-		}
-
-		if (ch == 88 || ch == 120)
-		{
-			ch = 38;
-			return;
-		}
-
-		if (ch == 73)
-		{
-			ch = ch - 6;
-			return;
-		}
-
-		if (ch >= 33 && ch <= 58)
-		{
-			ch = ch + 7;
-			return;
-		}
-
-		if (ch == 86)
-		{
-			ch = 39;
-			return;
-		}
-
-		if (ch == 1105)  // ё to е
-			ch = 1077;
-
-		if (ch >= 1072)  // low case to top case
-			ch = ch - 32;
-
-		if (ch > 1000)
-			ch = (ch - 1000) + 28;
-
-		if (ch == 0)
-			ch = 36;
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Value_Is_Changet(const bool is_increment)
+void AsUI_Builder::User_Input_Value_Is_Changed(const bool is_increment)
 {
 	if (is_increment)
 		It_Current_User->second.Title_Num++;
@@ -1544,7 +1318,7 @@ void AsUI_Builder::User_Input_Value_Is_Changet(const bool is_increment)
 	It_Current_User->second.Title_Name_Num.erase();
 
 	if (It_Current_User->second.Title_Season != 0)
-		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + AsConfig::Season[It_Current_User->second.Title_Season - 1] + L" " + std::to_wstring(It_Current_User->second.Title_Num);
+		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + AsConfig::Season_Case_Up[It_Current_User->second.Title_Season - 1] + L" " + std::to_wstring(It_Current_User->second.Title_Num);
 	else
 		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + std::to_wstring(It_Current_User->second.Title_Num);
 }
@@ -1614,190 +1388,141 @@ bool AsUI_Builder::User_Input_Get_From_Clipboard(wchar_t *to_clipboard)
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Load_Array(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
+unsigned long long AsUI_Builder::User_Map_Load_Convert(unsigned long long &ch)
+{
+	// 1.1 Russian
+	if (ch >= 10 && ch <= 42)  // Rus Symb
+	{
+		if (ch >= 10 && ch <= 41)  // а - я
+			return ch = (ch + 1000) + 30 + 32;  // a = 10 | я = 41
+		else  // ё
+			return ch = (ch + 1000) + 30 + 32 + 1;  // ё = 42
+	}
+
+	// 1.2. English
+	if (ch >= 72 && ch <= 98)  // Eng Symb
+	{
+		if (ch >= 73 && ch <= 98)  // а = 97 || z = 122
+			return ch = ch + 24;  // a = 73 | z = 98
+		else  // `
+			return ch = (ch + 24);  // ` = 72
+	}
+
+	// 1.3. Symbols
+	if (ch >= 43 && ch <= 71)  // Standart Help symbols
+	{
+		if (ch >= 43 && ch <= 54)
+			return ch = (ch + 5);  // 0 = 43 | 9 = 52 | : = 53 | ; = 54
+
+		if (ch == 55)  // ?
+			return ch = (ch + 8);  // ? = 55
+
+		if (ch >= 56 && ch <= 71)  // space || ! " # ( ) * + , - . / $ %
+			return ch = (ch - 24);  // space = 56 || / = 71
+	}
+
+	return 0LL;  // Bad Reserved 99
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Map_Main_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
 {
 	bool is_add_to_user_array = false;
-	wchar_t *user_input;
-	wchar_t ch;
-	int how_much_g;
-	int block_sum;
-	int ptr = 0, str = 0;
-	unsigned long long *block_array;
-	unsigned long long number;
-	unsigned long long ch_long;
-	unsigned long long index;
+	wchar_t *user_input = new wchar_t[100]{};
+	//wchar_t ch = 0;
+	int how_much_g = 0;
+	int block_sum_ull = 0;
+	int block_sum_index = 0, str = 0;
+	unsigned long long *ull_array_blocks = 0;
+	unsigned long long ull_char = 0;
+	unsigned long long ull_index = 0;
+	unsigned long long ull_number = 0;
 	
-	user_input = new wchar_t[100];
-	ch = 0;
-	how_much_g = 0;
-	block_sum = 0;
-	number = 0;
-	ch_long = 0;
-	index = 0;
-
-	std::ifstream infile(file_path, std::ios::binary);  // Откриваем файл по названию
+	std::ifstream infile(file_path, std::ios::binary);
 	if (!infile)
 		return;
+	infile.seekg(0, std::ios::end);  // Go to last char in file
+	how_much_g = (int)infile.tellg();    // How many char in file || Need use seekg
+	block_sum_ull = how_much_g / sizeof(unsigned long long);  // (long long) 8 / size = how manny ULL in file
+	infile.seekg(0, std::ios::beg);  // Go to first char in file
+	ull_array_blocks = new unsigned long long[block_sum_ull];  // Get memory to cast 
+	infile.read(reinterpret_cast<char *>(ull_array_blocks), how_much_g);  // reinterpret file size to ull by char
 
-	infile.seekg(0, std::ios::end);  // Вычисляем количество чисел в файле тем самим переходя в конец файла
-	how_much_g = (int)infile.tellg();
-
-	block_sum = how_much_g / sizeof(unsigned long long);  // (long long) 8 / size = how manny in unsigned long long data
-
-	infile.seekg(0, std::ios::beg);  // Переходим в начало файла
-	block_array = new unsigned long long[block_sum];  // Выделяем память для чтения чисел из файла
-	infile.read(reinterpret_cast<char*>(block_array), how_much_g);  // Читаем и записиваем числа из файла в массив!
-
-	while (ptr < block_sum)
+	while (block_sum_index < block_sum_ull)
 	{
-		number = block_array[ptr];
-		index = 10000000000000000LL;
+		ull_number = ull_array_blocks[block_sum_index];
+		ull_index = AsConfig::ULL_Index_Length;
 
-		while (index != 0)
+		while (ull_index != 0)
 		{
-			ch_long = number / index;
-			ch_long %= 100;
-			index /= 100;
+			ull_char = ull_number / ull_index;
+			ull_index /= 100;
+			ull_char %= 100;
 
-			while (ch_long == 0)
-			{
-				ch_long = number / index;
-				ch_long %= 100;
-				index /= 100;
+			while (ull_char == 0)
+			{// If invalid ull_char need to find valid
 
-				if (index == 0)
+				if (ull_index == 0)
 					break;
+				ull_char = ull_number / ull_index;
+				ull_char %= 100;
+				ull_index /= 100;
 			}
 
-			// Конвертируем в рус символы
-			int converted_char = (int)ch_long;
-
-			if (converted_char <= 64 && converted_char > 55)
+			if (ull_char >= 43 && ull_char <= 52)  // 43 == 0 52 == 9
 				is_add_to_user_array = true;
 
-			if (is_add_to_user_array && converted_char > 64 || is_add_to_user_array && converted_char < 55)
+			if (is_add_to_user_array && ull_char >= 52 || is_add_to_user_array && ull_char < 43)  // If after ull_number end
 			{
-				user_input[str] = L'\0';
-				str = str + 1;
-
-				user_input[0] = user_input[0] - 32;  // Делаем заглавной
-				User_Map_Emplace(user_arr, user_input);
-				is_add_to_user_array = false;
+				user_input[str] = L'\0';  // Title end here
+				user_input[0] = user_input[0] - 32;  // Upper Case first char
+				User_Map_Emplace(user_arr, user_input);  // Add to array
+				is_add_to_user_array = false;  // look next numbers
 				str = 0;
 			}
-
-			User_Input_Convert_Char(converted_char, false);
-
-			wchar_t ch = (wchar_t)converted_char;
-			user_input[str] = ch;
-			str++;
+			user_input[str++] = (wchar_t)User_Map_Load_Convert(ull_char);  // Convert to norm wchar_t and add to user_input
 		}
-		ptr++;
+		
+		block_sum_index++;  // go to next index
+		if (block_sum_index == block_sum_ull && user_input[0] != L'\0')
+		{// If block last and user_input not empty save unsaved
 
-		if (ptr == block_sum)
-		{
-			user_input[str] = L'\0';
-			str = str + 1;
-
-			user_input[0] = user_input[0] - 32;  // Делаем заглавной
-			User_Map_Emplace(user_arr, user_input);
+			user_input[str] = L'\0';  // say it`s end
+			user_input[0] = user_input[0] - 32;  // Set Upper Case first symbol
+			User_Map_Emplace(user_arr, user_input);  // Emplace to map
 		}
-
-		if (!infile)
-			return;
 	}
+	infile.close();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Save_Array(const char *file_path, wchar_t **user_array, int user_input_counter)
-{
-	int ptr = 0, str = 0, counter_write = 0;
-	unsigned long long numbers = 0;
-	std::string user_input_saved_folder = "Data/";
-
-	if (!std::filesystem::exists(user_input_saved_folder) )
-		std::filesystem::create_directory(user_input_saved_folder);
-	
-	user_input_saved_folder += file_path;
-
-	std::ofstream outfile(user_input_saved_folder, std::ios::out | std::ios::binary);  // Создаем новые данные
-
-	if (!outfile)
-		return;
-
-	while (user_input_counter != 0)
-	{
-		while (user_array[ptr][str] != L'\0')  // Пока не достигнем конца обрабативаем строку
-		{
-			wchar_t ch;
-			int ch_int;
-
-			ch = user_array[ptr][str];
-			ch_int = (int)ch;  // 1105
-
-			User_Input_Convert_Char(ch_int, true);
-
-			if (counter_write % 9 == 0 && counter_write != 0)  // Заходим каждый 9 раз
-			{
-				outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
-				numbers = 0;
-			}
-
-			if (numbers == 0)
-				numbers = ch_int;
-			else
-				numbers = numbers * 100 + ch_int;  // 100 - смещение на 2 числа
-
-			counter_write++;
-			str++;
-		}
-
-		user_input_counter--;
-		ptr++;  // переходим на следующую строку
-		str = 0;  // переходим в начало строки
-
-		bool is_nine = counter_write % 9 != 0;
-
-		if (user_input_counter == 0 && is_nine)  // если в конце массива то записиваем остаток символов
-			outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
-		else if (!is_nine && user_input_counter == 0)
-			outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
-	}
-
-	if (!outfile)
-		return;
-
-	outfile.close();
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Save_All_To(const EActive_Menu &active_menu)
+void AsUI_Builder::User_Map_Main_Save(const EActive_Menu &active_menu)
 {
 	switch (active_menu)
 	{
 	case EAM_Watching:
-		Thread_First = std::thread([&]() { User_Map_Init_Buffer(User_Array_Map, "Watching.bin"); });
+		Thread_First = std::thread([&]() { User_Map_Init_Buffer(User_Array_Map, AsConfig::Folders_Save[active_menu]); });
 		Thread_First.join();
 		break;
 
 	case EAM_Library_Menu:
-		Thread_Second = std::thread([&]() { User_Map_Init_Buffer(User_Library_Map, "Library.bin"); });
+		Thread_Second = std::thread([&]() { User_Map_Init_Buffer(User_Library_Map, AsConfig::Folders_Save[active_menu]); });
 		Thread_Second.join();
 		break;
 
 	case EAM_Paused_Menu:
-		Thread_Third = std::thread([&]() { User_Map_Init_Buffer(User_Paused_Map, "Paused.bin"); });
+		Thread_Third = std::thread([&]() { User_Map_Init_Buffer(User_Paused_Map, AsConfig::Folders_Save[active_menu]); });
 		Thread_Third.join();
 		break;
 
 	case EAM_Wishlist:
-		Thread_Fourth = std::thread([&]() { User_Map_Init_Buffer(User_Wishlist_Map, "Wishlist.bin"); });
+		Thread_Fourth = std::thread([&]() { User_Map_Init_Buffer(User_Wishlist_Map, AsConfig::Folders_Save[active_menu]); });
 		Thread_Fourth.join();
 		break;
 
 	case EAM_Exit:
-		Thread_First = std::thread([&]() { User_Map_Init_Buffer(User_Array_Map, "Watching.bin"); });
-		Thread_Second = std::thread([&]() { User_Map_Init_Buffer(User_Library_Map, "Library.bin"); });
-		Thread_Third = std::thread([&]() { User_Map_Init_Buffer(User_Paused_Map, "Paused.bin"); });
-		Thread_Fourth = std::thread([&]() { User_Map_Init_Buffer(User_Wishlist_Map, "Wishlist.bin"); });
+		Thread_First = std::thread([&]() { User_Map_Init_Buffer(User_Array_Map, AsConfig::Folders_Save[EActive_Menu::EAM_Watching]); });
+		Thread_Second = std::thread([&]() { User_Map_Init_Buffer(User_Library_Map, AsConfig::Folders_Save[EActive_Menu::EAM_Library_Menu]); });
+		Thread_Third = std::thread([&]() { User_Map_Init_Buffer(User_Paused_Map, AsConfig::Folders_Save[EActive_Menu::EAM_Paused_Menu]); });
+		Thread_Fourth = std::thread([&]() { User_Map_Init_Buffer(User_Wishlist_Map, AsConfig::Folders_Save[EActive_Menu::EAM_Wishlist]); });
 
 		Thread_First.join();
 		Thread_Second.join();
@@ -1808,7 +1533,6 @@ void AsUI_Builder::User_Map_Save_All_To(const EActive_Menu &active_menu)
 	default:
 		break;
 	}
-
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Map_Init_Buffer(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
@@ -1816,57 +1540,144 @@ void AsUI_Builder::User_Map_Init_Buffer(const std::map<std::wstring, SUser_Input
 	int i = 0, len = 0;
 	int user_array_size;
 	wchar_t **user_array;
+	std::string user_input_saved_folder = AsConfig::Path_Saves_Folder;
 
-	user_array_size = (int)user_arr.size();
-	user_array = new wchar_t *[user_array_size];
+	if (!std::filesystem::exists(user_input_saved_folder) )  // if in Data
+		std::filesystem::create_directory(user_input_saved_folder);
 
-	// init array for save
+	user_input_saved_folder += file_path;  // add specific name
+	if (user_arr.size() == 0)  // If array empty don`t need to save it
+		if (std::filesystem::exists(user_input_saved_folder) )
+			if(std::filesystem::remove(user_input_saved_folder) )  // If folder exist remove
+				return;
+			else
+				return;
+
+	user_array_size = (int)user_arr.size();  // How many pointers
+	user_array = new wchar_t *[user_array_size]{};  // Create pointers
+
 	for (auto &it : user_arr)
-	{
+	{// Cpy Title with nums to user_array by pointers
+
 		const std::wstring &key = it.second.Title_Name_Num;
 		len = (int)key.length() + 1;
 		if (i < user_array_size)
 		{
-			user_array[i] = new wchar_t[len];
+			user_array[i] = new wchar_t[len]{};
 			wcscpy_s(user_array[i], len, key.c_str() );
 			i++;
 		}
 	}
 
-	// save data to disk
-	User_Input_Save_Array(file_path, user_array, user_array_size);
-
-	// free memory
-	for (int i = 0; i < user_array_size; i++)
-		delete[] user_array[i];  // Удаление данных на которых указивают указателеи
-
-	delete[] user_array;  // Удаление указателей
+	User_Map_Save_Array(user_input_saved_folder.c_str(), user_array, user_array_size);  // save data to disk
+	
+	for (int i = 0; i < user_array_size; i++)  // free memory
+		delete[] user_array[i];
+	delete[] user_array;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, const wchar_t *user_input)
+void AsUI_Builder::User_Map_Save_Array(const char *file_path, wchar_t **user_array, int user_input_counter)
 {
-	int curr_it = 0;
-	SUser_Input_Data converted_data = {};
+	int title_index = 0, title_index_length = 0;
+	int number_index = 0;
+	unsigned short ch_i = 0;
+	unsigned long long numbers = 0;
 
-	if (user_input[0] == L'\0')
+	std::ofstream outfile(file_path, std::ios::out | std::ios::binary);  // Создаем новые данные
+	if (!outfile)
 		return;
 
-	// 1. If User_Input not empty init if we can || Use while load from file
-	if (User_Input[0] == L'\0')
-	{
-		if (user_input != 0)
-		{
-			while (user_input[curr_it] != '\0')
-				Set_User_Input(user_input[curr_it++]);
-		}
-	}
+	while (user_input_counter != 0)
+	{// Titles counter
 
-	// 1.2  Check User_Input orphography
-	while (User_Input[wcslen(User_Input) - 1] == L' ')  // if last ch = space delete
-		User_Input[--User_Input_Len] = L'\0';
+		while (user_array[title_index][title_index_length] != L'\0')
+		{// Title length
+
+			ch_i = User_Map_Save_Convert( (unsigned short)user_array[title_index][title_index_length++]);
+			if (++number_index % 9 == 0)
+			{
+				numbers += ch_i;
+				outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
+				numbers = 0;
+			}
+			else
+				numbers = (numbers + ch_i) * 100;
+		}
+		title_index++;
+		title_index_length = 0;
+		user_input_counter--;
+	}
+	if (number_index % 9 == 0)
+		outfile.close();
+	else
+		outfile.write(reinterpret_cast<const char*>(&numbers), sizeof(numbers) );
+}
+//------------------------------------------------------------------------------------------------------------
+unsigned short AsUI_Builder::User_Map_Save_Convert(unsigned short ch)
+{
+	// 1.1 Russian || Other Languages
+	if (ch >= 1025 && ch <= 1105)
+	{
+		// 1.0. Rus Symbols
+		if (ch >= 1072 && ch <= 1103)  // а - я
+			return ch = (ch - 1000) - 30 - 32;  // if a = 10 | я = 41
+
+		if (ch >= 1040 && ch <= 1071)  // А - Я
+			return ch = (ch - 1000) - 30;    // if A = 10 | Я = 41
+
+		if (ch == 1105)  // ё
+			return ch = (ch - 1000) - 30 - 32 - 1;  // ё = 42
+
+		if (ch == 1025)  // Ё
+			return ch = (ch - 1000) + 17;  // ё = 42
+	}
+	
+	// 1.2. English
+	if (ch >= 65 && ch <= 122)
+	{
+		// 3.0 English Symbols
+		if (ch >= 97 && ch <= 122)  // а = 97 || z = 122
+			return ch = ch - 24;  // a = 73 | z = 98
+
+		if (ch >= 65 && ch <= 90)  // A = 65 Z = 90  | 25 
+			return ch = ch + 8;  // A = 73 | Z = 98
+
+		if (ch == 96)  // `
+			return ch = (ch - 24);  // ` = 72
+	}
+	
+	// 1.3. Symbols
+	if (ch >= 32 && ch <= 63)
+	{
+		if (ch >= 32 && ch <= 47)  // space || ! " # ( ) * + , - . / $ %
+			return ch = (ch + 24);  // space = 56 || / = 71
+
+		if (ch >= 48 && ch <= 59)  // 0 - 9 - :
+			return ch = (ch - 5);  // 0 = 43 | 9 = 52 | : = 53 | ; = 54
+
+		if (ch == 63)  // ?
+			return ch = (ch - 8);  // ? = 55
+	}
+	
+	return 0;  // Reserved 99
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, wchar_t *user_input)
+{
+	int curr_it;
+	SUser_Input_Data converted_data;
+
+	curr_it = 0;
+	converted_data = {};
+	if (user_input[0] == L'\0')  // If pressed Enter while User_Input empty
+		return;
+
+	// 1.2  Check user_input orphography
+	while (user_input[wcslen(user_input) - 1] == L' ')  // If last ch = space delete
+		user_input[--User_Input_Len] = L'\0';
 
 	// 1.3 Init_Data before set to map
-	User_Input_Convert_Data(converted_data, User_Input);
+	User_Input_Convert_Data(converted_data, user_input);
 
 	// 1.4. Check if containts the same key if not save to map
 	if (user_arr.contains(converted_data.Title_Name_Key) )
@@ -1874,19 +1685,20 @@ void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &us
 	else
 		user_arr.emplace(converted_data.Title_Name_Key, converted_data);  // if not add new title
 
-	if (std::filesystem::exists("Pictures/Temporary.png") )
-		std::filesystem::rename("Pictures/Temporary.png", (std::wstring(AsConfig::Image_Folder) + converted_data.Title_Name_Key + std::wstring(L".png") ) );
+	// 1.5. If from ACurl, saved picture rename
+	if (std::filesystem::exists("TemporaryName.png") )
+		std::filesystem::rename("TemporaryName.png", (std::wstring(AsConfig::Image_Folder) + converted_data.Title_Name_Key + std::wstring(L".png") ) );
 
+	// 1.6.
 	if (Active_Menu != -1)
 	{
-		It_Current_User = user_arr.find(User_Input);
+		It_Current_User = user_arr.find(user_input);
 		Active_Button = (EActive_Button)std::distance(user_arr.begin(), It_Current_User);
-		Sub_Menu_Curr_Page = ((int)Active_Button - 1) / Sub_Menu_Max_Line;  // Find Page
+		Sub_Menu_Curr_Page = ( (int)Active_Button - 1) / Sub_Menu_Max_Line;  // Find Page
 	}
 
-	// Reset User_Input
-	for (int i = 0; i < User_Input_Len; i++)
-		User_Input[i] = 0;
+	// 2.0. Reset user_input
+	user_input[0] = L'\0';
 
 	User_Input_Len = 0;
 }
@@ -1916,7 +1728,76 @@ void AsUI_Builder::User_Map_Erase()
 	}
 
 	Prev_Button = 99;  // set to no prev_button
-	User_Map_Save_All_To(Active_Menu);  // Save by Erase
+	User_Map_Main_Save(Active_Menu);  // Save by Erase
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &ui_data, wchar_t *user_input)
+{
+	unsigned short current_ch;
+	wchar_t *pattern_season;
+	int current_user_input_length;
+	int temp;
+
+	pattern_season = 0;
+	User_Input_Len = (int)wcslen(user_input) - 1;
+	current_user_input_length = User_Input_Len;
+	current_ch = (unsigned short)user_input[current_user_input_length];  // 48 0 57 9
+	temp = 0;
+
+	while (current_ch == L' ' || current_ch >= 48 && current_ch <= 57)
+	{//Find spaces if current ch numeric
+
+		if (current_ch == L' ')
+		{// If space str to int
+
+			if (ui_data.Title_Num == 0)
+				ui_data.Title_Num = std::stoi(user_input + current_user_input_length + 1);  // if first ' ' get num
+			else
+				ui_data.Title_Season = std::stoi(user_input + current_user_input_length + 1);  // if second ' ' get seasons
+
+			user_input[current_user_input_length] = L'\0';  // Hide nums
+		}
+		current_ch = (unsigned short)user_input[--current_user_input_length];
+		while (user_input[current_user_input_length] == L'X' || user_input[current_user_input_length] == L'I' || user_input[current_user_input_length] == L'V')
+		{
+			temp++;
+			user_input[current_user_input_length--] += L' ';
+		}
+		current_user_input_length += temp;
+		while (user_input[current_user_input_length] == L'x' || user_input[current_user_input_length] == L'i' || user_input[current_user_input_length] == L'v')  // Find Seasons =) 
+		{// Find next season character
+
+			current_user_input_length--;
+			if (user_input[current_user_input_length] == L' ')
+			{// Find next space
+
+				pattern_season = user_input + current_user_input_length + 1;
+				for (int i = 0; i < 10; i++)
+				{// Find Pattern in Config and set to data
+
+					if (wcscmp(pattern_season, AsConfig::Season_Case_Low[i]) == 0)
+					{
+						ui_data.Title_Season = i + 1;
+						break;
+					}
+				}
+				user_input[current_user_input_length] = L'\0';  // erase season from user_input
+			}
+		}
+	}
+	
+	// Initialize TITLE_NAME_NUM
+	ui_data.Title_Name_Key = user_input;  // Init key
+	ui_data.Title_Name_Num += ui_data.Title_Name_Key;
+	ui_data.Title_Name_Num.append(L" ");
+	if (ui_data.Title_Season != 0)
+	{
+		ui_data.Title_Name_Num += AsConfig::Season_Case_Up[ui_data.Title_Season - 1];
+		ui_data.Title_Name_Num.append(L" ");
+	}
+	
+	ui_data.Title_Name_Num += std::to_wstring(ui_data.Title_Num);
+	ui_data.Title_Data;
 }
 //------------------------------------------------------------------------------------------------------------
 

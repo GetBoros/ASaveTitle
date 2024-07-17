@@ -34,6 +34,6 @@ private:
 	static LRESULT CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 	static bool Is_Hwnd_Created;
-	static EPrograms Programs;
+	static EProgram Programs;
 };
 //------------------------------------------------------------------------------------------------------------

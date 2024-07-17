@@ -31,20 +31,22 @@ public:
 	AsConfig();
 
 	static const char Dictionary_Main_Folder[];
+	static const char Path_Saves_Folder[];
 	static const char Path_Sites_Folder[];
-
-	static const wchar_t Seasons[];
-	static const wchar_t Image_Folder[];
-	static const wchar_t Main_Image_Folder[];
-	static const wchar_t *Season[];
+	static const char *Settings[];
+	static const char *Folders_Save[];
 
 	static const int Invalid_Chars_Len = 3;
-	static const wchar_t *Invalid_Chars[Invalid_Chars_Len];
+	static const wchar_t Seasons[Invalid_Chars_Len];
+	static const wchar_t Main_Image_Folder[];
+	static const wchar_t Image_Folder[];
 	static const wchar_t Invalid_Chars_Valid[];
+	static const wchar_t *Invalid_Chars[Invalid_Chars_Len];
+	static const wchar_t *Season_Case_Up[];
+	static const wchar_t *Season_Case_Low[];
 	static const wchar_t *Text_Program_Names[];
-	static const char *Settings[];
-	static const int Settings_Size;
 
+	static const int Settings_Size;
 	static const int Max_Loadstring = 100;
 	static const int Global_Scale = 3;
 	static const int Ch_W = 8;
@@ -54,10 +56,10 @@ public:
 	static constexpr int Main_Image_Width = 424;
 	static constexpr int Main_Image_Height = 818;
 	static constexpr int User_Input_Buffer = Window_Width / Ch_W;
-	static const unsigned long long LL_Max= 9223372036854775807LL;  // 9 22 33 72 03 68 54 77 58 07 LL || 8
-	static const unsigned long long ULL_Max = 18446744073709551615ULL;  // 18 [44 67 44] [07 37 09] [55 16 15] ULL || 9
-	static const unsigned long long ULL_Length = 1000000000000000000ULL;  // 18 [44 67 44] [07 37 09] [55 16 15] ULL || 9
-	
+	static const unsigned long long LL_Max;
+	static const unsigned long long ULL_Max;
+	static const unsigned long long ULL_Length;
+	static const unsigned long long ULL_Index_Length;
 	
 	static const COLORREF Color_White;
 	static const COLORREF Color_Green;

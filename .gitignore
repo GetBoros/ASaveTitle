@@ -366,6 +366,7 @@ FodyWeavers.xsd
 .gitattributes
 README.md
 *.sln
+ASaveTitle/Pictures/
 ASaveTitle/Pictures/*.png
 ASaveTitle/Sites/
 ASaveTitle/x64/

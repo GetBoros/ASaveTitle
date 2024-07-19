@@ -17,7 +17,6 @@ ACurl_Client::ACurl_Client(const EProgram &program, wchar_t *&user_input)
 	{
 		if (user_input != 0)
 			CURL_Handler(user_input);  // Anime-bit
-			//Handle_Saver_URL(user_input);  // Anime-bit
 		else
 			int yy = 0;
 	}
@@ -35,8 +34,10 @@ ACurl_Client::ACurl_Client(const EProgram &program, wchar_t *&user_input)
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::CURL_Handler(wchar_t *&user_input_url)
-{
-	int content_start_line = 1474;
+{// Handle all CURL
+
+	// !!! To config
+	const char file_name[] = "Data/Temp/output.bin";
 	const wchar_t pattern_title_bgn[] = L"laquo;";  // title start
 	const wchar_t pattern_title_end[] = L"&raquo";  // title start
 	const wchar_t pattern_title_num_bgn[] = L"Серии: [";  // title num start
@@ -45,10 +46,10 @@ void ACurl_Client::CURL_Handler(wchar_t *&user_input_url)
 	const wchar_t pattern_img_source_end[] = L"' width";  // title num start
 	std::wstring content_from_file;
 
-	if (!CURL_Download_To_File(user_input_url) )  // Find and Download url to folder?
+	if (!CURL_Download_To_File(user_input_url, file_name) )  // Find and Download url to folder?
 		return;
 	
-	if (!CURL_Content_Get_From_Line(content_from_file, content_start_line) )  // Read and Find what we need
+	if (!CURL_Content_Get_From_Line(content_from_file, file_name) )  // Read and Find what we need
 		return;
 
 	if (!CURL_Content_Find_Pattern_Title(content_from_file.c_str(), pattern_title_bgn, pattern_title_end, pattern_title_num_bgn, pattern_title_num_end, user_input_url) )  // !!!
@@ -58,14 +59,16 @@ void ACurl_Client::CURL_Handler(wchar_t *&user_input_url)
 		return;
 }
 //------------------------------------------------------------------------------------------------------------
-bool ACurl_Client::CURL_Download_To_File(const wchar_t *w_user_input_url)
+bool ACurl_Client::CURL_Download_To_File(const wchar_t *w_user_input_url, const char *file_name)
 {
-	char path[] = "output.bin";
 	char *url;
 	int size = 0;
 	CURL* curl;
 	CURLcode res;
 	FILE* file;
+
+	if (!std::filesystem::exists("Data/Temp/") )  // !!!
+		std::filesystem::create_directories("Data/Temp/");  // If folder does`nt exist create it
 
 	size = WideCharToMultiByte(CP_UTF8, 0, w_user_input_url, -1, 0, 0, 0, 0);
 	url = new char[size];
@@ -75,7 +78,7 @@ bool ACurl_Client::CURL_Download_To_File(const wchar_t *w_user_input_url)
 		return false;
 	else
 	{
-		errno_t err = fopen_s(&file, path, "wb");
+		errno_t err = fopen_s(&file, file_name, "wb");
 		if (!file)
 		{
 			curl_easy_cleanup(curl);
@@ -96,27 +99,32 @@ bool ACurl_Client::CURL_Download_To_File(const wchar_t *w_user_input_url)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-bool ACurl_Client::CURL_Content_Get_From_Line(std::wstring &content_data_converted, const size_t &starting_line)
+bool ACurl_Client::CURL_Content_Get_From_Line(std::wstring &content_data_converted, const char *file_name)
 {
-	const char path[] = "output.bin";
 	int i = 8;  // Content line from start needed
-	size_t currentLine = 0;
+	size_t current_line = 0;
 	std::string line;
 	std::string content_data_str;
 
-	std::ifstream file(path, std::ios::binary);
+	std::ifstream file(file_name, std::ios::binary);
 	if (!file)
 		return false;
 
-	while (starting_line > currentLine && std::getline(file, line) )  // Go to our line
-		++currentLine;
+	while (std::getline(file, line) )  // Go to our line
+	{
+		current_line = line.find("<h1>&laquo;");
+		if (current_line != std::string::npos)
+			break;
+	}
+
+	content_data_str += line + "\n";
 
 	while (std::getline(file, line) &&  i--)  // Start read needed line
 		content_data_str += line + "\n";
 
 	file.close();
-
-	return Convert_Str_To_WStr(content_data_str, content_data_converted);
+	std::filesystem::remove(file_name);  // Remove, don`t need anymore
+	return CURL_String_To_WString(content_data_str, content_data_converted);
 }
 //------------------------------------------------------------------------------------------------------------
 bool ACurl_Client::CURL_Content_Find_Pattern_Title(const wchar_t *content, const wchar_t *title_bgn, const wchar_t *title_end, const wchar_t *num_bgn, const wchar_t *num_end, wchar_t *&user_input_result)
@@ -201,7 +209,7 @@ bool ACurl_Client::CURL_Content_Find_Pattern_Image(const wchar_t *content, const
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-bool ACurl_Client::Convert_Str_To_WStr(const std::string &str, std::wstring &wstr_from_str)
+bool ACurl_Client::CURL_String_To_WString(const std::string &str, std::wstring &wstr_from_str)
 {
 	if (str.empty() )
 		return false;
@@ -375,20 +383,52 @@ AsUI_Builder::~AsUI_Builder()
 	delete[] User_Input_Rect;
 }
 //------------------------------------------------------------------------------------------------------------
-AsUI_Builder::AsUI_Builder(HDC hdc)
+AsUI_Builder::AsUI_Builder(HDC hdc, const WPARAM &w_param, const LPARAM &l_param)
 : Active_Menu(EAM_Main), Ptr_Hdc(hdc), Rect_Menu_List{}, User_Input{}, Rect_Menu_List_Length(0), Rect_Sub_Menu_Length(0), Sub_Menu_Curr_Page(0), Prev_Main_Menu_Button(0),
   Prev_Button(99), Main_Menu_Titles_Length_Max(50), Sub_Menu_Max_Line(31), User_Array_Max_Size(0), Active_Button(EActive_Button::EAB_Main_Menu),
   Active_Page(EActive_Page::EAP_None), User_Input_Rect{}, Rect_User_Input_Change{}, Rect_Buttons_Context{}, Prev_Context_Menu_Cords{},
   Rect_Pages{}, Input_Button_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Input_Data{}, Curl_Component(0)
 {
-	// Load map from Data/...
+	// !!! Bad Load map from Data/...
 	User_Map_Main_Load(User_Array_Map, "Data/Watching.bin");
 	User_Map_Main_Load(User_Library_Map, "Data/Library.bin");
 	User_Map_Main_Load(User_Paused_Map, "Data/Paused.bin");
 	User_Map_Main_Load(User_Wishlist_Map, "Data/Wishlist.bin");
 
+	Builder_Handler(hdc, EUI_Builder_Handler::Draw_Menu_Main, w_param, l_param);
 	Curl_Component = new ACurl_Component;
 	Rect_User_Input_Change = new RECT[2]{};
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam)
+{
+	Ptr_Hdc = ptr_hdc;
+
+	switch (builder_handler)
+	{
+	case EUI_Builder_Handler::Draw_Full_Window:
+		Draw_Menu_Main();  // draw after maximazed window
+		Draw_Menu_Sub();
+		break;
+	case EUI_Builder_Handler::Draw_Menu_Main:
+		Draw_Menu_Main();
+		break;
+	case EUI_Builder_Handler::Draw_Menu_Sub:
+		User_Input_Handle();  // Enter
+		break;
+	case EUI_Builder_Handler::Draw_User_Input_Button:
+		Handle_User_Input(static_cast<wchar_t>(wParam) );
+		Draw_User_Input_Button();  // Buttons
+		break;
+	case EUI_Builder_Handler::Handle_Mouse_LButton:
+		Handle_LM_Button(lParam);
+		break;
+	case EUI_Builder_Handler::Handle_Mouse_RButton:
+		Handle_RM_Button(lParam);
+		break;
+	default:
+		break;
+	}
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Menu_Main()
@@ -501,75 +541,39 @@ void AsUI_Builder::Draw_User_Input_Button() const
 		TextOutW(Ptr_Hdc, button.left + AsConfig::Global_Scale, button.top + AsConfig::Global_Scale, Sub_Menu_Title, (int)wcslen(Sub_Menu_Title) );  // activ_button  text ( x its text out in middle
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Handle()
+void AsUI_Builder::Handle_User_Input(const wchar_t &user_text)
 {
-	int length;
+	if (user_text == '\r')  // if not enter
+		return;
 
-	// 1.0 Handle User_Input
-	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
-	{// If it`s url check it
+	if (Active_Menu == EActive_Menu::EAM_Main)
+		return;
 
-		if (!std::filesystem::exists(AsConfig::Image_Folder) )
-			std::filesystem::create_directories(AsConfig::Image_Folder);  // Create Image Foldore if not exist
-
-		length = (int)wcslen(User_Input) + 1;
-		wchar_t *url_content = new wchar_t[length]{};
-		wcsncpy_s(url_content, length, User_Input, static_cast<rsize_t>(length) - 1);  // cpy url to temporary url_content
-
-		Curl_Component->Add_ID_Content(url_content);  // !!! Save url ID init to ACurl_Client
-		ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
-
-		length = (int)wcslen(url_content) + 1;
-		wcsncpy_s(User_Input, length, url_content, static_cast<rsize_t>(length) - 1);
-		delete[] url_content;
-	}
-	//else
-	//{
-	//	try
-	//	{// Try get correct User_Input if not do it correnct
-	//		User_Input_Len = (int)wcslen(User_Input);
-	//		std::wstring last_char(1, User_Input_Len); // создаем строку из одного символа
-	//		const int index = std::stoi(last_char); // преобразуем строку в целое число
-	//	}
-	//	catch (const std::exception&)
-	//	{
-	//		User_Input[User_Input_Len++] = L' ';
-	//		User_Input[User_Input_Len++] = L'1';
-	//		User_Input[User_Input_Len] = L'\0';
-	//	}
-	//}
-
-	// 2.0. Add User_Input to opened SubMenu
-	switch (Active_Menu)  // With add to
+	if (user_text == '\b')  // Backspace handle | delete last added user_text
 	{
-	case EAM_Watching:
-		User_Map_Emplace(User_Array_Map, User_Input);
-		break;
-
-	case EAM_Library_Menu:
-		User_Map_Emplace(User_Library_Map, User_Input);
-		break;
-
-	case EAM_Paused_Menu:
-		User_Map_Emplace(User_Paused_Map, User_Input);
-		break;
-
-	case EAM_Wishlist:
-		User_Map_Emplace(User_Wishlist_Map, User_Input);
-		break;
+		if (User_Input_Len > 0)
+			User_Input[--User_Input_Len] = 0;  // delete prev user_text
+		return;
 	}
 
-	// 3.0. Redraw All and Save
-	Draw_Menu_Sub(Active_Menu);  // Redraw All Sub Menu
-	Draw_User_Input_Button();  // Redrow User Input
-	Handle_Active_Button_Advence();  // Show Active Button
-	User_Map_Main_Save(Active_Menu);  // Save current map in used sub menu
+	if (User_Input_Len < AsConfig::User_Input_Buffer)
+		User_Input[User_Input_Len++] = user_text;
+	else
+		User_Input_Len = 0;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Set_RM_Cord(const RECT &mouse_cord)
+void AsUI_Builder::Handle_RM_Button(const LPARAM &lParam)
 {
 	int i = 0;
-	RECT intersect_rect {};
+	RECT intersect_rect{};
+	RECT mouse_cord{};
+
+	int x = lParam & 0xffff;
+	int y = (int)(lParam >> 16);
+	mouse_cord.left = x - 1;
+	mouse_cord.top = y;
+	mouse_cord.right = x;
+	mouse_cord.bottom = y + 1;
 
 	// 1.Restore Image covered by context menu
 	if (!IsRectEmpty(&Prev_Context_Menu_Cords) )  // если контекстное меню есть
@@ -608,9 +612,17 @@ void AsUI_Builder::Set_RM_Cord(const RECT &mouse_cord)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
+void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 {
-	RECT intersect_rect {};
+	RECT intersect_rect{};
+	RECT mouse_cord{};
+
+	int x = lParam & 0xffff;
+	int y = (int)(lParam >> 16);
+	mouse_cord.left = x - 1;
+	mouse_cord.top = y;
+	mouse_cord.right = x;
+	mouse_cord.bottom = y + 1;
 
 	if (!IsRectEmpty(Rect_Pages) )
 	{//Rect_Pages buttons Handle
@@ -796,48 +808,31 @@ void AsUI_Builder::Set_LM_Cord(const RECT &mouse_cord)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-bool AsUI_Builder::Set_User_Input(const wchar_t &user_text)
-{
-	if (user_text == '\b')  // Backspace handle | delete last added user_text
-	{
-		User_Input[--User_Input_Len] = 0;  // delete prev user_text
-		return false;
-	}
-
-	if (User_Input_Len < AsConfig::User_Input_Buffer)
-		User_Input[User_Input_Len++] = user_text;
-	else
-		User_Input_Len = 0;
-
-	return false;
-}
-//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_ID_Content(const unsigned short &id_content_index)
 {// !!! Can be broken
 
 	int title_position;
 	SUser_Input_Data converted_data;
 	std::map<std::wstring, SUser_Input_Data>::iterator it;
-	//wchar_t user_input[AsConfig::User_Input_Buffer]{};
 	wchar_t *user_input = new wchar_t[AsConfig::User_Input_Buffer]{};
 
 	title_position = 0;
 	it = User_Array_Map.begin();
 
-	// 1.0. Init, Get title name
 	Curl_Component->Get_Url(user_input, id_content_index);
 	ACurl_Client reguest(EProgram::ASaver, user_input);
 	User_Input_Convert_Data(converted_data, user_input);  // user_input convert to data
 
 	if (!( (it = User_Array_Map.find(converted_data.Title_Name_Key) ) != User_Array_Map.end() ) )
-	{
+	{// Erase ID content index if not in user array map
+
 		Curl_Component->Erase_ID_Content(id_content_index);
 		return;
 	}
 
-	// 1.2. Find Button position
 	if (converted_data.Title_Num > it->second.Title_Num)
-	{
+	{// Find Button position
+
 		for (auto iter = User_Array_Map.begin(); iter != it; ++iter)  // Get 
 			++title_position;
 
@@ -862,7 +857,6 @@ void AsUI_Builder::Handle_Update_Button()
 
 	i = 0;
 	data_index_starts = -1;
-	//It_Current_User = User_Array_Map.end();
 	id_content_size = Curl_Component->ID_Content_Size;
 	thread_count = (unsigned short)std::thread::hardware_concurrency();
 
@@ -1308,6 +1302,56 @@ void AsUI_Builder::Context_Image_Restore(RECT &rect)
 	rect = {};  // обнуляем
 }
 //------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Input_Handle()
+{
+	int length;
+
+	// 1.0 Handle User_Input
+	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
+	{// If it`s url check it
+
+		if (!std::filesystem::exists(AsConfig::Image_Folder) )
+			std::filesystem::create_directories(AsConfig::Image_Folder);  // Create Image Foldore if not exist
+
+		length = (int)wcslen(User_Input) + 1;
+		wchar_t *url_content = new wchar_t[length]{};
+		wcsncpy_s(url_content, length, User_Input, static_cast<rsize_t>(length) - 1);  // cpy url to temporary url_content
+
+		Curl_Component->Add_ID_Content(url_content);  // !!! Save url ID init to ACurl_Client
+		ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
+
+		length = (int)wcslen(url_content) + 1;
+		wcsncpy_s(User_Input, length, url_content, static_cast<rsize_t>(length) - 1);
+		delete[] url_content;
+	}
+
+	// 2.0. Add User_Input to opened SubMenu
+	switch (Active_Menu)  // With add to
+	{
+	case EAM_Watching:
+		User_Map_Emplace(User_Array_Map, User_Input);
+		break;
+
+	case EAM_Library_Menu:
+		User_Map_Emplace(User_Library_Map, User_Input);
+		break;
+
+	case EAM_Paused_Menu:
+		User_Map_Emplace(User_Paused_Map, User_Input);
+		break;
+
+	case EAM_Wishlist:
+		User_Map_Emplace(User_Wishlist_Map, User_Input);
+		break;
+	}
+
+	// 3.0. Redraw All and Save
+	Draw_Menu_Sub(Active_Menu);  // Redraw All Sub Menu
+	Draw_User_Input_Button();  // Redrow User Input
+	Handle_Active_Button_Advence();  // Show Active Button
+	User_Map_Main_Save(Active_Menu);  // Save current map in used sub menu
+}
+//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Value_Is_Changed(const bool is_increment)
 {
 	if (is_increment)
@@ -1471,7 +1515,7 @@ void AsUI_Builder::User_Map_Main_Load(std::map<std::wstring, SUser_Input_Data> &
 			if (ull_char >= 43 && ull_char <= 52)  // 43 == 0 52 == 9
 				is_add_to_user_array = true;
 
-			if (is_add_to_user_array && ull_char >= 52 || is_add_to_user_array && ull_char < 43)  // If after ull_number end
+			if (is_add_to_user_array && ull_char > 52 || is_add_to_user_array && ull_char < 43)  // If after ull_number end
 			{
 				user_input[str] = L'\0';  // Title end here
 				user_input[0] = user_input[0] - 32;  // Upper Case first char
@@ -1698,9 +1742,8 @@ void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &us
 	}
 
 	// 2.0. Reset user_input
-	user_input[0] = L'\0';
-
 	User_Input_Len = 0;
+	user_input[User_Input_Len] = L'\0';
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Map_Erase()
@@ -1736,13 +1779,13 @@ void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &ui_data, wchar_t *u
 	unsigned short current_ch;
 	wchar_t *pattern_season;
 	int current_user_input_length;
-	int temp;
+	int season_counter_index;
 
 	pattern_season = 0;
 	User_Input_Len = (int)wcslen(user_input) - 1;
 	current_user_input_length = User_Input_Len;
 	current_ch = (unsigned short)user_input[current_user_input_length];  // 48 0 57 9
-	temp = 0;
+	season_counter_index = 0;
 
 	while (current_ch == L' ' || current_ch >= 48 && current_ch <= 57)
 	{//Find spaces if current ch numeric
@@ -1760,10 +1803,10 @@ void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &ui_data, wchar_t *u
 		current_ch = (unsigned short)user_input[--current_user_input_length];
 		while (user_input[current_user_input_length] == L'X' || user_input[current_user_input_length] == L'I' || user_input[current_user_input_length] == L'V')
 		{
-			temp++;
+			season_counter_index++;
 			user_input[current_user_input_length--] += L' ';
 		}
-		current_user_input_length += temp;
+		current_user_input_length += season_counter_index;
 		while (user_input[current_user_input_length] == L'x' || user_input[current_user_input_length] == L'i' || user_input[current_user_input_length] == L'v')  // Find Seasons =) 
 		{// Find next season character
 
@@ -1787,6 +1830,9 @@ void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &ui_data, wchar_t *u
 	}
 	
 	// Initialize TITLE_NAME_NUM
+	if (ui_data.Title_Num == 0)
+		ui_data.Title_Num = 1;
+
 	ui_data.Title_Name_Key = user_input;  // Init key
 	ui_data.Title_Name_Num += ui_data.Title_Name_Key;
 	ui_data.Title_Name_Num.append(L" ");
@@ -1811,49 +1857,49 @@ AsUI_Book_Reader::AsUI_Book_Reader(HDC hdc)
 
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Book_Reader::Handle_Input(EKey_Type &key_type) const
-{
-	switch (key_type)
-	{
-	case EKT_None:
-		break;
-
-
-	case EKT_Draw_Main_Menu:
-	{
-		wchar_t temp_01[] = L"Welcome to the book reader, choose your option";
-
-		TextOutW(Ptr_Hdc, 15, 15, temp_01, (int)wcslen(temp_01) );
-	}
-	break;
-
-
-	case EKT_Enter:
-		break;
-
-
-	case EKT_Space:
-		break;
-
-
-	case EKT_LM_Down:
-		Rectangle(Ptr_Hdc, 66, 66, 99, 99);
-		break;
-
-
-	case EKT_RM_Down:
-		break;
-
-
-	case EKT_Redraw_User_Input:
-		break;
-
-
-	default:
-		break;
-	}
-}
-//------------------------------------------------------------------------------------------------------------
+//void AsUI_Book_Reader::Handle_Input(EKey_Type &key_type) const
+//{
+//	switch (key_type)
+//	{
+//	case EKT_None:
+//		break;
+//
+//
+//	case EKT_Draw_Main_Menu:
+//	{
+//		wchar_t temp_01[] = L"Welcome to the book reader, choose your option";
+//
+//		TextOutW(Ptr_Hdc, 15, 15, temp_01, (int)wcslen(temp_01) );
+//	}
+//	break;
+//
+//
+//	case EKT_Enter:
+//		break;
+//
+//
+//	case EKT_Space:
+//		break;
+//
+//
+//	case EKT_LM_Down:
+//		Rectangle(Ptr_Hdc, 66, 66, 99, 99);
+//		break;
+//
+//
+//	case EKT_RM_Down:
+//		break;
+//
+//
+//	case EKT_Redraw_User_Input:
+//		break;
+//
+//
+//	default:
+//		break;
+//	}
+//}
+////------------------------------------------------------------------------------------------------------------
 
 
 
@@ -1865,34 +1911,71 @@ AsEngine::~AsEngine()
 }
 //------------------------------------------------------------------------------------------------------------
 AsEngine::AsEngine()
- : Is_After_Maximazied(true), Key_Type(EKey_Type::EKT_Draw_Main_Menu), Tools()
+ : Is_After_Maximazied(true), UI_Builder(0), UI_Book_Reader(0), W_Param(0), L_Param(0),
+	EBuilder_Handler(EUI_Builder_Handler::Draw_Menu_Main), Ptr_Hwnd(0), Ptr_Hdc(0), Paint_Struct{}
 {
-	Set_Current_Data();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsEngine::Draw_Frame(HWND hwnd)
+void AsEngine::Draw_Frame_ASaver(HWND hwnd)
 {
 	Ptr_Hwnd = hwnd;
 	Ptr_Hdc = BeginPaint(Ptr_Hwnd, &Paint_Struct);
 
-	if (UI_Builder == 0)
-	{
-		UI_Builder = new AsUI_Builder(Ptr_Hdc);
-		Key_Type = EKey_Type::EKT_Draw_Main_Menu;
-	}
+	if (UI_Builder != 0)
+		UI_Builder->Builder_Handler(Ptr_Hdc, EBuilder_Handler, W_Param, L_Param);
 	else
-		UI_Builder->Ptr_Hdc = Ptr_Hdc;
+		UI_Builder = new AsUI_Builder(Ptr_Hdc, W_Param, L_Param);
 
 	if (!Is_After_Maximazied)
 	{
 		Is_After_Maximazied = !Is_After_Maximazied;
-		UI_Builder->Draw_Menu_Main();  // draw after maximazed window
-		UI_Builder->Draw_Menu_Sub();
+		UI_Builder->Builder_Handler(Ptr_Hdc, EUI_Builder_Handler::Draw_Full_Window, W_Param, L_Param);
+
 		return;
 	}
 
-	Handle_Input();
+	if (UI_Builder->Active_Menu == EAM_Exit)
+		AsEngine::~AsEngine();
 	EndPaint(Ptr_Hwnd, &Paint_Struct);
+}
+//------------------------------------------------------------------------------------------------------------
+void AsEngine::Redraw_Frame(const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam)
+{
+	W_Param = wParam;
+	L_Param = lParam;
+
+	InvalidateRect(Ptr_Hwnd, 0, FALSE);  // если во 2-м параметре указать RECT рисувать можно будет только в нем | TRUE если нужно стереть всё
+	EBuilder_Handler = builder_handler;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsEngine::Get_Clipboard_From_Else()
+{
+	int index = 0;
+
+	//if (OpenClipboard(0) )  // !!! Re-Made
+	//{
+	//	if (HANDLE hData = GetClipboardData(CF_UNICODETEXT) )
+	//	{
+	//		if (WCHAR *psz_text = static_cast<WCHAR*>(GlobalLock(hData) ) )
+	//			while (psz_text[index] != '\0')
+	//				UI_Builder->Handle_User_Input(psz_text[index++]);  // Set Text from clipboard
+	//		
+	//		GlobalUnlock(hData);
+	//	}
+	//	CloseClipboard();
+	//}
+}
+//------------------------------------------------------------------------------------------------------------
+void AsEngine::Get_Current_Data_Time()
+{
+	time_t curr_time = time(&curr_time);  // curr_time <- time
+	tm s_local_time;  // crt struct 
+
+	localtime_s(&s_local_time, &curr_time);  // s_local_time <- localtime_s <- curr_time
+
+	int day = s_local_time.tm_mday;
+	int month = s_local_time.tm_mon + 1; // Считаем месяцы с 0, поэтому добавляем 1
+	int year = s_local_time.tm_year + 1900; // Добавляем 1900, чтобы получить текущий год
 }
 //------------------------------------------------------------------------------------------------------------
 void AsEngine::Draw_Frame_Book_Reader(HWND hwnd)
@@ -1905,109 +1988,47 @@ void AsEngine::Draw_Frame_Book_Reader(HWND hwnd)
 	else
 		UI_Book_Reader->Ptr_Hdc = Ptr_Hdc;
 
-	UI_Book_Reader->Handle_Input(Key_Type);
 	EndPaint(Ptr_Hwnd, &Paint_Struct);
 }
 //------------------------------------------------------------------------------------------------------------
-void AsEngine::Redraw_Frame() const
+int AsEngine::Draw_Frame_Chooser_Main_Mane(HWND hwnd)
 {
-	InvalidateRect(Ptr_Hwnd, 0, FALSE);  // если во 2-м параметре указать RECT рисувать можно будет только в нем | TRUE если нужно стереть всё
-}
-//------------------------------------------------------------------------------------------------------------
-void AsEngine::Get_Clipboard_From_Else()
-{
-	int index = 0;
+	//int i = 0;
+	//const int round = 75;
+	//const int x = 100;
+	//const int width = 450;
+	//const int height = 750;
+	//const RECT rect_programs{ x, x, width, height };
+	//RECT rect_intersecte{};
+	//PAINTSTRUCT paint_struct;
+	//HDC hdc;
 
-	if (OpenClipboard(0) )
-	{
-		if (HANDLE hData = GetClipboardData(CF_UNICODETEXT) )
-		{
-			if (WCHAR *psz_text = static_cast<WCHAR*>(GlobalLock(hData) ) )
-				while (psz_text[index] != '\0')
-					UI_Builder->Set_User_Input(psz_text[index++]);  // Set Text from clipboard
-			
-			GlobalUnlock(hData);
-		}
-		CloseClipboard();
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-int AsEngine::On_Timer()
-{
-	return 1;
-}
-//------------------------------------------------------------------------------------------------------------
-void AsEngine::Handle_Input()
-{
-	switch (Key_Type)
-	{
-	case EKT_Draw_Main_Menu:
-		UI_Builder->Draw_Menu_Main();
-		break;
+	//const int cord_mouse_x = Mouse_Cord_X;
+	//const RECT rect_mouse{ cord_mouse_x - 1, cord_mouse_x - 1, cord_mouse_x + 1, cord_mouse_x + 1 };
+	//rect_intersecte = rect_programs;
 
+	//for (i = 0; i < (int)EProgram::End; i++)
+	//{
+	//	const int width_offset = i * width;
+	//				
+	//	rect_intersecte.left += width_offset;
+	//	rect_intersecte.right += width_offset;
 
-	case EKT_Redraw_User_Input:
-		UI_Builder->Draw_User_Input_Button();
-		break;
+	//	if (IntersectRect(&rect_intersecte, &rect_intersecte, &rect_mouse) )
+	//		return i;
+	//}
+	//		
+	//hdc = BeginPaint(hwnd, &paint_struct);  // Draw Chooser Main Menu
+	//		
+	//for (i = 0; i < (int)EProgram::End; i++)
+	//{
+	//	RoundRect(hdc, rect_programs.left + (i * width), rect_programs.top, rect_programs.right + (i * width), rect_programs.bottom, round, round);
+	//	TextOutW(hdc, rect_programs.left + (i * width) + (width / 3), rect_programs.top + 70, AsConfig::Text_Program_Names[i], (int)wcslen(AsConfig::Text_Program_Names[i]) );
+	//}
 
+	//EndPaint(hwnd, &paint_struct);
 
-	case EKT_LM_Down:
-		Mouse_Handler_LM();
-		break;
-
-
-	case EKT_RM_Down:
-		Mouse_Handler_RM();
-		break;
-
-
-	case EKT_Enter:
-		UI_Builder->User_Input_Handle();
-		break;
-
-
-	default:
-		break;
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AsEngine::Mouse_Handler_LM()
-{
-	RECT mouse_rect {};
-
-	mouse_rect.left = LM_Cord_X - 1;
-	mouse_rect.top = LM_Cord_Y;
-	mouse_rect.right = LM_Cord_X;
-	mouse_rect.bottom = LM_Cord_Y + 1;
-
-	UI_Builder->Set_LM_Cord(mouse_rect);
-
-	if (UI_Builder->Active_Menu == EAM_Exit)
-		AsEngine::~AsEngine();
-}
-//------------------------------------------------------------------------------------------------------------
-void AsEngine::Mouse_Handler_RM()
-{
-	RECT mouse_rect{};
-
-	mouse_rect.left = LM_Cord_X - 1;
-	mouse_rect.top = LM_Cord_Y;
-	mouse_rect.right = LM_Cord_X;
-	mouse_rect.bottom = LM_Cord_Y + 1;
-
-	UI_Builder->Set_RM_Cord(mouse_rect);
-}
-//------------------------------------------------------------------------------------------------------------
-void AsEngine::Set_Current_Data()
-{
-	time_t curr_time = time(&curr_time);  // curr_time <- time
-	tm s_local_time;  // crt struct 
-
-	localtime_s(&s_local_time, &curr_time);  // s_local_time <- localtime_s <- curr_time
-
-	int day = s_local_time.tm_mday;
-	int month = s_local_time.tm_mon + 1; // Считаем месяцы с 0, поэтому добавляем 1
-	int year = s_local_time.tm_year + 1900; // Добавляем 1900, чтобы получить текущий год
+	return -1;
 }
 //------------------------------------------------------------------------------------------------------------
 int AsEngine::Connect_To_Server()

@@ -13,16 +13,14 @@ enum class EProgram
 	End
 };
 //------------------------------------------------------------------------------------------------------------
-enum EKey_Type
+enum class EUI_Builder_Handler : int
 {
-	EKT_None,  // zero state
-
-	EKT_Draw_Main_Menu,
-	EKT_Enter,
-	EKT_Space,
-	EKT_LM_Down,
-	EKT_RM_Down,
-	EKT_Redraw_User_Input  // Redraw(change color) while press on button
+	Draw_Full_Window,
+	Draw_Menu_Main,
+	Draw_Menu_Sub,
+	Draw_User_Input_Button,
+	Handle_Mouse_LButton,
+	Handle_Mouse_RButton
 };
 //------------------------------------------------------------------------------------------------------------
 enum class EActive_Button : int
@@ -66,20 +64,19 @@ struct SUser_Input_Data
 // ACurl_Client
 class ACurl_Client
 {
-
 public:
 	~ACurl_Client();
 	ACurl_Client(const EProgram &program, wchar_t *&user_input);
 
 private:
 	void CURL_Handler(wchar_t *&user_input_url);  // !!! Need Refactoring
-	bool CURL_Download_To_File(const wchar_t *w_user_input_url);  // download page to file
-	bool CURL_Content_Get_From_Line(std::wstring &content_data_converted, const size_t &starting_line);  // get line from starting line
+	bool CURL_Download_To_File(const wchar_t *w_user_input_url, const char *file_name);  // download page to file
+	bool CURL_Content_Get_From_Line(std::wstring &content_data_converted, const char *file_name);  // get line from starting line
 	bool CURL_Content_Find_Pattern_Title(const wchar_t *content, const wchar_t *title_bgn, const wchar_t *title_end, const wchar_t *title_num_bgn, const wchar_t *title_num_end, wchar_t *&user_input_result);
 	bool CURL_Content_Find_Pattern_Image(const wchar_t *content, const wchar_t *pattern_img_source_bgn, const wchar_t *pattern_img_source_end);
-	bool Convert_Str_To_WStr(const std::string &str, std::wstring &wstr_to);
+	bool CURL_String_To_WString(const std::string &str, std::wstring &wstr_to);
 
-	static size_t Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream);
+	static size_t Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream);  // Save to file
 };
 //------------------------------------------------------------------------------------------------------------
 
@@ -118,21 +115,21 @@ class AsUI_Builder
 {
 public:
 	~AsUI_Builder();
-	AsUI_Builder(HDC hdc);
+	AsUI_Builder(HDC hdc, const WPARAM &w_param, const LPARAM &l_param);
 
-	void Draw_Menu_Main();  // Build Main Menu
-	void Draw_Menu_Sub(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
-	void Draw_User_Input_Button() const;  // Show user_input in sub menu
-	void User_Input_Handle();  // Add to array
-	
-	void Set_RM_Cord(const RECT &mouse_cord);
-	void Set_LM_Cord(const RECT &mouse_cord);
-	bool Set_User_Input(const wchar_t &text);
+	void Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
+
 
 	EActive_Menu Active_Menu;
 	HDC Ptr_Hdc;
 
 private:
+	void Draw_Menu_Main();  // Build Main Menu
+	void Draw_Menu_Sub(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
+	void Draw_User_Input_Button() const;  // Show user_input in sub menu
+	void Handle_User_Input(const wchar_t &text);  // Add input to User_Input
+	void Handle_RM_Button(const LPARAM &lParam);
+	void Handle_LM_Button(const LPARAM &lParam);
 	void Handle_ID_Content(const unsigned short &id_content_index);
 	void Handle_Update_Button();  // Check only Array_Map for title
 	void Handle_Active_Button_Advence();
@@ -148,6 +145,7 @@ private:
 	void Context_Menu_Draw(const int &x, const int &y);
 	void Context_Image_Save(const RECT &rect);  // Save image in rect
 	void Context_Image_Restore(RECT &rect);  // redraw image
+	void User_Input_Handle();  // Add to array
 	void User_Input_Value_Is_Changed(const bool is_increment);  // Change active title num
 	bool User_Input_Set_To_Clipboard();
 	bool User_Input_Get_From_Clipboard(wchar_t *to_clipboard);  // and Re-Draw_User_Input
@@ -214,7 +212,7 @@ class AsUI_Book_Reader
 public:
 	AsUI_Book_Reader(HDC hdc);
 
-	void Handle_Input(EKey_Type &key_type) const;
+	//void Handle_Input(EKey_Type &key_type) const;
 
 	HDC Ptr_Hdc;
 };
@@ -229,27 +227,23 @@ public:
 	~AsEngine();
 	AsEngine();
 
-	void Draw_Frame(HWND hwnd);
-	void Draw_Frame_Book_Reader(HWND hwnd);
-	void Redraw_Frame() const;
+	void Draw_Frame_ASaver(HWND hwnd);
+	void Redraw_Frame(const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 	void Get_Clipboard_From_Else();
-	int On_Timer();
 
 	bool Is_After_Maximazied;
-	int LM_Cord_X = 0;
-	int LM_Cord_Y = 0;
-	EKey_Type Key_Type;
 	AsUI_Builder *UI_Builder;
 	AsUI_Book_Reader *UI_Book_Reader;
 
 private:
-	void Handle_Input();
-	void Mouse_Handler_LM();
-	void Mouse_Handler_RM();
-	void Set_Current_Data();
+	void Get_Current_Data_Time();  // !!! Temp Get curre
+	void Draw_Frame_Book_Reader(HWND hwnd);
+	int Draw_Frame_Chooser_Main_Mane(HWND hwnd);  // !!! bad
 	int Connect_To_Server();  // Send to server ULL; change IP ADDRESS of serv || NEED TURN ON SERVER prog
 
-	AsTools Tools;  // to see tacts place f9 destructor
+	WPARAM W_Param;
+	LPARAM L_Param;
+	EUI_Builder_Handler EBuilder_Handler;
 	HWND Ptr_Hwnd;
 	HDC Ptr_Hdc;
 	PAINTSTRUCT Paint_Struct;
@@ -444,7 +438,7 @@ V		- Сделать что бы сразу добавлять в просмот�
 V	- Поиск по первому символу
 X		- По последующих
 */
-// TASKS	--- 10.03.2024 --- 
+// TASKS	--- 10.03.2024 ---
 /*
 V	- Сортировка:
 V		- Вводя текст по буквам выделяються из первой страници все доступные тайтлы.
@@ -796,7 +790,7 @@ V		- Как сохранять структуру?
 			- Создать класс сохранение, в котором будут:
 				- // !!!
 */
-// TASKS --- 23.06.2024  --- 
+// TASKS --- 23.06.2024  ---
 /*
 
 V	- Fix Going to page - 1 >
@@ -816,7 +810,7 @@ V	- Save ID_Content to bin, don`t save same id
 V	- Load ID_COntent from bin
 
 */
-// TASKS --- 30.06.2024  --- 
+// TASKS --- 30.06.2024  ---
 /*
 
 V	- Переделанно сохранения в ACurl_Component при создании и удаленеие обэкта
@@ -830,7 +824,7 @@ V	- Make url to start parsing
 V		- При нажатии кнопки пройтись по массиву, взять из структуры ID зайти на сайт, проверить доступную серию.
 
 */
-// TASKS --- 01.07.2024  --- 
+// TASKS --- 01.07.2024  ---
 /*
 
 V	- Если серия другая изменить цвет кнопки и перерисувать
@@ -838,12 +832,12 @@ V	- Add to clipboard url with id, can go site and watch
 V	- Double click on User_Input_Button to update new watched
 
 */
-// TASKS --- 03.07.2024  --- 
+// TASKS --- 03.07.2024  ---
 /*
 V	- When press update button
 V		- if not in main array delete ID_Content from base
 */
-// TASKS --- 04.07.2024  --- 
+// TASKS --- 04.07.2024  ---
 /*
 V	- Correct delete while title was watching
 V		- While 12 / 12 Add to watched
@@ -860,11 +854,11 @@ V					- перекрасить кнопку в цвет поярче на *50
 
 V	- Возможно сохранять и сам URL что бы скопирувать его в буфер и легко вставить в бразуер?
 */
-// TASKS --- 05.07.2024  --- 
+// TASKS --- 05.07.2024  ---
 /*
 V	- Работа над Потоками
 */
-// TASKS --- 07.07.2024  --- 
+// TASKS --- 07.07.2024  ---
 /*
 
 V	- Убрать функционал добавления в clipboard
@@ -872,7 +866,7 @@ V	- Убрать функционал добавления в clipboard
 
 V	- Пофиксить баг когда User_Input не отображаеться, и при клике на него мерджаться тайтлы
 */
-// TASKS --- 09.07.2024  ---  
+// TASKS --- 09.07.2024  ---
 /*
 V	- fix while ID_Content less then 1000 it`s have access to wrong url, fixed.
 V		- Потоки не конфликтуют
@@ -883,33 +877,53 @@ V	- Улучшить конвертацию, добавил english
 V	- Рефакторинг Convert
 V	- better converting, performance ++
 */
-// TASKS --- 11.07.2024  --- Current --- 
+// TASKS --- 11.07.2024 - 17.07.2024  ---
 /*
+V	- Внедрить новую конвертацию
+V		- Протестирувать сохранения
+V		- Добавлять english Titles
 
-X	- Внедрить новую конвертацию
-		- Протестирувать сохранения
-		- Добавлять english Titles
+V	- Переделать ACurl:
+V		- Сохранять в файл, потом его редактирувать
+V			- Причина, может попасть половина данных, и это никак не обрабативаеться
 
-X	- Переделать ACurl:
-		- Сохранять в файл, потом его редактирувать
-			- Причина, может попасть половина данных, и это никак не обрабативаеться
+V	- Проверить потоки, кнопка Update работает пока стабильно тестируем дальше
 
+*/
+// TASKS --- 18.07.2024 ---
+/*
+V	- Поиск начала тайтла по патерну а не по строке, надёжней
+V	- Рефакторинг движка 
+V	- Создать запрет на ввод в меню
+
+V	- Добавлять фильмы, или сериалы.
+*/
+// TASKS --- 19.07.2024 --- Current ---
+/*
+V	- Use Threads for Update_Button
+V	- Добавить поток, в котором будет обработка curl
+V		- Когда укажут URL при нажатии дважди или ENTER в не основной поток передать обработку входний данных
+V			- По завершению, обновить добавленные данные
+V			- Больше одного сайта или страниц, добавить многопоточность
+*/
+// TASKS --- 20.07.2024 --- Current ---
+/*
 X	- Работа над Паттернами
 		- Создать Config.txt:
-			-
-X	- Sometimes bugs threads
-*/
 
+X	- ACurl_Component соеденить с ACURL
+
+X	- Брать из файла Config pattern для поиска по URL
+X	- Проводить тесты, до конца месяца, как работает программа, отлавливать баги и фиксить
+X	- Финальный рефакторинг, переносить по своим .h .cpp
+*/
 
 
 // TASKS
 /*
 --- MOST WANTED ---
-X	- Use Threads for Update_Button
-
 X	- Добавиить опцию, увиличение шрифта?
 		- Не тяжело но нужно ли
-X	- Брать из файла Config pattern для поиска по URL
 
 --- Optional ---
 X	- Добавить функционал сохранения даты последнего редактирувания
@@ -918,22 +932,10 @@ X		- Дата добавления данных, и редактирувание
 		- Записать в ui_data LL сохранить
 			- выгружать после добавления в map
 
-X	- Добавить поток, в котором будет обработка curl
-		- Когда укажут URL при нажатии дважди или ENTER в не основной поток передать обработку входний данных
-			- По завершению, обновить добавленные данные
-			- Больше одного сайта или страниц, добавить многопоточность
 
 --- IDEAS ---
 X	- Сжатие файлов, картинок
 
-X	- Один раз сконвертирувать, сохранять в структуру, и записивать ID в файл,
-		- При добавление новых данных, конвертация для получение ID
-		- Это бета для идеи, потом посмотрем может реализувать
-
-X	- Через контекстное меню добавить способ добавлять картинку в програму, очень впадлу?
-		- Нажимая ctrl + c когда есть активная кнопка скопирувать в буфер данных что бы можно было вивести в браузер или куда либо
-			- Может сохранять предидущий выбор?
-			- Выводить картинку если был пред выбор
 
 --- Data Futures ---
 
@@ -949,15 +951,6 @@ x		- Данные о тайле, где их хранить и тд?
 			- Записивать время добавления серии и хранить её где то
 			- Пользувательская картинка которую он захочет добавить ***
 			- Возможно добавить рейтинг( в виде звездочек? =) )
-
-Too hard for retarD ^:: --- SAVE \ LOAD ---
-X	- Возможно добавить сортировку? Как? Сравнивания данных
-
-XXX	- Добавить управления клавишами
-			- Лево \ Вправо переключение между меню
-			- Вверх \ Вниз  переключения между кнопками
-V			- ENTER - Запросить перерисувать участок, сохранить данные в файл
-			- Другое - ( ESC \ TAB )
 
 */
 

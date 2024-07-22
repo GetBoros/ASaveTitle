@@ -37,7 +37,7 @@ void ACurl_Client::CURL_Handler(wchar_t *&user_input_url)
 {// Handle all CURL
 
 	// !!! To config
-	const char file_name[] = "Data/Temp/output.bin";
+	const char file_name[] = "Data/Temp/output.bin";  // !!! Change name while threaded override file if this fixe exist create new?
 	const wchar_t pattern_title_bgn[] = L"laquo;";  // title start
 	const wchar_t pattern_title_end[] = L"&raquo";  // title start
 	const wchar_t pattern_title_num_bgn[] = L"Серии: [";  // title num start
@@ -1304,6 +1304,7 @@ void AsUI_Builder::Context_Image_Restore(RECT &rect)
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Handle()
 {
+	wchar_t *url_content;
 	int length;
 
 	// 1.0 Handle User_Input
@@ -1314,7 +1315,7 @@ void AsUI_Builder::User_Input_Handle()
 			std::filesystem::create_directories(AsConfig::Image_Folder);  // Create Image Foldore if not exist
 
 		length = (int)wcslen(User_Input) + 1;
-		wchar_t *url_content = new wchar_t[length]{};
+		url_content = new wchar_t[length]{};
 		wcsncpy_s(url_content, length, User_Input, static_cast<rsize_t>(length) - 1);  // cpy url to temporary url_content
 
 		Curl_Component->Add_ID_Content(url_content);  // !!! Save url ID init to ACurl_Client
@@ -1729,11 +1730,20 @@ void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &us
 	else
 		user_arr.emplace(converted_data.Title_Name_Key, converted_data);  // if not add new title
 
-	// 1.5. If from ACurl, saved picture rename
+	// 1.5. If from ACurl, saved picture rename, can`t save if invalid file path
 	if (std::filesystem::exists("TemporaryName.png") )
-		std::filesystem::rename("TemporaryName.png", (std::wstring(AsConfig::Image_Folder) + converted_data.Title_Name_Key + std::wstring(L".png") ) );
+	{
+		try
+		{
+			std::filesystem::rename("TemporaryName.png", (std::wstring(AsConfig::Image_Folder) + converted_data.Title_Name_Key + std::wstring(L".png") ) );
+		}
+		catch (const std::exception &)
+		{
+			std::filesystem::remove("TemporaryName.png");  // !!! Save ID_Content like name to picture, or rename text || Or find invalid, if has check
+		}
+	}
 
-	// 1.6.
+	// 1.6. Show and select new added title to window
 	if (Active_Menu != -1)
 	{
 		It_Current_User = user_arr.find(user_input);
@@ -1741,7 +1751,7 @@ void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &us
 		Sub_Menu_Curr_Page = ( (int)Active_Button - 1) / Sub_Menu_Max_Line;  // Find Page
 	}
 
-	// 2.0. Reset user_input
+	// 1.7. Reset user_input
 	User_Input_Len = 0;
 	user_input[User_Input_Len] = L'\0';
 }

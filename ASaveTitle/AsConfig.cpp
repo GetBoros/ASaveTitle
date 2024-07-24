@@ -1,9 +1,11 @@
 #include "AsConfig.h"
 
 // AsConfig
+
+
 const char AsConfig::Dictionary_Main_Folder[] = "Map.bin";
 const char AsConfig::Path_Saves_Folder[] = "Data/";
-const char AsConfig::Path_Sites_Folder[] = "Data/Sites/";
+const char AsConfig::Path_Sites_Folder[] = "Data/Sites/anime-bit.bin";
 const char *AsConfig::Settings[] = { "Standart Background = ;", "Coordinates = ;", "Something Else = ;" };
 const char *AsConfig::Folders_Save[] = { "Watching.bin", "Library.bin", "Paused.bin", "Wishlist.bin" };
 

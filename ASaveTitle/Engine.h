@@ -50,7 +50,8 @@ enum EActive_Page
 };
 //------------------------------------------------------------------------------------------------------------
 struct SUser_Input_Data
-{
+{// Some day refactor this poop
+
 	int Title_Num = 0;
 	int Title_Data = 0;
 	int Title_Season = 0;
@@ -70,43 +71,26 @@ public:
 
 private:
 	void CURL_Handler(wchar_t *&user_input_url);  // !!! Need Refactoring
-	bool CURL_Download_To_File(const wchar_t *w_user_input_url, const char *file_name);  // download page to file
-	bool CURL_Content_Get_From_Line(std::wstring &content_data_converted, const char *file_name);  // get line from starting line
-	bool CURL_Content_Find_Pattern_Title(const wchar_t *content, const wchar_t *title_bgn, const wchar_t *title_end, const wchar_t *title_num_bgn, const wchar_t *title_num_end, wchar_t *&user_input_result);
-	bool CURL_Content_Find_Pattern_Image(const wchar_t *content, const wchar_t *pattern_img_source_bgn, const wchar_t *pattern_img_source_end);
-	bool CURL_String_To_WString(const std::string &str, std::wstring &wstr_to);
+	void CURL_Content_ID_Load();  // Load ID Content from file to Content_Array
+	void CURL_Content_ID_Get(const wchar_t *url);  // get ID from url
+	void CURL_Content_ID_Emplace();
+	bool CURL_Content_ID_Erase(const int &if_not_last_id_content);
+	bool CURL_Content_Pattern_Find_Title(const wchar_t *content, const wchar_t *title_bgn, const wchar_t *title_end, const wchar_t *num_bgn, const wchar_t *num_end, wchar_t *&result);
+	bool CURL_Content_Pattern_Find_Image(const wchar_t *content, const wchar_t *image_bgn, const wchar_t *image_end);
+	void CURL_Content_Pattern_Find_From_To(std::string &url, const char *start, const char *end);  // !!! refactoring Make static or 
+	bool CURL_Content_File_Write_To(const char *file_name, const wchar_t *w_user_input_url);  // write page to file
+	bool CURL_Content_File_Read_To(const char *file_name, std::wstring &result);  // read page from file
+	bool CURL_Content_Convert(const std::string &from_str, std::wstring &to_wstring);  // convert std::string to std::wstring
+	bool CURL_Content_Url_Get(wchar_t *result, const int &id_content_index);  // make url, while get index from array
 
-	static size_t Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream);  // Save to file
-};
-//------------------------------------------------------------------------------------------------------------
+	static size_t CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream);  // Save to file
 
-
-
-// ACurl_Component
-class ACurl_Component
-{
-public:
-	~ACurl_Component();
-	ACurl_Component();
-
-	void Add_ID_Content(const wchar_t *url);  // set wchar_t convert to char and save to url folder
-	bool Get_Url(wchar_t *user_input, const int &id_content_index);
-	bool Erase_ID_Content(const int &if_not_last_id_content);
-
+	unsigned short *ID_Content_Array;  // or use array? xD
 	unsigned short ID_Content_Size;
 
-private:
-	void Find_From_Patern(std::string &url, const char *start, const char *end);
-	void Emplace_ID_Content();
-	void Load_ID_Content();
-
-	unsigned short ID_Content;
-	unsigned short *ID_Content_Array;
-
-	std::string Url_Site_Name;
-	std::string Path_Folder;
 };
 //------------------------------------------------------------------------------------------------------------
+
 
 
 
@@ -130,8 +114,9 @@ private:
 	void Handle_User_Input(const wchar_t &text);  // Add input to User_Input
 	void Handle_RM_Button(const LPARAM &lParam);
 	void Handle_LM_Button(const LPARAM &lParam);
-	void Handle_ID_Content(const unsigned short &id_content_index);
-	void Handle_Update_Button();  // Check only Array_Map for title
+	//void Handle_ID_Content(const unsigned short &id_content_index);
+	//void Handle_Update_Button();  // Check only Array_Map for title
+	void Handle_Update_Button_Beta();
 	void Handle_Active_Button_Advence();
 	void Handle_Active_Button(const EActive_Button &active_button);  // Redraw Button in current Active Menu
 	void Draw_Active_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array);
@@ -184,7 +169,6 @@ private:
 	HBITMAP H_Bitmap;
 	HGDIOBJ Saved_Object;
 	SUser_Input_Data User_Input_Data;
-	ACurl_Component *Curl_Component;
 	std::map<std::wstring, SUser_Input_Data> User_Array_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Library_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Paused_Map;
@@ -805,8 +789,8 @@ X		- Создать структуру в которой храним:
 // TASKS --- 29.06.2024  ---
 /*
 
-V	- Format url to site and ID_Content
-V	- Save ID_Content to bin, don`t save same id
+V	- Format url to site and ID Content
+V	- Save ID Content to bin, don`t save same id
 V	- Load ID_COntent from bin
 
 */
@@ -835,14 +819,14 @@ V	- Double click on User_Input_Button to update new watched
 // TASKS --- 03.07.2024  ---
 /*
 V	- When press update button
-V		- if not in main array delete ID_Content from base
+V		- if not in main array delete ID Content from base
 */
 // TASKS --- 04.07.2024  ---
 /*
 V	- Correct delete while title was watching
 V		- While 12 / 12 Add to watched
 V	- Refactoring How to get folder ?
-V	- Good Add ID_Content and delete while 0 - 1
+V	- Good Add ID Content and delete while 0 - 1
 V	- Have bugs while not show to user input button
 V	- Refactoring
 
@@ -868,7 +852,7 @@ V	- Пофиксить баг когда User_Input не отображаеть�
 */
 // TASKS --- 09.07.2024  ---
 /*
-V	- fix while ID_Content less then 1000 it`s have access to wrong url, fixed.
+V	- fix while ID Content less then 1000 it`s have access to wrong url, fixed.
 V		- Потоки не конфликтуют
 */
 // TASKS --- 10.07.2024  ---

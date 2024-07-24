@@ -3,32 +3,24 @@
 // ACurl_Client
 ACurl_Client::~ACurl_Client()
 {
-
+	delete[] ID_Content_Array;
 }
 //------------------------------------------------------------------------------------------------------------
 ACurl_Client::ACurl_Client(const EProgram &program, wchar_t *&user_input)
+  : ID_Content_Array(0), ID_Content_Size(0)
 {// Setup
+
 
 	switch (program)
 	{
 	case EProgram::Invalid:
 		break;
 	case EProgram::ASaver:
-	{
-		if (user_input != 0)
-			CURL_Handler(user_input);  // Anime-bit
-		else
-			int yy = 0;
-	}
+		CURL_Handler(user_input);
 		break;
-
 	case EProgram::ABook_Reader:
 		break;
-
 	case EProgram::End:
-		break;
-
-	default:
 		break;
 	}
 }
@@ -37,97 +29,109 @@ void ACurl_Client::CURL_Handler(wchar_t *&user_input_url)
 {// Handle all CURL
 
 	// !!! To config
-	const char file_name[] = "Data/Temp/output.bin";  // !!! Change name while threaded override file if this fixe exist create new?
-	const wchar_t pattern_title_bgn[] = L"laquo;";  // title start
-	const wchar_t pattern_title_end[] = L"&raquo";  // title start
-	const wchar_t pattern_title_num_bgn[] = L"Серии: [";  // title num start
-	const wchar_t pattern_title_num_end[] = L" ";  // title num start
-	const wchar_t pattern_img_source_bgn[] = L"<img src='";  // title num start
-	const wchar_t pattern_img_source_end[] = L"' width";  // title num start
-	std::wstring content_from_file;
+	const wchar_t title_bgn[] = L"laquo;";
+	const wchar_t title_end[] = L"&raquo";
+	const wchar_t title_num_bgn[] = L"Серии: [";
+	const wchar_t title_num_end[] = L" ";
+	const wchar_t image_bgn[] = L"<img src='";
+	const wchar_t image_end[] = L"' width";
+	std::wstring content;
 
-	if (!CURL_Download_To_File(user_input_url, file_name) )  // Find and Download url to folder?
+	const char *file_name[] = {"Data/Temp/1.bin", "Data/Temp/2.bin", "Data/Temp/3.bin", "Data/Temp/4.bin", "Data/Temp/5.bin", "Data/Temp/6.bin", "Data/Temp/7.bin", "Data/Temp/8.bin", };
+
+	CURL_Content_ID_Load();  // Load ID arra from file
+	CURL_Content_ID_Get(user_input_url);  // Save ID 6669 example
+
+	if (!CURL_Content_File_Write_To(file_name[0], user_input_url) )  // save url content to file, then handle it
 		return;
+
+	if (!CURL_Content_File_Read_To(file_name[0], content) )  // read from file to wstring
+		return;
+
+	if (!CURL_Content_Pattern_Find_Title(content.c_str(), title_bgn, title_end, title_num_bgn, title_num_end, user_input_url) )
+		return;
+
+	if (!CURL_Content_Pattern_Find_Image(content.c_str(), image_bgn, image_end) )
+		return;
+}
+//------------------------------------------------------------------------------------------------------------
+void ACurl_Client::CURL_Content_ID_Load()
+{
+	unsigned short how_much_g;
 	
-	if (!CURL_Content_Get_From_Line(content_from_file, file_name) )  // Read and Find what we need
-		return;
+	how_much_g = 0;
+	delete[] ID_Content_Array;
 
-	if (!CURL_Content_Find_Pattern_Title(content_from_file.c_str(), pattern_title_bgn, pattern_title_end, pattern_title_num_bgn, pattern_title_num_end, user_input_url) )  // !!!
-		return;
+	std::ifstream infile(AsConfig::Path_Sites_Folder, std::ios::in | std::ios::binary);
+	if (infile)
+	{
+		infile.seekg(0, std::ios::end);
+		how_much_g = (unsigned short)infile.tellg();
 
-	if (!CURL_Content_Find_Pattern_Image(content_from_file.c_str(), pattern_img_source_bgn, pattern_img_source_end) )
-		return;
-}
-//------------------------------------------------------------------------------------------------------------
-bool ACurl_Client::CURL_Download_To_File(const wchar_t *w_user_input_url, const char *file_name)
-{
-	char *url;
-	int size = 0;
-	CURL* curl;
-	CURLcode res;
-	FILE* file;
+		ID_Content_Size = how_much_g / sizeof(unsigned short);
 
-	if (!std::filesystem::exists("Data/Temp/") )  // !!!
-		std::filesystem::create_directories("Data/Temp/");  // If folder does`nt exist create it
-
-	size = WideCharToMultiByte(CP_UTF8, 0, w_user_input_url, -1, 0, 0, 0, 0);
-	url = new char[size];
-	WideCharToMultiByte(CP_UTF8, 0, w_user_input_url, -1, url, size, 0, 0);
-
-	if (!(curl = curl_easy_init()))
-		return false;
+		infile.seekg(0, std::ios::beg);
+		ID_Content_Array = new unsigned short [ID_Content_Size + 1] {};
+		infile.read(reinterpret_cast<char*>(ID_Content_Array), how_much_g);
+		infile.close();
+	}
 	else
-	{
-		errno_t err = fopen_s(&file, file_name, "wb");
-		if (!file)
-		{
-			curl_easy_cleanup(curl);
-			return false;
-		}
-
-		curl_easy_setopt(curl, CURLOPT_URL, url);
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Write_Data);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
-		res = curl_easy_perform(curl);
-		curl_easy_cleanup(curl);
-		fclose(file);
-
-		if (res != CURLE_OK)
-			return false;
-
-		return true;
-	}
+		ID_Content_Array = new unsigned short[ID_Content_Size + 1] {};
 }
 //------------------------------------------------------------------------------------------------------------
-bool ACurl_Client::CURL_Content_Get_From_Line(std::wstring &content_data_converted, const char *file_name)
+void ACurl_Client::CURL_Content_ID_Get(const wchar_t *url)
 {
-	int i = 8;  // Content line from start needed
-	size_t current_line = 0;
-	std::string line;
-	std::string content_data_str;
+	size_t len;
+	size_t converted_chars;
+	std::string str;
+	unsigned short id_content;
 
-	std::ifstream file(file_name, std::ios::binary);
-	if (!file)
-		return false;
+	// Init
+	len = std::wcslen(url) + 1; // + char for \0
+	converted_chars = 0;
+	std::vector<char> chars_buffer(len);
+	wcstombs_s(&converted_chars, chars_buffer.data(), len, url, len - 1);  // wchar_t to char
 
-	while (std::getline(file, line) )  // Go to our line
-	{
-		current_line = line.find("<h1>&laquo;");
-		if (current_line != std::string::npos)
-			break;
-	}
+	// Get id content and return if already exists
+	CURL_Content_Pattern_Find_From_To(str = chars_buffer.data(), "/content/", "/");  // Receive ID Content
+	id_content = std::stoi(str);
+	for (int i = 0; i <= ID_Content_Size; ++i)  // Check the same value, if find exit from component
+		if (ID_Content_Array[i] == id_content)
+			return;
 
-	content_data_str += line + "\n";
+	// Find Site pattern to save in .bin
+	CURL_Content_Pattern_Find_From_To(str = chars_buffer.data(), "https://", ".ru/");  // Receive Url_Site_Name url to create folder
+	if (!std::filesystem::exists(AsConfig::Path_Sites_Folder) )
+		std::filesystem::create_directories(AsConfig::Path_Sites_Folder);  // If folder does`nt exist create it
 
-	while (std::getline(file, line) &&  i--)  // Start read needed line
-		content_data_str += line + "\n";
-
-	file.close();
-	std::filesystem::remove(file_name);  // Remove, don`t need anymore
-	return CURL_String_To_WString(content_data_str, content_data_converted);
+	// Resize buffer
+	ID_Content_Array[ID_Content_Size] = id_content;
+	CURL_Content_ID_Emplace();  // Save all to files 
 }
 //------------------------------------------------------------------------------------------------------------
-bool ACurl_Client::CURL_Content_Find_Pattern_Title(const wchar_t *content, const wchar_t *title_bgn, const wchar_t *title_end, const wchar_t *num_bgn, const wchar_t *num_end, wchar_t *&user_input_result)
+void ACurl_Client::CURL_Content_ID_Emplace()
+{
+	std::ofstream outfile(AsConfig::Path_Sites_Folder, std::ios::out | std::ios::binary | std::ios::trunc);
+	if (!outfile)
+		return;
+
+	if (ID_Content_Size != 65535)
+		for (int i = 0; i <= ID_Content_Size; ++i)
+			outfile.write(reinterpret_cast<const char*>(&ID_Content_Array[i]), sizeof(ID_Content_Array[i]) );
+
+	outfile.close();
+	CURL_Content_ID_Load();  // Load to increment buffer for content
+}
+//------------------------------------------------------------------------------------------------------------
+bool ACurl_Client::CURL_Content_ID_Erase(const int &if_not_last_id_content)
+{
+	--ID_Content_Size;  // Get Array Size
+	ID_Content_Array[if_not_last_id_content] = ID_Content_Array[ID_Content_Size--];  // set last to first short
+	CURL_Content_ID_Emplace();
+	return true;
+}
+//------------------------------------------------------------------------------------------------------------
+bool ACurl_Client::CURL_Content_Pattern_Find_Title(const wchar_t *content, const wchar_t *title_bgn, const wchar_t *title_end, const wchar_t *num_bgn, const wchar_t *num_end, wchar_t *&result)
 {
 	int title_name_length;
 	int title_nums_len;
@@ -152,11 +156,11 @@ bool ACurl_Client::CURL_Content_Find_Pattern_Title(const wchar_t *content, const
 	// 2.0. Set Title and season to result
 	title_name_length = (int)(title_name_end - title_name_bgn) + 1;  // Get title name and season length
 	title_nums_len = (int)(title_num_end - title_num_bgn) + 1;  // Get title numbers length(series)
-	user_input_result = new wchar_t[title_name_length + title_nums_len]{};  // mallocate for full user input
-	wcsncpy_s(user_input_result, title_name_length, title_name_bgn, static_cast<rsize_t>(title_name_length - 1) );
+	result = new wchar_t[title_name_length + title_nums_len]{};  // mallocate for full user input
+	wcsncpy_s(result, title_name_length, title_name_bgn, static_cast<rsize_t>(title_name_length - 1) );
 
 	// 2.1. Set number(series) to result
-	num_start = user_input_result + title_name_length - 1;  // find where we need to start put nums
+	num_start = result + title_name_length - 1;  // find where we need to start put nums
 	num_start[0] = L' ';  // remove '\0' to space
 	num_start++;  // to next index
 	wcsncpy_s(num_start, title_nums_len, title_num_bgn, static_cast<rsize_t>(title_nums_len - 1) );
@@ -164,7 +168,7 @@ bool ACurl_Client::CURL_Content_Find_Pattern_Title(const wchar_t *content, const
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-bool ACurl_Client::CURL_Content_Find_Pattern_Image(const wchar_t *content, const wchar_t *pattern_img_source_bgn, const wchar_t *pattern_img_source_end)
+bool ACurl_Client::CURL_Content_Pattern_Find_Image(const wchar_t *content, const wchar_t *image_bgn, const wchar_t *image_end)
 {
 	char* url;
 	wchar_t* image_url;
@@ -175,10 +179,10 @@ bool ACurl_Client::CURL_Content_Find_Pattern_Image(const wchar_t *content, const
 	CURL* Url_Easy = 0;
 	std::wstring str_to = L"https://anime-bit.ru";
 
-	const wchar_t *img_source_bgn = wcsstr(content, pattern_img_source_bgn) + wcslen(pattern_img_source_bgn);  // Get title start ptr
+	const wchar_t *img_source_bgn = wcsstr(content, image_bgn) + wcslen(image_bgn);  // Get title start ptr
 	if (!img_source_bgn != 0)
 		return false;
-	const wchar_t *img_source_end = wcsstr(img_source_bgn, pattern_img_source_end);  // Get title end ptr
+	const wchar_t *img_source_end = wcsstr(img_source_bgn, image_end);  // Get title end ptr
 	if (!img_source_end != 0)
 		return false;
 
@@ -188,7 +192,7 @@ bool ACurl_Client::CURL_Content_Find_Pattern_Image(const wchar_t *content, const
 	
 	str_to += image_url;
 	size = WideCharToMultiByte(CP_UTF8, 0, str_to.c_str(), -1, 0, 0, 0, 0);
-	url = new char[size];
+	url = new char[size] {};
 	WideCharToMultiByte(CP_UTF8, 0, str_to.c_str(), -1, url, size, 0, 0);
 
 	// INIT CURL
@@ -197,7 +201,7 @@ bool ACurl_Client::CURL_Content_Find_Pattern_Image(const wchar_t *content, const
 
 	fopen_s(&file, "TemporaryName.png", "wb");
 	curl_easy_setopt(Url_Easy, CURLOPT_URL, url);  // save img
-	curl_easy_setopt(Url_Easy, CURLOPT_WRITEFUNCTION, Write_Data);
+	curl_easy_setopt(Url_Easy, CURLOPT_WRITEFUNCTION, CURL_Content_Write_Data);
 	curl_easy_setopt(Url_Easy, CURLOPT_WRITEDATA, file);
 
 	Response = curl_easy_perform(Url_Easy);  // Download image to file
@@ -209,70 +213,100 @@ bool ACurl_Client::CURL_Content_Find_Pattern_Image(const wchar_t *content, const
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-bool ACurl_Client::CURL_String_To_WString(const std::string &str, std::wstring &wstr_from_str)
+void ACurl_Client::CURL_Content_Pattern_Find_From_To(std::string &url, const char *start, const char *end)  // ~80 000
 {
-	if (str.empty() )
+	size_t start_pos = url.find(start);
+	size_t end_pos;
+	if (start_pos != std::string::npos)
+	{
+		start_pos += std::strlen(start);
+		end_pos = url.find(end, start_pos);
+		if (end_pos != std::string::npos)
+			url = url.substr(start_pos, end_pos - start_pos);
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+bool ACurl_Client::CURL_Content_File_Write_To(const char *file_name, const wchar_t *w_user_input_url)
+{
+	char *url;
+	int size = 0;
+	CURL* curl;
+	CURLcode res;
+	FILE* file;
+
+	if (!std::filesystem::exists("Data/Temp/") )  // !!!
+		std::filesystem::create_directories("Data/Temp/");  // If folder does`nt exist create it
+
+	size = WideCharToMultiByte(CP_UTF8, 0, w_user_input_url, -1, 0, 0, 0, 0);
+	url = new char[size]{};
+	WideCharToMultiByte(CP_UTF8, 0, w_user_input_url, -1, url, size, 0, 0);
+
+	if (!(curl = curl_easy_init() ) )
+		return false;
+	else
+	{
+		errno_t err = fopen_s(&file, file_name, "wb");
+		if (!file)
+		{
+			curl_easy_cleanup(curl);
+			return false;
+		}
+
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CURL_Content_Write_Data);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+		fclose(file);
+
+		if (res != CURLE_OK)
+			return false;
+
+		return true;
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+bool ACurl_Client::CURL_Content_File_Read_To(const char *file_name, std::wstring &result)
+{
+	int i = 8;  // Content line from start needed
+	size_t current_line = 0;
+	std::string line;
+	std::string content_data_str;
+
+	std::ifstream file(file_name, std::ios::binary);
+	if (!file)
+		return false;
+
+	while (std::getline(file, line) )  // Go to our line
+	{
+		current_line = line.find("<h1>&laquo;");
+		if (current_line != std::string::npos)
+			break;
+	}
+
+	content_data_str += line + "\n";
+
+	while (std::getline(file, line) &&  i--)  // Start read needed line
+		content_data_str += line + "\n";
+
+	file.close();
+	std::filesystem::remove(file_name);  // Remove, don`t need anymore
+	return CURL_Content_Convert(content_data_str, result);
+}
+//------------------------------------------------------------------------------------------------------------
+bool ACurl_Client::CURL_Content_Convert(const std::string &from_str, std::wstring &to_wstring)
+{
+	if (from_str.empty() )
 		return false;
 	
-	const int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), 0, 0);
-	wstr_from_str = std::wstring(size_needed, 0);
-	MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstr_from_str[0], size_needed);
+	const int size_needed = MultiByteToWideChar(CP_UTF8, 0, &from_str[0], (int)from_str.size(), 0, 0);
+	to_wstring = std::wstring(size_needed, 0);
+	MultiByteToWideChar(CP_UTF8, 0, &from_str[0], (int)from_str.size(), &to_wstring[0], size_needed);
 
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-size_t ACurl_Client::Write_Data(void* ptr, size_t size, size_t nmemb, FILE* stream)
-{
-	size_t written = fwrite(ptr, size, nmemb, stream);
-	return written;
-}
-//------------------------------------------------------------------------------------------------------------
-
-
-
-
-// ACurl_Component
-ACurl_Component::~ACurl_Component()
-{
-	delete[] ID_Content_Array;
-}
-//------------------------------------------------------------------------------------------------------------
-ACurl_Component::ACurl_Component()
- : ID_Content(0), ID_Content_Size(0), ID_Content_Array(0), Url_Site_Name{}, Path_Folder(AsConfig::Path_Sites_Folder)
-{
-	Path_Folder += "anime-bit.bin";  // !!! Temp
-	Load_ID_Content();
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Component::Add_ID_Content(const wchar_t *url)
-{
-	size_t len;
-	size_t converted_chars;
-
-	// Init
-	len = std::wcslen(url) + 1; // + char for \0
-	converted_chars = 0;
-	std::vector<char> chars_buffer(len);
-	wcstombs_s(&converted_chars, chars_buffer.data(), len, url, len - 1);  // wchar_t to char
-
-	// Get ID_Content and return if already exists
-	Find_From_Patern(Url_Site_Name = chars_buffer.data(), "/content/", "/");  // Receive ID_Content
-	ID_Content = std::stoi(Url_Site_Name);
-	for (int i = 0; i <= ID_Content_Size; ++i)  // Check the same value, if find exit from component
-		if (ID_Content_Array[i] == ID_Content)
-			return;
-
-	// Find Site pattern to save in .bin
-	Find_From_Patern(Url_Site_Name = chars_buffer.data(), "https://", ".ru/");  // Receive Url_Site_Name url to create folder
-	if (!std::filesystem::exists(Path_Folder) )
-		std::filesystem::create_directories(AsConfig::Path_Sites_Folder);  // If folder does`nt exist create it
-
-	// Resize buffer
-	ID_Content_Array[ID_Content_Size] = ID_Content;
-	Emplace_ID_Content();  // Save all to files 
-}
-//------------------------------------------------------------------------------------------------------------
-bool ACurl_Component::Get_Url(wchar_t *user_input, const int &id_content_index)
+bool ACurl_Client::CURL_Content_Url_Get(wchar_t *result, const int &id_content_index)
 {
 	std::wstring url;
 
@@ -288,68 +322,15 @@ bool ACurl_Component::Get_Url(wchar_t *user_input, const int &id_content_index)
 		url += std::to_wstring(ID_Content_Array[id_content_index]) + L"/";
 
 	const wchar_t *c_url = url.c_str();
-	wcsncpy_s(user_input, wcslen(c_url) + 1, c_url, wcslen(c_url) );
+	wcsncpy_s(result, wcslen(c_url) + 1, c_url, wcslen(c_url) );
 
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-bool ACurl_Component::Erase_ID_Content(const int &if_not_last_id_content)
+size_t ACurl_Client::CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
-	--ID_Content_Size;  // Get Array Size
-	ID_Content_Array[if_not_last_id_content] = ID_Content_Array[ID_Content_Size--];  // set last to first short
-	Emplace_ID_Content();
-	return true;
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Component::Find_From_Patern(std::string &url, const char *start, const char *end)  // ~80 000
-{
-	size_t start_pos = url.find(start);
-	size_t end_pos;
-	if (start_pos != std::string::npos)
-	{
-		start_pos += std::strlen(start);
-		end_pos = url.find(end, start_pos);
-		if (end_pos != std::string::npos)
-			url = url.substr(start_pos, end_pos - start_pos);
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Component::Emplace_ID_Content()
-{
-	std::ofstream outfile(Path_Folder, std::ios::out | std::ios::binary | std::ios::trunc);
-	if (!outfile)
-		return;
-
-	if (ID_Content_Size != 65535)
-		for (int i = 0; i <= ID_Content_Size; ++i)
-			outfile.write(reinterpret_cast<const char*>(&ID_Content_Array[i]), sizeof(ID_Content_Array[i]) );
-
-	outfile.close();
-	Load_ID_Content();  // Load to increment buffer for content
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Component::Load_ID_Content()
-{
-	unsigned short how_much_g;
-	
-	how_much_g = 0;
-	delete[] ID_Content_Array;
-
-	std::ifstream infile(Path_Folder, std::ios::in | std::ios::binary);
-	if (infile)
-	{
-		infile.seekg(0, std::ios::end);
-		how_much_g = (unsigned short)infile.tellg();
-
-		ID_Content_Size = how_much_g / sizeof(unsigned short);
-
-		infile.seekg(0, std::ios::beg);
-		ID_Content_Array = new unsigned short [ID_Content_Size + 1] {};
-		infile.read(reinterpret_cast<char*>(ID_Content_Array), how_much_g);
-		infile.close();
-	}
-	else
-		ID_Content_Array = new unsigned short[ID_Content_Size + 1] {};
+	size_t written = fwrite(ptr, size, nmemb, stream);
+	return written;
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -375,8 +356,6 @@ AsUI_Builder::~AsUI_Builder()
 	User_Map_Main_Save(Active_Menu = EAM_Exit);  // Exit from Program | if exit save all map
 
 	// 1.5 Free memory
-	delete Curl_Component;
-
 	delete[] Rect_User_Input_Change;
 	delete[] Rect_Buttons_Context;
 	delete[] Rect_Menu_List;
@@ -387,7 +366,7 @@ AsUI_Builder::AsUI_Builder(HDC hdc, const WPARAM &w_param, const LPARAM &l_param
 : Active_Menu(EAM_Main), Ptr_Hdc(hdc), Rect_Menu_List{}, User_Input{}, Rect_Menu_List_Length(0), Rect_Sub_Menu_Length(0), Sub_Menu_Curr_Page(0), Prev_Main_Menu_Button(0),
   Prev_Button(99), Main_Menu_Titles_Length_Max(50), Sub_Menu_Max_Line(31), User_Array_Max_Size(0), Active_Button(EActive_Button::EAB_Main_Menu),
   Active_Page(EActive_Page::EAP_None), User_Input_Rect{}, Rect_User_Input_Change{}, Rect_Buttons_Context{}, Prev_Context_Menu_Cords{},
-  Rect_Pages{}, Input_Button_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Input_Data{}, Curl_Component(0)
+  Rect_Pages{}, Input_Button_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Input_Data{}
 {
 	// !!! Bad Load map from Data/...
 	User_Map_Main_Load(User_Array_Map, "Data/Watching.bin");
@@ -396,7 +375,6 @@ AsUI_Builder::AsUI_Builder(HDC hdc, const WPARAM &w_param, const LPARAM &l_param
 	User_Map_Main_Load(User_Wishlist_Map, "Data/Wishlist.bin");
 
 	Builder_Handler(hdc, EUI_Builder_Handler::Draw_Menu_Main, w_param, l_param);
-	Curl_Component = new ACurl_Component;
 	Rect_User_Input_Change = new RECT[2]{};
 }
 //------------------------------------------------------------------------------------------------------------
@@ -651,7 +629,8 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 			return;
 		} else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Update]) )  // Update Button
 		{
-			Handle_Update_Button();  // While press Update Page
+			Handle_Update_Button_Beta();  // While press Update Page
+			//Handle_Update_Button();  // While press Update Page
 			return;
 		}
 	}
@@ -808,107 +787,101 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_ID_Content(const unsigned short &id_content_index)
-{// !!! Can be broken
-
-	int title_position;
-	SUser_Input_Data converted_data;
-	std::map<std::wstring, SUser_Input_Data>::iterator it;
-	wchar_t *user_input = new wchar_t[AsConfig::User_Input_Buffer]{};
-
-	title_position = 0;
-	it = User_Array_Map.begin();
-
-	Curl_Component->Get_Url(user_input, id_content_index);
-	ACurl_Client reguest(EProgram::ASaver, user_input);
-	User_Input_Convert_Data(converted_data, user_input);  // user_input convert to data
-
-	if (!( (it = User_Array_Map.find(converted_data.Title_Name_Key) ) != User_Array_Map.end() ) )
-	{// Erase ID content index if not in user array map
-
-		Curl_Component->Erase_ID_Content(id_content_index);
-		return;
-	}
-
-	if (converted_data.Title_Num > it->second.Title_Num)
-	{// Find Button position
-
-		for (auto iter = User_Array_Map.begin(); iter != it; ++iter)  // Get 
-			++title_position;
-
-		// 2.1 Setting to redraw button
-		Active_Button = (EActive_Button)title_position;
-		Active_Page = EAP_Update;
-		Handle_Active_Button_Advence();  // !!! Redraw Previus Button bad in this moment
-
-		// 2.2. Set URL to clipboard
-		Curl_Component->Get_Url(user_input, id_content_index);
-		User_Input_Get_From_Clipboard(user_input);
-	}
-}
+//void AsUI_Builder::Handle_ID_Content(const unsigned short &id_content_index)
+//{// !!! Can be broken
+//
+//	int title_position;
+//	SUser_Input_Data converted_data;
+//	std::map<std::wstring, SUser_Input_Data>::iterator it;
+//	wchar_t *user_input = new wchar_t[AsConfig::User_Input_Buffer]{};
+//
+//	title_position = 0;
+//	it = User_Array_Map.begin();
+//
+//	Curl_Component->Get_Url(user_input, id_content_index);
+//	ACurl_Client reguest(EProgram::ASaver, user_input);
+//	User_Input_Convert_Data(converted_data, user_input);  // user_input convert to data
+//
+//	if (!( (it = User_Array_Map.find(converted_data.Title_Name_Key) ) != User_Array_Map.end() ) )
+//	{// Erase ID content index if not in user array map
+//
+//		Curl_Component->Erase_ID_Content(id_content_index);
+//		return;
+//	}
+//
+//	if (converted_data.Title_Num > it->second.Title_Num)
+//	{// Find Button position
+//
+//		for (auto iter = User_Array_Map.begin(); iter != it; ++iter)  // Get 
+//			++title_position;
+//
+//		// 2.1 Setting to redraw button
+//		Active_Button = (EActive_Button)title_position;
+//		Active_Page = EAP_Update;
+//		Handle_Active_Button_Advence();  // !!! Redraw Previus Button bad in this moment
+//
+//		// 2.2. Set URL to clipboard
+//		Curl_Component->Get_Url(user_input, id_content_index);
+//		User_Input_Get_From_Clipboard(user_input);
+//	}
+//}
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Update_Button()
+//void AsUI_Builder::Handle_Update_Button()
+//{
+//	short i;
+//	short thread_count;
+//	short data_index_starts;
+//	short id_content_size;
+//	std::vector<std::thread> threads;
+//
+//	i = 0;
+//	data_index_starts = -1;
+//	id_content_size = Curl_Component->ID_Content_Size;
+//	thread_count = (unsigned short)std::thread::hardware_concurrency();
+//
+//	while (data_index_starts < id_content_size - 1)
+//	{
+//		for (i = 0; i < thread_count; i++)
+//			threads.emplace_back([&]
+//				{
+//					short saved_content_id = data_index_starts;
+//
+//					if (saved_content_id > id_content_size - 2)
+//						return;
+//					else
+//						data_index_starts++;
+//
+//					saved_content_id++;
+//
+//					Handle_ID_Content(saved_content_id);
+//				});
+//
+//		for (std::thread &th : threads)
+//			th.join();
+//		threads.clear();
+//	}
+//
+//	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
+//		return;
+//	else
+//		User_Input[0] = L'\0';
+//
+//}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Update_Button_Beta()
 {
-	short i;
-	short thread_count;
-	short data_index_starts;
-	short id_content_size;
-	std::vector<std::thread> threads;
-
-	i = 0;
-	data_index_starts = -1;
-	id_content_size = Curl_Component->ID_Content_Size;
-	thread_count = (unsigned short)std::thread::hardware_concurrency();
-
-	while (data_index_starts < id_content_size - 1)
-	{
-		for (i = 0; i < thread_count; i++)
-			threads.emplace_back([&]
-				{
-					short saved_content_id = data_index_starts;
-
-					if (saved_content_id > id_content_size - 2)
-						return;
-					else
-						data_index_starts++;
-
-					saved_content_id++;
-
-					Handle_ID_Content(saved_content_id);
-				});
-
-		for (std::thread &th : threads)
-			th.join();
-		threads.clear();
-	}
-
-	//do
-	//{
-	//	for (i = 0; i < thread_count; i++)
-	//		threads.emplace_back([&]
-	//			{
-	//				short saved_content_id = data_index_starts;
-
-	//				if (saved_content_id > id_content_size - 2)
-	//					return;
-	//				else
-	//					data_index_starts++;
-
-	//				saved_content_id++;
-
-	//				Handle_ID_Content(saved_content_id);
-	//			});
-
-	//	for (auto &th : threads)
-	//		th.join();
-	//	threads.clear();
-	//} while (data_index_starts < id_content_size - 1);
-
-	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
-		return;
-	else
-		User_Input[0] = L'\0';
-
+	int yy = 0;
+	// TASKS
+	/*
+		- How to make this in threads, and work fine?
+			- Get ID Content from file
+				- Save ID Content while handle URL
+			- Make from this id url
+			- Use url to get title with num
+			- Convert title with num to struct
+			- Use struct to find same title, and check num
+			- if different higlight new title to watch
+	*/
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Active_Button_Advence()
@@ -1307,18 +1280,17 @@ void AsUI_Builder::User_Input_Handle()
 	wchar_t *url_content;
 	int length;
 
-	// 1.0 Handle User_Input
 	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
-	{// If it`s url check it
+	{// If it`s url use ACurl_Client to Get ID_Content, Get Title + Num + Season
 
 		if (!std::filesystem::exists(AsConfig::Image_Folder) )
-			std::filesystem::create_directories(AsConfig::Image_Folder);  // Create Image Foldore if not exist
+			std::filesystem::create_directories(AsConfig::Image_Folder);
 
+		// If not threaded uselles sections except curl
 		length = (int)wcslen(User_Input) + 1;
 		url_content = new wchar_t[length]{};
-		wcsncpy_s(url_content, length, User_Input, static_cast<rsize_t>(length) - 1);  // cpy url to temporary url_content
+		wcsncpy_s(url_content, length, User_Input, static_cast<rsize_t>(length) - 1);
 
-		Curl_Component->Add_ID_Content(url_content);  // !!! Save url ID init to ACurl_Client
 		ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
 
 		length = (int)wcslen(url_content) + 1;
@@ -1739,7 +1711,7 @@ void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &us
 		}
 		catch (const std::exception &)
 		{
-			std::filesystem::remove("TemporaryName.png");  // !!! Save ID_Content like name to picture, or rename text || Or find invalid, if has check
+			std::filesystem::remove("TemporaryName.png");  // !!! Save ID Content like name to picture, or rename text || Or find invalid, if has check
 		}
 	}
 

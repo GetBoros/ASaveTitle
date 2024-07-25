@@ -28,6 +28,37 @@ ACurl_Client::ACurl_Client(const EProgram &program, wchar_t *&user_input)
 void ACurl_Client::CURL_Handler(wchar_t *&user_input_url)
 {// Handle all CURL
 
+	wchar_t *result = 0;
+
+	std::wstring path_folder = L"Data/";
+
+	AsTools::Format_Url_Sub_WString(user_input_url, L"//", L"/", result);
+	path_folder += result;
+	if(!std::filesystem::exists(path_folder) )
+		if (std::filesystem::create_directories(path_folder) )
+			Temp(path_folder);
+		else
+			return;
+	else
+		Temp_01(path_folder);  // !!! If seccues reading try to parsing url
+	
+	if (true)  // !!! Don`t have patterns we can have a lot of problems
+		return;  // !!! Need change User_Input to 0
+	// Load patterns (path_folder + 1.bin, wchar_t **temp)
+
+	// TASKS
+	/*
+		- Create .txt file with filter example:
+			- title bgn = "user must write here title start after this words"
+				- and else where
+			- while fill and all is alright, read fill array and continue
+			- if not say those to user
+		- Send user massage to fill all new created patterns
+		- Check if already exists setting
+
+		- load pattern for result
+	*/
+
 	// !!! To config
 	const wchar_t title_bgn[] = L"laquo;";
 	const wchar_t title_end[] = L"&raquo";
@@ -325,6 +356,52 @@ bool ACurl_Client::CURL_Content_Url_Get(wchar_t *result, const int &id_content_i
 	wcsncpy_s(result, wcslen(c_url) + 1, c_url, wcslen(c_url) );
 
 	return true;
+}
+//------------------------------------------------------------------------------------------------------------
+void ACurl_Client::Temp(std::wstring &path)
+{
+	int size_needed;
+	std::string string_utf8;
+
+	path += L"/PatternFindConfig.txt";
+	std::ofstream outFile(path, std::ios::binary);
+	if (!outFile)
+		return;
+
+	std::wstring content =
+		L"Open your page with title you want to add and press CTRL + U, Find needed pattern, example bellow\n"
+		L"title_bgn = laquo;\n"
+		L"title_end = &raquo\n"
+		L"title_num_bgn = Серии: [\n"
+		L"title_num_end =  \n"
+		L"image_bgn = <img src='\n"
+		L"image_end = ' width\n";  // !!! Must be const and static in config to change someday 
+
+	size_needed = WideCharToMultiByte(CP_UTF8, 0, content.c_str(), (int)content.size(), 0, 0, 0, 0);
+	string_utf8 = std::string(size_needed, 0);
+	WideCharToMultiByte(CP_UTF8, 0, content.c_str(), (int)content.size(), &string_utf8[0], size_needed, 0, 0);
+	
+	outFile.write(string_utf8.c_str(), string_utf8.size() );
+	outFile.close();
+}
+//------------------------------------------------------------------------------------------------------------
+void ACurl_Client::Temp_01(std::wstring &path)
+{
+	int size_needed;
+	std::string string_from_file;
+	std::wstring wstring_result;
+
+	path += L"/PatternFindConfig.txt";
+	std::ifstream file(path, std::ios::binary);
+	if (!file != 0)
+		return;
+
+	string_from_file = std::string( (std::istreambuf_iterator<char>(file) ), std::istreambuf_iterator<char>() );
+	file.close();
+
+	size_needed = MultiByteToWideChar(CP_UTF8, 0, string_from_file.c_str(), (int)string_from_file.size(), 0, 0);
+	wstring_result = std::wstring(size_needed, 0);
+	MultiByteToWideChar(CP_UTF8, 0, string_from_file.c_str(), (int)string_from_file.size(), &wstring_result[0], size_needed);
 }
 //------------------------------------------------------------------------------------------------------------
 size_t ACurl_Client::CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream)

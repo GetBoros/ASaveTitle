@@ -7,6 +7,55 @@ AsMain *AsMain::Main_Window = 0;
 
 
 
+//------------------------------------------------------------------------------------------------------------
+void Create_File_With_Patterns_Example(const char *path)
+{
+	int size_needed;
+	std::string string_utf8;
+
+	std::ofstream outFile(path, std::ios::binary);
+	if (!outFile)
+		return;
+
+	std::wstring content =
+		L"Open your page with title you want to add and press CTRL + U, Find needed pattern, example bellow\n"
+		L"title_bgn = laquo;\n"
+		L"title_end = &raquo\n"
+		L"title_num_bgn = Серии: [\n"
+		L"title_num_end =  \n"
+		L"image_bgn = <img src='\n"
+		L"image_end = ' width\n";  // !!! Must be const and static in config to change someday 
+
+	size_needed = WideCharToMultiByte(CP_UTF8, 0, content.c_str(), (int)content.size(), 0, 0, 0, 0);
+	string_utf8 = std::string(size_needed, 0);
+	WideCharToMultiByte(CP_UTF8, 0, content.c_str(), (int)content.size(), &string_utf8[0], size_needed, 0, 0);
+	
+	outFile.write(string_utf8.c_str(), string_utf8.size() );
+	outFile.close();
+}
+//------------------------------------------------------------------------------------------------------------
+void Read_File_With_Patterns_Example(const char *path)
+{
+	int size_needed;
+	std::string string_from_file;
+	std::wstring wstring_result;
+
+	std::ifstream file(path, std::ios::binary);
+	if (!file != 0)
+		return;
+
+	string_from_file = std::string( (std::istreambuf_iterator<char>(file) ), std::istreambuf_iterator<char>() );
+	file.close();
+
+	size_needed = MultiByteToWideChar(CP_UTF8, 0, string_from_file.c_str(), (int)string_from_file.size(), 0, 0);
+	wstring_result = std::wstring(size_needed, 0);
+	MultiByteToWideChar(CP_UTF8, 0, string_from_file.c_str(), (int)string_from_file.size(), &wstring_result[0], size_needed);
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
@@ -146,12 +195,12 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case IDM_ABOUT:
-			DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			DialogBox(GetModuleHandle(0), MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
 
 
 		case IDM_SETTINGS:  // My, ctrl alt f do delete all
-			DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			DialogBox(GetModuleHandle(0), MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
 
 

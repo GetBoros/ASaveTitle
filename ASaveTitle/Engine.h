@@ -83,11 +83,13 @@ private:
 	bool CURL_Content_Convert(const std::string &from_str, std::wstring &to_wstring);  // convert std::string to std::wstring
 	bool CURL_Content_Url_Get(wchar_t *result, const int &id_content_index);  // make url, while get index from array
 
+	void Temp(std::wstring &path);
+	void Temp_01(std::wstring &path);
+
 	static size_t CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream);  // Save to file
 
 	unsigned short *ID_Content_Array;  // or use array? xD
 	unsigned short ID_Content_Size;
-
 };
 //------------------------------------------------------------------------------------------------------------
 
@@ -882,7 +884,7 @@ V	- Создать запрет на ввод в меню
 
 V	- Добавлять фильмы, или сериалы.
 */
-// TASKS --- 19.07.2024 --- Current ---
+// TASKS --- 19.07.2024 --- 
 /*
 V	- Use Threads for Update_Button
 V	- Добавить поток, в котором будет обработка curl
@@ -890,10 +892,24 @@ V		- Когда укажут URL при нажатии дважди или ENTER
 V			- По завершению, обновить добавленные данные
 V			- Больше одного сайта или страниц, добавить многопоточность
 */
-// TASKS --- 20.07.2024 --- Current ---
+// TASKS --- 20.07.2024 - 24.07.2024 ---
+/*
+	- Refactoring Curl Class
+*/
+// TASKS --- 25.07.2024 --- Current ---
 /*
 X	- Работа над Паттернами
 		- Создать Config.txt:
+		
+		- Create .txt file with filter example:
+			- title bgn = "user must write here title start after this words"
+				- and else where
+			- while fill and all is alright, read fill array and continue
+			- if not say those to user
+		- Send user massage to fill all new created patterns
+		- Check if already exists setting
+
+		- load pattern for result
 
 X	- ACurl_Component соеденить с ACURL
 

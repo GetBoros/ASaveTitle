@@ -10,7 +10,6 @@ ACurl_Client::ACurl_Client(const EProgram &program, wchar_t *&user_input)
   : ID_Content_Array(0), ID_Content_Size(0)
 {// Setup
 
-
 	switch (program)
 	{
 	case EProgram::Invalid:
@@ -25,65 +24,65 @@ ACurl_Client::ACurl_Client(const EProgram &program, wchar_t *&user_input)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Client::CURL_Handler(wchar_t *&user_input_url)
+bool ACurl_Client::CURL_Handler(wchar_t *&user_input_url)
 {// Handle all CURL
 
-	wchar_t *result = 0;
+	wchar_t *result = 0;  // !!! Clean
+	wchar_t **pattern_array{};  // !!! Clean
 
 	std::wstring path_folder = L"Data/";
 
-	AsTools::Format_Url_Sub_WString(user_input_url, L"//", L"/", result);
-	path_folder += result;
-	if(!std::filesystem::exists(path_folder) )
-		if (std::filesystem::create_directories(path_folder) )
-			Temp(path_folder);
+	AsTools::Format_Url_Sub_WString(user_input_url, L"//", L"/", result);  // Get url title name example animevost.org
+	path_folder += result;  // get path Data/animevost.org to create folder
+	if(!std::filesystem::exists(path_folder) )  // True if first time elsewhere load pattern
+		if (std::filesystem::create_directories(path_folder) )  // Create Folder
+			return CURL_Content_Pattern_Create(path_folder, user_input_url);  // Create Pattern in path_folder
 		else
-			return;
+			return false;
 	else
-		Temp_01(path_folder);  // !!! If seccues reading try to parsing url
-	
-	if (true)  // !!! Don`t have patterns we can have a lot of problems
-		return;  // !!! Need change User_Input to 0
-	// Load patterns (path_folder + 1.bin, wchar_t **temp)
+		if(!CURL_Content_Pattern_Read_File(path_folder) )  // If return true patterns good can do parsing or return
+			return false;  // Don`t do parsing something whent wrong
+		else
+			if(!CURL_Content_Pattern_Get(path_folder, pattern_array) )  // Do Parsing
+				return false;
 
 	// TASKS
 	/*
-		- Create .txt file with filter example:
-			- title bgn = "user must write here title start after this words"
-				- and else where
-			- while fill and all is alright, read fill array and continue
-			- if not say those to user
-		- Send user massage to fill all new created patterns
-		- Check if already exists setting
+	V	- Create .txt file with filter example:
+	V		- title bgn = "user must write here title start after this words"
+	V			- and else where
+	V		- while fill and all is alright, read fill array and continue
+	V		- if not say those to user
+	V	- Send user massage to fill all new created patterns
+	V	- Check if already exists setting
 
-		- load pattern for result
+	V	- load pattern for result
+
+	X	- Problem with loading some site`s picture`s
+	X	- A lot of memory leak, need fat refactoring class CURL_Handler
+
 	*/
 
-	// !!! To config
-	const wchar_t title_bgn[] = L"laquo;";
-	const wchar_t title_end[] = L"&raquo";
-	const wchar_t title_num_bgn[] = L"Серии: [";
-	const wchar_t title_num_end[] = L" ";
-	const wchar_t image_bgn[] = L"<img src='";
-	const wchar_t image_end[] = L"' width";
 	std::wstring content;
 
 	const char *file_name[] = {"Data/Temp/1.bin", "Data/Temp/2.bin", "Data/Temp/3.bin", "Data/Temp/4.bin", "Data/Temp/5.bin", "Data/Temp/6.bin", "Data/Temp/7.bin", "Data/Temp/8.bin", };
 
 	CURL_Content_ID_Load();  // Load ID arra from file
-	CURL_Content_ID_Get(user_input_url);  // Save ID 6669 example
+	//CURL_Content_ID_Get(user_input_url);  // Save ID 6669 example
 
 	if (!CURL_Content_File_Write_To(file_name[0], user_input_url) )  // save url content to file, then handle it
-		return;
+		return false;
 
 	if (!CURL_Content_File_Read_To(file_name[0], content) )  // read from file to wstring
-		return;
+		return false;
 
-	if (!CURL_Content_Pattern_Find_Title(content.c_str(), title_bgn, title_end, title_num_bgn, title_num_end, user_input_url) )
-		return;
+	if (!CURL_Content_Pattern_Find_Title(content.c_str(), pattern_array[0], pattern_array[1], pattern_array[2], pattern_array[3], user_input_url) )
+		return false;
 
-	if (!CURL_Content_Pattern_Find_Image(content.c_str(), image_bgn, image_end) )
-		return;
+	if (!CURL_Content_Pattern_Find_Image(content.c_str(), pattern_array[4], pattern_array[5], result) )  // !!! Don`t work with animevost.org
+		return false;
+
+	return true;
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::CURL_Content_ID_Load()
@@ -177,7 +176,7 @@ bool ACurl_Client::CURL_Content_Pattern_Find_Title(const wchar_t *content, const
 		return false;
 
 	// 1.1. Find Title series bgn end
-	const wchar_t *title_num_bgn = wcsstr(title_name_end, num_bgn) + wcslen(num_bgn);  // Get title num bgn ptr
+	const wchar_t *title_num_bgn = wcsstr(content, num_bgn) + wcslen(num_bgn);  // Get title num bgn ptr
 	if (!title_num_bgn != 0)
 		return false;
 	const wchar_t *title_num_end = wcsstr(title_num_bgn, num_end);  // Get title num end ptr
@@ -199,7 +198,7 @@ bool ACurl_Client::CURL_Content_Pattern_Find_Title(const wchar_t *content, const
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-bool ACurl_Client::CURL_Content_Pattern_Find_Image(const wchar_t *content, const wchar_t *image_bgn, const wchar_t *image_end)
+bool ACurl_Client::CURL_Content_Pattern_Find_Image(const wchar_t *content, const wchar_t *image_bgn, const wchar_t *image_end, const wchar_t *site)
 {
 	char* url;
 	wchar_t* image_url;
@@ -208,7 +207,9 @@ bool ACurl_Client::CURL_Content_Pattern_Find_Image(const wchar_t *content, const
 	CURLcode Response{};
 	FILE* file = 0;
 	CURL* Url_Easy = 0;
-	std::wstring str_to = L"https://anime-bit.ru";
+	std::wstring str_to = L"https://";
+
+	str_to += site;
 
 	const wchar_t *img_source_bgn = wcsstr(content, image_bgn) + wcslen(image_bgn);  // Get title start ptr
 	if (!img_source_bgn != 0)
@@ -299,7 +300,7 @@ bool ACurl_Client::CURL_Content_File_Write_To(const char *file_name, const wchar
 //------------------------------------------------------------------------------------------------------------
 bool ACurl_Client::CURL_Content_File_Read_To(const char *file_name, std::wstring &result)
 {
-	int i = 8;  // Content line from start needed
+	int i = 25;  // Content line from start needed
 	size_t current_line = 0;
 	std::string line;
 	std::string content_data_str;
@@ -310,7 +311,7 @@ bool ACurl_Client::CURL_Content_File_Read_To(const char *file_name, std::wstring
 
 	while (std::getline(file, line) )  // Go to our line
 	{
-		current_line = line.find("<h1>&laquo;");
+		current_line = line.find("<h1>");
 		if (current_line != std::string::npos)
 			break;
 	}
@@ -358,7 +359,7 @@ bool ACurl_Client::CURL_Content_Url_Get(wchar_t *result, const int &id_content_i
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Client::Temp(std::wstring &path)
+bool ACurl_Client::CURL_Content_Pattern_Create(std::wstring &path, wchar_t *user_input)
 {
 	int size_needed;
 	std::string string_utf8;
@@ -366,7 +367,7 @@ void ACurl_Client::Temp(std::wstring &path)
 	path += L"/PatternFindConfig.txt";
 	std::ofstream outFile(path, std::ios::binary);
 	if (!outFile)
-		return;
+		return false;
 
 	std::wstring content =
 		L"Open your page with title you want to add and press CTRL + U, Find needed pattern, example bellow\n"
@@ -383,25 +384,67 @@ void ACurl_Client::Temp(std::wstring &path)
 	
 	outFile.write(string_utf8.c_str(), string_utf8.size() );
 	outFile.close();
+
+	user_input[0] = '\0';
+	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Client::Temp_01(std::wstring &path)
+bool ACurl_Client::CURL_Content_Pattern_Read_File(std::wstring &path)
 {
 	int size_needed;
 	std::string string_from_file;
-	std::wstring wstring_result;
 
 	path += L"/PatternFindConfig.txt";
 	std::ifstream file(path, std::ios::binary);
 	if (!file != 0)
-		return;
+		return false;
 
 	string_from_file = std::string( (std::istreambuf_iterator<char>(file) ), std::istreambuf_iterator<char>() );
 	file.close();
 
 	size_needed = MultiByteToWideChar(CP_UTF8, 0, string_from_file.c_str(), (int)string_from_file.size(), 0, 0);
-	wstring_result = std::wstring(size_needed, 0);
-	MultiByteToWideChar(CP_UTF8, 0, string_from_file.c_str(), (int)string_from_file.size(), &wstring_result[0], size_needed);
+	path.clear();
+	path.resize(size_needed);
+	MultiByteToWideChar(CP_UTF8, 0, string_from_file.c_str(), (int)string_from_file.size(), &path[0], size_needed);
+
+	return true;
+}
+//------------------------------------------------------------------------------------------------------------
+bool ACurl_Client::CURL_Content_Pattern_Get(std::wstring &content_from_file, wchar_t **&result)
+{
+	/*
+		ENUMS?
+		0 - Pattern title BGN
+		1 - Pattern title END
+		2 - Pattern num BGN
+		3 - Pattern num END
+		4 - Image BGN
+		5 - Image END
+	*/
+	result = new wchar_t *[6] {};
+	int index = 0;
+	size_t bgn;
+	size_t end;
+	const wchar_t *patterns[] = { L"title_bgn = ",  L"title_end = ", L"title_num_bgn = ", L"title_num_end = ", L"image_bgn = ", L"image_end = ", L"\n"};
+	const size_t is_content_end = content_from_file.size() - 1;
+	std::wstring strr;
+
+	while (index < 6)
+	{
+		bgn = content_from_file.find(patterns[index]) + wcslen(patterns[index]);
+		end = content_from_file.find(patterns[index + 1], bgn);
+
+		if ( !(is_content_end == end) )
+			end -= 1;
+
+		strr = content_from_file.substr(bgn, end - bgn);  // if last symbol don`t erase 1 char \n
+
+		result[index] = new wchar_t[wcslen(strr.c_str()) + 1] {};
+		wcsncpy_s(result[index], wcslen(strr.c_str() ) + 1, strr.c_str(), wcslen(strr.c_str() ) );
+		index++;
+	}
+
+	return true;
 }
 //------------------------------------------------------------------------------------------------------------
 size_t ACurl_Client::CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream)

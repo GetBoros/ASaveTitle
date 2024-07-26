@@ -70,21 +70,22 @@ public:
 	ACurl_Client(const EProgram &program, wchar_t *&user_input);
 
 private:
-	void CURL_Handler(wchar_t *&user_input_url);  // !!! Need Refactoring
+	bool CURL_Handler(wchar_t *&user_input_url);  // !!! Need Refactoring
 	void CURL_Content_ID_Load();  // Load ID Content from file to Content_Array
 	void CURL_Content_ID_Get(const wchar_t *url);  // get ID from url
 	void CURL_Content_ID_Emplace();
 	bool CURL_Content_ID_Erase(const int &if_not_last_id_content);
 	bool CURL_Content_Pattern_Find_Title(const wchar_t *content, const wchar_t *title_bgn, const wchar_t *title_end, const wchar_t *num_bgn, const wchar_t *num_end, wchar_t *&result);
-	bool CURL_Content_Pattern_Find_Image(const wchar_t *content, const wchar_t *image_bgn, const wchar_t *image_end);
+	bool CURL_Content_Pattern_Find_Image(const wchar_t *content, const wchar_t *image_bgn, const wchar_t *image_end, const wchar_t *site);
 	void CURL_Content_Pattern_Find_From_To(std::string &url, const char *start, const char *end);  // !!! refactoring Make static or 
 	bool CURL_Content_File_Write_To(const char *file_name, const wchar_t *w_user_input_url);  // write page to file
 	bool CURL_Content_File_Read_To(const char *file_name, std::wstring &result);  // read page from file
 	bool CURL_Content_Convert(const std::string &from_str, std::wstring &to_wstring);  // convert std::string to std::wstring
 	bool CURL_Content_Url_Get(wchar_t *result, const int &id_content_index);  // make url, while get index from array
 
-	void Temp(std::wstring &path);
-	void Temp_01(std::wstring &path);
+	bool CURL_Content_Pattern_Create(std::wstring &path, wchar_t *user_input);
+	bool CURL_Content_Pattern_Read_File(std::wstring &path);
+	bool CURL_Content_Pattern_Get(std::wstring &temp_01, wchar_t **&result);
 
 	static size_t CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream);  // Save to file
 
@@ -896,24 +897,27 @@ V			- Больше одного сайта или страниц, добавит
 /*
 	- Refactoring Curl Class
 */
+// TASKS --- 26.07.2024 --- Current ---
+/*
+V	- Create .txt file with filter example:
+V		- title bgn = "user must write here title start after this words"
+V			- and else where
+V		- while fill and all is alright, read fill array and continue
+V		- if not say those to user
+V	- Send user massage to fill all new created patterns
+V	- Check if already exists setting
+
+V	- load pattern for result
+
+X	- Problem with loading some site`s picture`s
+X	- A lot of memory leak, need fat refactoring class CURL_Handler
+
+*/
 // TASKS --- 25.07.2024 --- Current ---
 /*
-X	- Работа над Паттернами
-		- Создать Config.txt:
-		
-		- Create .txt file with filter example:
-			- title bgn = "user must write here title start after this words"
-				- and else where
-			- while fill and all is alright, read fill array and continue
-			- if not say those to user
-		- Send user massage to fill all new created patterns
-		- Check if already exists setting
+V	- ACurl_Component соеденить с ACURL
 
-		- load pattern for result
-
-X	- ACurl_Component соеденить с ACURL
-
-X	- Брать из файла Config pattern для поиска по URL
+V	- Брать из файла Config pattern для поиска по URL
 X	- Проводить тесты, до конца месяца, как работает программа, отлавливать баги и фиксить
 X	- Финальный рефакторинг, переносить по своим .h .cpp
 */

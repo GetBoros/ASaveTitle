@@ -5,6 +5,17 @@
 //------------------------------------------------------------------------------------------------------------
 const int Timer_ID = WM_USER + 1;
 //------------------------------------------------------------------------------------------------------------
+enum class EPatterns_Site : byte
+{
+	Title_Bgn = 0,
+	Title_End,
+	Title_Num_Bgn,
+	Title_Num_End,
+	Image_Bgn,
+	Image_End,
+	Last_Index
+};
+//------------------------------------------------------------------------------------------------------------
 enum class EProgram
 {
 	Invalid = -1,
@@ -70,24 +81,27 @@ public:
 	ACurl_Client(const EProgram &program, wchar_t *&user_input);
 
 private:
-	bool CURL_Handler(wchar_t *&user_input_url);  // !!! Need Refactoring
+	void CURL_Handler(wchar_t *&user_input_url);  // !!! Need Refactoring
+
 	void CURL_Content_ID_Load();  // Load ID Content from file to Content_Array
 	void CURL_Content_ID_Get(const wchar_t *url);  // get ID from url
 	void CURL_Content_ID_Emplace();
 	bool CURL_Content_ID_Erase(const int &if_not_last_id_content);
-	bool CURL_Content_Pattern_Find_Title(const wchar_t *content, const wchar_t *title_bgn, const wchar_t *title_end, const wchar_t *num_bgn, const wchar_t *num_end, wchar_t *&result);
-	bool CURL_Content_Pattern_Find_Image(const wchar_t *content, const wchar_t *image_bgn, const wchar_t *image_end, const wchar_t *site);
 	void CURL_Content_Pattern_Find_From_To(std::string &url, const char *start, const char *end);  // !!! refactoring Make static or 
-	bool CURL_Content_File_Write_To(const char *file_name, const wchar_t *w_user_input_url);  // write page to file
-	bool CURL_Content_File_Read_To(const char *file_name, std::wstring &result);  // read page from file
-	bool CURL_Content_Convert(const std::string &from_str, std::wstring &to_wstring);  // convert std::string to std::wstring
 	bool CURL_Content_Url_Get(wchar_t *result, const int &id_content_index);  // make url, while get index from array
 
-	bool CURL_Content_Pattern_Create(std::wstring &path, wchar_t *user_input);
-	bool CURL_Content_Pattern_Read_File(std::wstring &path);
-	bool CURL_Content_Pattern_Get(std::wstring &temp_01, wchar_t **&result);
+	// GOOD
+	void Pattern_File_Create(std::wstring &path, wchar_t *user_input);  // Create File for user`s can set prefered patterns to curl
+	void Pattern_File_Read(std::wstring &path, wchar_t **&result);  // Read Patterns from file to Patterns Array
+	void CURL_Content_File_Write_To(const wchar_t *w_user_input_url);  // write page to file
+	void CURL_Content_File_Read_To(std::wstring &result);  // read page from file
+	void Pattern_Find_Title(const wchar_t *content, wchar_t *&result);
+	void Pattern_Find_Image(const wchar_t *content, const wchar_t *site);
 
 	static size_t CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream);  // Save to file
+
+	wchar_t *Title_Site;
+	wchar_t **Patterns_Array;
 
 	unsigned short *ID_Content_Array;  // or use array? xD
 	unsigned short ID_Content_Size;

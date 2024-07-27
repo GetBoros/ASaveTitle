@@ -1,6 +1,0 @@
-title_bgn = alt="
-title_end =  / 
-title_num_bgn =  [1-
-title_num_end =  
-image_bgn = imgRadius" src="
-image_end = " alt="

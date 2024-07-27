@@ -35,16 +35,18 @@ public:
 	static const char Path_Sites_Folder[];
 	static const char *Settings[];
 	static const char *Folders_Save[];
+	static const char *Temporary_File_Name[];
 
 	static const int Invalid_Chars_Len = 3;
-	static const wchar_t Seasons[Invalid_Chars_Len];
+	static const int Patterns_Length = 7;
 	static const wchar_t Main_Image_Folder[];
 	static const wchar_t Image_Folder[];
 	static const wchar_t Invalid_Chars_Valid[];
-	static const wchar_t *Invalid_Chars[Invalid_Chars_Len];
 	static const wchar_t *Season_Case_Up[];
 	static const wchar_t *Season_Case_Low[];
 	static const wchar_t *Text_Program_Names[];
+	static const wchar_t *Patterns_Config[Patterns_Length];
+	static const wchar_t Seasons[Invalid_Chars_Len];
 
 	static const int Settings_Size;
 	static const int Max_Loadstring = 100;

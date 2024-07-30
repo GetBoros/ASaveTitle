@@ -356,7 +356,10 @@ void ACurl_Client::Pattern_Find_Image(const wchar_t *content, const wchar_t *sit
 	wcsncpy_s(image_url, image_length, img_source_bgn, static_cast<rsize_t>(image_length - 1) );
 	
 	// 1.2. Create image url full with doment and convert to char
-	str_to = std::wstring(L"https://") + site + image_url;
+	if (wcsstr(site, L"animevost") )  // !!! Need to change, very bad
+		str_to = std::wstring(L"https://static.openni.ru/") + image_url;
+	else
+		str_to = std::wstring(L"https://") + site + image_url;
 	size = WideCharToMultiByte(CP_UTF8, 0, str_to.c_str(), -1, 0, 0, 0, 0);
 	url = new char[size] {};
 	WideCharToMultiByte(CP_UTF8, 0, str_to.c_str(), -1, url, size, 0, 0);
@@ -1397,7 +1400,6 @@ bool AsUI_Builder::User_Input_Set_To_Clipboard()
 	WCHAR *psz_text;
 	if (!OpenClipboard(0) )
 		return false;
-	
 	HANDLE handle_data = GetClipboardData(CF_UNICODETEXT);
 	if (!handle_data != 0)
 		return false;

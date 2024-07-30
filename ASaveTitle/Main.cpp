@@ -1,4 +1,9 @@
 ﻿#include "Main.h"
+#include <iostream>
+#include <array>
+#include <bitset>
+#include <cstddef> // for std::byte
+#include <bit> // for std::bit_cast
 
 // Singlton
 AsMain *AsMain::Main_Window = 0;
@@ -7,9 +12,131 @@ AsMain *AsMain::Main_Window = 0;
 
 
 
+// Examples std::byte 
+template <typename T> void print_bytes(const T& input)
+{
+	//using byte_array = std::array<std::byte, sizeof(T)>;
+
+	std::array<std::byte, sizeof(T)> bytes = std::bit_cast<std::array<std::byte, sizeof(T)> >(input);
+
+	for (std::byte byte : bytes)
+	{
+		auto temp = std::bitset<8>(std::to_integer<unsigned char>(byte) );
+		int yy = 0;
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+static int square(const int &x)
+{
+	return x * x;
+}
+//------------------------------------------------------------------------------------------------------------
+static void func(int *arr)
+{// 10000
+
+	for (int i = 0; i < 1000; ++i)
+		arr[i] = square(i);
+}
+//------------------------------------------------------------------------------------------------------------
+void func_string()
+{
+	//std::string temp("I think that this is not good idea");
+
+	//temp.replace(0, 4, "")
+	//	.replace(temp.find("that", 4, "only")
+	//	.replace(temp.find("this", 6, "");
+
+	std::string temp("I think that this is not good idea");
+
+	temp.replace(0, 5, "")
+		.replace(temp.find("that"), 4, "only")  // Заменяем "that" на "only"
+		.replace(temp.find("this"), 4, ""); // Убираем "this"
+
+	temp += " Hellp";
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+// HUD Examples 1.0. func adress with agruments
+void Say_Hello(int arg)
+{
+	int yy = 0;
+}
+//------------------------------------------------------------------------------------------------------------
+void func_call_another_func(void (*res)(int), int arg)
+{
+	res(arg);
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+// HUD EXAPLES
+void widget_button(uintptr_t func_addr)
+{
+	void ( *restored_func_ptr)() = 0;
+	
+	restored_func_ptr = reinterpret_cast<void ( *) ()> (func_addr);  // cast to void ptr uint from hud class
+
+	restored_func_ptr();  // call
+}
+//------------------------------------------------------------------------------------------------------------
+void widget_hud(uintptr_t func_addr)
+{
+	widget_button(func_addr);
+}
+//------------------------------------------------------------------------------------------------------------
+void func_updataer_hud()
+{
+	// Task call from widget_button
+	int yy = 0;
+}
+//------------------------------------------------------------------------------------------------------------
+void hud()
+{// AsTools tools; 22 000
+
+	
+	uintptr_t func_addr;
+	void ( *ptr_func_update) = 0;
+
+	ptr_func_update = &func_updataer_hud;
+	func_addr = reinterpret_cast<uintptr_t>(ptr_func_update);
+
+	widget_hud(func_addr);
+
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
+	int argument = 42;
+	void ( *ptr_say_hello) (int) = 0;  // void - type || (*ptr_say_hello)  - name ||  (int) - args ||= 0;  = &Say_Hello; - adress ||
+	
+	ptr_say_hello = &Say_Hello;  // set adress
+	func_call_another_func(ptr_say_hello, argument);  // send func_ptr to another function
+
+	// Examples
+	/*
+		hud();
+
+
+	func_string();
+	int arr[1000]{};
+	func(arr);
+
+	return 0;
+		int number = 12345;
+	print_bytes(number); // Пример использования
+
+	unsigned long long value = 0xEFFC4964AE728A01ULL;
+	*/
+
 	AsMain::Main_Window = AsMain::Set_Instance(hinstance);
 	return AsMain::Main_Window->Get_WParam();
 }

@@ -83,28 +83,33 @@ public:
 private:
 	void CURL_Handler(wchar_t *&user_input_url);  // !!! Need Refactoring
 
+	// BAD Refactoring
 	void CURL_Content_ID_Load();  // Load ID Content from file to Content_Array
 	void CURL_Content_ID_Get(const wchar_t *url);  // get ID from url
 	void CURL_Content_ID_Emplace();
 	bool CURL_Content_ID_Erase(const int &if_not_last_id_content);
-	void CURL_Content_Pattern_Find_From_To(std::string &url, const char *start, const char *end);  // !!! refactoring Make static or 
 	bool CURL_Content_Url_Get(wchar_t *result, const int &id_content_index);  // make url, while get index from array
+	void CURL_Content_Pattern_Find_From_To(std::string &url, const char *start, const char *end);  // !!! refactoring Make static or 
 
 	// GOOD
-	void Pattern_File_Create(std::wstring &path, wchar_t *user_input);  // Create File for user`s can set prefered patterns to curl
+	void Pattern_File_Create(wchar_t *user_input);  // Create File for user`s can set prefered patterns to curl
 	void Pattern_File_Read(std::wstring &path, wchar_t **&result);  // Read Patterns from file to Patterns Array
-	void CURL_Content_File_Write_To(const wchar_t *w_user_input_url);  // write page to file
-	void CURL_Content_File_Read_To(std::wstring &result);  // read page from file
 	void Pattern_Find_Title(const wchar_t *content, wchar_t *&result);
-	void Pattern_Find_Image(const wchar_t *content, const wchar_t *site);
+
+	void Download_Image(const wchar_t *content);
+	void Download_URL(const wchar_t *w_user_input_url);  // write page to file
+	void CURL_Content_File_Read_To(std::wstring &result);  // read page from file
 
 	static size_t CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream);  // Save to file
 
 	wchar_t *Title_Site;
+	wchar_t *ID_Content_Folder;
 	wchar_t **Patterns_Array;
 
 	unsigned short *ID_Content_Array;  // or use array? xD
 	unsigned short ID_Content_Size;
+
+	std::wstring *Content_W;
 };
 //------------------------------------------------------------------------------------------------------------
 
@@ -120,7 +125,6 @@ public:
 
 	void Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 
-
 	EActive_Menu Active_Menu;
 	HDC Ptr_Hdc;
 
@@ -131,8 +135,6 @@ private:
 	void Handle_User_Input(const wchar_t &text);  // Add input to User_Input
 	void Handle_RM_Button(const LPARAM &lParam);
 	void Handle_LM_Button(const LPARAM &lParam);
-	//void Handle_ID_Content(const unsigned short &id_content_index);
-	//void Handle_Update_Button();  // Check only Array_Map for title
 	void Handle_Update_Button_Beta();
 	void Handle_Active_Button_Advence();
 	void Handle_Active_Button(const EActive_Button &active_button);  // Redraw Button in current Active Menu

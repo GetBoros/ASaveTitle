@@ -10,18 +10,25 @@ ACurl_Client::~ACurl_Client()
 	delete[] Patterns_Array;
 	delete[] Title_Site;
 	delete[] ID_Content_Array;
+	delete[] ID_Content_Folder;
+
+	delete Content_W;
 }
 //------------------------------------------------------------------------------------------------------------
 ACurl_Client::ACurl_Client(const EProgram &program, wchar_t *&user_input)
-  : Title_Site(0), Patterns_Array{}, ID_Content_Array(0), ID_Content_Size(0)
+  : Title_Site(0), ID_Content_Folder(0), Patterns_Array{}, ID_Content_Array(0), ID_Content_Size(0), Content_W(0)
 {// Setup
+	
+	AsTools::Format_Url_Sub_WString(user_input, L"//", L"/", Title_Site);  // Receive Domain --- animevost.org ---
+	Content_W = new std::wstring(L"Data/") ;
+	*Content_W += Title_Site;  // get path Data/animevost.org to create folder
 
 	switch (program)
 	{
 	case EProgram::Invalid:
 		break;
 	case EProgram::ASaver:
-		CURL_Handler(user_input);
+		CURL_Handler(user_input);  // Init
 		break;
 	case EProgram::ABook_Reader:
 		break;
@@ -32,36 +39,27 @@ ACurl_Client::ACurl_Client(const EProgram &program, wchar_t *&user_input)
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::CURL_Handler(wchar_t *&user_input_url)
 {
-	std::wstring handler;  // !!! Promote to member
-	
-	AsTools::Format_Url_Sub_WString(user_input_url, L"//", L"/", Title_Site);  // Get url title name example animevost.org
-	handler = std::wstring(L"Data/") + Title_Site;  // get path Data/animevost.org to create folder
-	
-	// 1.0. Create Pattern example to folder in program, if pattern good work normal.
-	if(!std::filesystem::exists(handler) )
-		return Pattern_File_Create(handler, user_input_url);
-	else
-		Pattern_File_Read(handler, Patterns_Array);
+	// 1.0. Create Pattern example to folder in program
+	if(!std::filesystem::exists(*Content_W) )
+		return Pattern_File_Create(user_input_url);
 
-	// 1.1. Get title name, season, series + image if can
-	CURL_Content_File_Write_To(user_input_url);  // use url to download content to file || CURL
-	CURL_Content_File_Read_To(handler);  // read from file to wstring
-	Pattern_Find_Title(handler.c_str(), user_input_url);
-	Pattern_Find_Image(handler.c_str(), Title_Site);  // !!! Don`t save image with animevost.org || CURL
+	// 2.0. Get title name, season, series + image if can
+	Pattern_File_Read(*Content_W, Patterns_Array);  // Loaded from file if handler is a path
+	Download_URL(user_input_url);  // use url to download content to file || CURL
+	CURL_Content_File_Read_To(*Content_W);  // read from file to wstring
+	Pattern_Find_Title(Content_W->c_str(), user_input_url);
+	Download_Image(Content_W->c_str() );
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::CURL_Content_ID_Load()
 {
-	unsigned short how_much_g;
-	
-	how_much_g = 0;
-	delete[] ID_Content_Array;
+	delete[] ID_Content_Array;  // !!!
 
-	std::ifstream infile(AsConfig::Path_Sites_Folder, std::ios::in | std::ios::binary);
+	std::ifstream infile(ID_Content_Folder, std::ios::in | std::ios::binary);
 	if (infile)
 	{
 		infile.seekg(0, std::ios::end);
-		how_much_g = (unsigned short)infile.tellg();
+		const unsigned short how_much_g = (unsigned short)infile.tellg();
 
 		ID_Content_Size = how_much_g / sizeof(unsigned short);
 
@@ -71,42 +69,41 @@ void ACurl_Client::CURL_Content_ID_Load()
 		infile.close();
 	}
 	else
-		ID_Content_Array = new unsigned short[ID_Content_Size + 1] {};
+		ID_Content_Array = new unsigned short[ID_Content_Size + 1] {};  // If file don`t exist or can`t open
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::CURL_Content_ID_Get(const wchar_t *url)
 {
+	unsigned short id_content;
 	size_t len;
 	size_t converted_chars;
-	std::string str;
-	unsigned short id_content;
+	std::string handler_str;
+	std::vector<char> chars_buffer;
 
-	// Init
+	// 1.0. Init Params
 	len = std::wcslen(url) + 1; // + char for \0
 	converted_chars = 0;
-	std::vector<char> chars_buffer(len);
-	wcstombs_s(&converted_chars, chars_buffer.data(), len, url, len - 1);  // wchar_t to char
+	chars_buffer.resize(len);
 
-	// Get id content and return if already exists
-	CURL_Content_Pattern_Find_From_To(str = chars_buffer.data(), "/content/", "/");  // Receive ID Content
-	id_content = std::stoi(str);
+	// 1.1. Convert from wchar_t to char
+	wcstombs_s(&converted_chars, chars_buffer.data(), len, url, len - 1);
+	handler_str = chars_buffer.data();
+
+	// 1.1. Get id content and return if already exists
+	CURL_Content_Pattern_Find_From_To(handler_str, "/content/", "/");  // !!! Receive ID Content
+	id_content = std::stoi(handler_str);
 	for (int i = 0; i <= ID_Content_Size; ++i)  // Check the same value, if find exit from component
+	{
 		if (ID_Content_Array[i] == id_content)
 			return;
-
-	// Find Site pattern to save in .bin
-	CURL_Content_Pattern_Find_From_To(str = chars_buffer.data(), "https://", ".ru/");  // Receive Url_Site_Name url to create folder
-	if (!std::filesystem::exists(AsConfig::Path_Sites_Folder) )
-		std::filesystem::create_directories(AsConfig::Path_Sites_Folder);  // If folder does`nt exist create it
-
-	// Resize buffer
+	}
 	ID_Content_Array[ID_Content_Size] = id_content;
-	CURL_Content_ID_Emplace();  // Save all to files 
+	CURL_Content_ID_Emplace();  // Save all to files && Resize buffer
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::CURL_Content_ID_Emplace()
 {
-	std::ofstream outfile(AsConfig::Path_Sites_Folder, std::ios::out | std::ios::binary | std::ios::trunc);
+	std::ofstream outfile(ID_Content_Folder, std::ios::out | std::ios::binary | std::ios::trunc);
 	if (!outfile)
 		return;
 
@@ -122,21 +119,8 @@ bool ACurl_Client::CURL_Content_ID_Erase(const int &if_not_last_id_content)
 {
 	--ID_Content_Size;  // Get Array Size
 	ID_Content_Array[if_not_last_id_content] = ID_Content_Array[ID_Content_Size--];  // set last to first short
-	CURL_Content_ID_Emplace();
+	//CURL_Content_ID_Emplace();
 	return true;
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Client::CURL_Content_Pattern_Find_From_To(std::string &url, const char *start, const char *end)  // ~80 000
-{
-	size_t start_pos = url.find(start);
-	size_t end_pos;
-	if (start_pos != std::string::npos)
-	{
-		start_pos += std::strlen(start);
-		end_pos = url.find(end, start_pos);
-		if (end_pos != std::string::npos)
-			url = url.substr(start_pos, end_pos - start_pos);
-	}
 }
 //------------------------------------------------------------------------------------------------------------
 bool ACurl_Client::CURL_Content_Url_Get(wchar_t *result, const int &id_content_index)
@@ -160,34 +144,45 @@ bool ACurl_Client::CURL_Content_Url_Get(wchar_t *result, const int &id_content_i
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Client::Pattern_File_Create(std::wstring &path, wchar_t *user_input)
+void ACurl_Client::CURL_Content_Pattern_Find_From_To(std::string &url, const char *start, const char *end)  // ~80 000
 {
-	int size_needed;
-	std::string string_utf8;
+	size_t start_pos;
+	size_t end_pos;
 
-	const wchar_t source_pattern[] = L"title_bgn = laquo;\ntitle_end = &raquo\ntitle_num_bgn = Серии: [\ntitle_num_end =  \nimage_bgn = <img src='\nimage_end = ' width\n";
-	const int source_pattern_size = (int)wcslen(source_pattern);
-
-	if (!std::filesystem::create_directories(path) )
+	start_pos = url.find(start);  // Find index at str pattern
+	if ( !(start_pos != std::string::npos) )  // Return if not found
 		return;
 
-	path += L"/PatternFindConfig.txt";
-	std::ofstream outFile(path, std::ios::binary);
+	start_pos += std::strlen(start);  // Add to index str pattern length
+	end_pos = url.find(end, start_pos);  // find end pattern from str pattern position
+	if (end_pos != std::string::npos)
+		url = url.substr(start_pos, end_pos - start_pos);  // get string from bgn and end patterns
+}
+//------------------------------------------------------------------------------------------------------------
+void ACurl_Client::Pattern_File_Create(wchar_t *user_input)
+{
+	char *c_char;
+	const wchar_t source_pattern[] = L"title_bgn = laquo;\ntitle_end = &raquo\ntitle_num_bgn = Серии: [\ntitle_num_end =  \nimage_bgn = <img src='\nimage_end = ' width\n";
+
+	if (!std::filesystem::create_directories(*Content_W) )
+		return;
+
+	*Content_W += L"/PatternFindConfig.txt";
+	std::ofstream outFile(*Content_W, std::ios::binary);
 	if (!outFile)
 		return;
 
-	size_needed = WideCharToMultiByte(CP_UTF8, 0, source_pattern, source_pattern_size, 0, 0, 0, 0);
-	string_utf8 = std::string(size_needed, 0);
-	WideCharToMultiByte(CP_UTF8, 0, source_pattern, source_pattern_size, &string_utf8[0], size_needed, 0, 0);
-	
-	outFile.write(string_utf8.c_str(), string_utf8.size() );
+	AsTools::Format_Wide_Char_To_Char(source_pattern, c_char);
+	outFile.write(c_char, strlen(c_char) );
 	outFile.close();
 
+	delete[] c_char;
 	user_input[0] = '\0';
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::Pattern_File_Read(std::wstring &path, wchar_t **&result)
-{
+{// !!! Need refactoring
+
 	int size_needed;
 	int index;
 	size_t bgn;
@@ -198,7 +193,7 @@ void ACurl_Client::Pattern_File_Read(std::wstring &path, wchar_t **&result)
 
 	result = new wchar_t *[pattern_length] {};
 	index = 0;
-	path += L"/PatternFindConfig.txt";
+	*Content_W += L"/PatternFindConfig.txt";
 
 	// 1.0. Read from file to string
 	std::ifstream file(path, std::ios::binary);
@@ -220,7 +215,7 @@ void ACurl_Client::Pattern_File_Read(std::wstring &path, wchar_t **&result)
 		bgn = path.find(AsConfig::Patterns_Config[index]) + wcslen(AsConfig::Patterns_Config[index]);
 		end = path.find(AsConfig::Patterns_Config[index + 1], bgn);
 
-		if ( !(size_needed == end) )
+		if (!(size_needed == end))
 			end -= 1;  // if last symbol don`t erase 1 char \n
 
 		wstring_t = path.substr(bgn, end - bgn);
@@ -230,7 +225,75 @@ void ACurl_Client::Pattern_File_Read(std::wstring &path, wchar_t **&result)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Client::CURL_Content_File_Write_To(const wchar_t *w_user_input_url)
+void ACurl_Client::Pattern_Find_Title(const wchar_t *content, wchar_t *&result)
+{
+	int title_name_length;
+	int title_nums_len;
+	wchar_t *num_start;
+
+	// 1.0. Find Title Name bgn end
+	const wchar_t *title_name_bgn = wcsstr(content, Patterns_Array[(int)EPatterns_Site::Title_Bgn]) + wcslen(Patterns_Array[(int)EPatterns_Site::Title_Bgn]);
+	if (!title_name_bgn != 0)
+		return;
+	const wchar_t *title_name_end = wcsstr(title_name_bgn, Patterns_Array[(int)EPatterns_Site::Title_End]);  // Get title end ptr
+	if (!title_name_end != 0)
+		return;
+
+	// 1.1. Find Title series bgn end
+	const wchar_t *title_num_bgn = wcsstr(content, Patterns_Array[(int)EPatterns_Site::Title_Num_Bgn]) + wcslen(Patterns_Array[(int)EPatterns_Site::Title_Num_Bgn]);
+	if (!title_num_bgn != 0)
+		return;
+	const wchar_t *title_num_end = wcsstr(title_num_bgn, Patterns_Array[(int)EPatterns_Site::Title_Num_End]);
+	if (!title_num_end != 0)
+		return;
+
+	// 2.0. Set Title and season to result
+	title_name_length = (int)(title_name_end - title_name_bgn) + 1;  // Get title name and season length
+	title_nums_len = (int)(title_num_end - title_num_bgn) + 1;  // Get title numbers length(series)
+	result = new wchar_t[title_name_length + title_nums_len]{};  // mallocate for full user input
+	wcsncpy_s(result, title_name_length, title_name_bgn, static_cast<rsize_t>(title_name_length - 1) );
+
+	// 2.1. Set Title num(series) to result
+	num_start = result + title_name_length - 1;  // find where we need to start put nums
+	num_start[0] = L' ';  // remove '\0' to space
+	num_start++;  // to next index
+	wcsncpy_s(num_start, title_nums_len, title_num_bgn, static_cast<rsize_t>(title_nums_len - 1) );
+}
+//------------------------------------------------------------------------------------------------------------
+void ACurl_Client::Download_Image(const wchar_t *content)
+{
+	char *c_url;
+	wchar_t *w_url;
+	const wchar_t *bgn = Patterns_Array[(int)EPatterns_Site::Image_Bgn];
+	const wchar_t *end = Patterns_Array[(int)EPatterns_Site::Image_End];
+	FILE *file;
+	CURL *url_easy;
+	CURLcode response;
+	std::wstring w_str_url;
+	
+	// 1.2. Create image url full with doment and convert to char
+	AsTools::Format_Url_Sub_WString(content, bgn, end, w_url);
+	w_str_url = std::wstring(L"https://") + Title_Site + w_url;
+	AsTools::Format_Wide_Char_To_Char(w_str_url.c_str(), c_url);
+
+	// 1.3. Init and Download
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+	url_easy = curl_easy_init();
+
+	fopen_s(&file, "TemporaryName.png", "wb");
+	curl_easy_setopt(url_easy, CURLOPT_URL, c_url);  // save img
+	curl_easy_setopt(url_easy, CURLOPT_WRITEFUNCTION, CURL_Content_Write_Data);
+	curl_easy_setopt(url_easy, CURLOPT_WRITEDATA, file);
+	response = curl_easy_perform(url_easy);  // Download image to file
+	
+	if (file != 0)
+		fclose(file);
+	curl_easy_cleanup(url_easy);
+	delete[] c_url;
+	delete[] w_url;
+}
+//------------------------------------------------------------------------------------------------------------
+void ACurl_Client::Download_URL(const wchar_t *w_user_input_url)
 {
 	char *url;
 	int size = 0;
@@ -238,12 +301,7 @@ void ACurl_Client::CURL_Content_File_Write_To(const wchar_t *w_user_input_url)
 	CURLcode res;
 	FILE *file;
 
-	if (!std::filesystem::exists("Data/") )
-		std::filesystem::create_directories("Data/");
-
-	size = WideCharToMultiByte(CP_UTF8, 0, w_user_input_url, -1, 0, 0, 0, 0);
-	url = new char[size]{};
-	WideCharToMultiByte(CP_UTF8, 0, w_user_input_url, -1, url, size, 0, 0);
+	AsTools::Format_Wide_Char_To_Char(w_user_input_url, url);
 
 	curl = curl_easy_init();  // Init
 	fopen_s(&file, AsConfig::Temporary_File_Name[0], "wb");
@@ -290,96 +348,6 @@ void ACurl_Client::CURL_Content_File_Read_To(std::wstring &result)
 	index = MultiByteToWideChar(CP_UTF8, 0, &content_data_str[0], (int)content_data_str.size(), 0, 0);
 	result = std::wstring(index, 0);
 	MultiByteToWideChar(CP_UTF8, 0, &content_data_str[0], (int)content_data_str.size(), &result[0], index);
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Client::Pattern_Find_Title(const wchar_t *content, wchar_t *&result)
-{
-	int title_name_length;
-	int title_nums_len;
-	wchar_t *num_start;
-
-	// 1.0. Find Title Name bgn end
-	const wchar_t *title_name_bgn = wcsstr(content, Patterns_Array[(int)EPatterns_Site::Title_Bgn]) + wcslen(Patterns_Array[(int)EPatterns_Site::Title_Bgn]);
-	if (!title_name_bgn != 0)
-		return;
-	const wchar_t *title_name_end = wcsstr(title_name_bgn, Patterns_Array[(int)EPatterns_Site::Title_End]);  // Get title end ptr
-	if (!title_name_end != 0)
-		return;
-
-	// 1.1. Find Title series bgn end
-	const wchar_t *title_num_bgn = wcsstr(content, Patterns_Array[(int)EPatterns_Site::Title_Num_Bgn]) + wcslen(Patterns_Array[(int)EPatterns_Site::Title_Num_Bgn]);
-	if (!title_num_bgn != 0)
-		return;
-	const wchar_t *title_num_end = wcsstr(title_num_bgn, Patterns_Array[(int)EPatterns_Site::Title_Num_End]);
-	if (!title_num_end != 0)
-		return;
-
-	// 2.0. Set Title and season to result
-	title_name_length = (int)(title_name_end - title_name_bgn) + 1;  // Get title name and season length
-	title_nums_len = (int)(title_num_end - title_num_bgn) + 1;  // Get title numbers length(series)
-	result = new wchar_t[title_name_length + title_nums_len]{};  // mallocate for full user input
-	wcsncpy_s(result, title_name_length, title_name_bgn, static_cast<rsize_t>(title_name_length - 1) );
-
-	// 2.1. Set Title num(series) to result
-	num_start = result + title_name_length - 1;  // find where we need to start put nums
-	num_start[0] = L' ';  // remove '\0' to space
-	num_start++;  // to next index
-	wcsncpy_s(num_start, title_nums_len, title_num_bgn, static_cast<rsize_t>(title_nums_len - 1) );
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Client::Pattern_Find_Image(const wchar_t *content, const wchar_t *site)
-{
-	char *url;
-	wchar_t *image_url;
-	int image_length;
-	int size;
-	CURLcode response;
-	FILE *file;
-	CURL *url_easy;
-	std::wstring str_to;
-
-	file = 0;
-	url_easy = 0;
-	response = {};
-
-	// 1.0 Find image source beging and end
-	const wchar_t *img_source_bgn = wcsstr(content, Patterns_Array[(int)EPatterns_Site::Image_Bgn]) + wcslen(Patterns_Array[(int)EPatterns_Site::Image_Bgn]);
-	if (!img_source_bgn != 0)
-		return;
-	const wchar_t *img_source_end = wcsstr(img_source_bgn, Patterns_Array[(int)EPatterns_Site::Image_End]);
-	if (!img_source_end != 0)
-		return;
-
-	// 1.1. Create image url wstring without domen
-	image_length = (int)(img_source_end - img_source_bgn) + 1;
-	image_url = new wchar_t[image_length]{};
-	wcsncpy_s(image_url, image_length, img_source_bgn, static_cast<rsize_t>(image_length - 1) );
-	
-	// 1.2. Create image url full with doment and convert to char
-	if (wcsstr(site, L"animevost") )  // !!! Need to change, very bad
-		str_to = std::wstring(L"https://static.openni.ru/") + image_url;
-	else
-		str_to = std::wstring(L"https://") + site + image_url;
-	size = WideCharToMultiByte(CP_UTF8, 0, str_to.c_str(), -1, 0, 0, 0, 0);
-	url = new char[size] {};
-	WideCharToMultiByte(CP_UTF8, 0, str_to.c_str(), -1, url, size, 0, 0);
-
-	// INIT CURL
-	curl_global_init(CURL_GLOBAL_DEFAULT);
-	url_easy = curl_easy_init();
-
-	fopen_s(&file, "TemporaryName.png", "wb");
-	curl_easy_setopt(url_easy, CURLOPT_URL, url);  // save img
-	curl_easy_setopt(url_easy, CURLOPT_WRITEFUNCTION, CURL_Content_Write_Data);
-	curl_easy_setopt(url_easy, CURLOPT_WRITEDATA, file);
-	response = curl_easy_perform(url_easy);  // Download image to file
-	
-	// Clear
-	if (file != 0)
-		fclose(file);
-	curl_easy_cleanup(url_easy);
-	delete[] url;
-	delete[] image_url;
 }
 //------------------------------------------------------------------------------------------------------------
 size_t ACurl_Client::CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream)
@@ -841,87 +809,6 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 		}
 	}
 }
-//------------------------------------------------------------------------------------------------------------
-//void AsUI_Builder::Handle_ID_Content(const unsigned short &id_content_index)
-//{// !!! Can be broken
-//
-//	int title_position;
-//	SUser_Input_Data converted_data;
-//	std::map<std::wstring, SUser_Input_Data>::iterator it;
-//	wchar_t *user_input = new wchar_t[AsConfig::User_Input_Buffer]{};
-//
-//	title_position = 0;
-//	it = User_Array_Map.begin();
-//
-//	Curl_Component->Get_Url(user_input, id_content_index);
-//	ACurl_Client reguest(EProgram::ASaver, user_input);
-//	User_Input_Convert_Data(converted_data, user_input);  // user_input convert to data
-//
-//	if (!( (it = User_Array_Map.find(converted_data.Title_Name_Key) ) != User_Array_Map.end() ) )
-//	{// Erase ID content index if not in user array map
-//
-//		Curl_Component->Erase_ID_Content(id_content_index);
-//		return;
-//	}
-//
-//	if (converted_data.Title_Num > it->second.Title_Num)
-//	{// Find Button position
-//
-//		for (auto iter = User_Array_Map.begin(); iter != it; ++iter)  // Get 
-//			++title_position;
-//
-//		// 2.1 Setting to redraw button
-//		Active_Button = (EActive_Button)title_position;
-//		Active_Page = EAP_Update;
-//		Handle_Active_Button_Advence();  // !!! Redraw Previus Button bad in this moment
-//
-//		// 2.2. Set URL to clipboard
-//		Curl_Component->Get_Url(user_input, id_content_index);
-//		User_Input_Get_From_Clipboard(user_input);
-//	}
-//}
-//------------------------------------------------------------------------------------------------------------
-//void AsUI_Builder::Handle_Update_Button()
-//{
-//	short i;
-//	short thread_count;
-//	short data_index_starts;
-//	short id_content_size;
-//	std::vector<std::thread> threads;
-//
-//	i = 0;
-//	data_index_starts = -1;
-//	id_content_size = Curl_Component->ID_Content_Size;
-//	thread_count = (unsigned short)std::thread::hardware_concurrency();
-//
-//	while (data_index_starts < id_content_size - 1)
-//	{
-//		for (i = 0; i < thread_count; i++)
-//			threads.emplace_back([&]
-//				{
-//					short saved_content_id = data_index_starts;
-//
-//					if (saved_content_id > id_content_size - 2)
-//						return;
-//					else
-//						data_index_starts++;
-//
-//					saved_content_id++;
-//
-//					Handle_ID_Content(saved_content_id);
-//				});
-//
-//		for (std::thread &th : threads)
-//			th.join();
-//		threads.clear();
-//	}
-//
-//	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
-//		return;
-//	else
-//		User_Input[0] = L'\0';
-//
-//}
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Update_Button_Beta()
 {

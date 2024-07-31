@@ -54,3 +54,17 @@ void AsTools::Format_Url_Sub_String(const char *content, const char *bgn, const 
 	strncpy_s(result, title_length, title_str, static_cast<rsize_t>(title_length - 1) );
 }
 //------------------------------------------------------------------------------------------------------------
+void AsTools::Format_Wide_Char_To_Char(const wchar_t *w_char, char *&result)
+{
+	const int size = WideCharToMultiByte(CP_UTF8, 0, w_char, -1, 0, 0, 0, 0);
+	result = new char[size] {};
+	WideCharToMultiByte(CP_UTF8, 0, w_char, -1, result, size, 0, 0);
+}
+//------------------------------------------------------------------------------------------------------------
+void AsTools::Format_Char_To_Wide_Char(const char *c_char, wchar_t *&result)
+{
+	const int size = MultiByteToWideChar(CP_UTF8, 0, c_char, -1, 0, 0);
+	result = new wchar_t[size] {};
+	MultiByteToWideChar(CP_UTF8, 0, c_char, -1, result, size);
+}
+//------------------------------------------------------------------------------------------------------------

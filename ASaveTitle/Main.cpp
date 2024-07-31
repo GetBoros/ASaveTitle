@@ -115,11 +115,11 @@ void hud()
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	int argument = 42;
-	void ( *ptr_say_hello) (int) = 0;  // void - type || (*ptr_say_hello)  - name ||  (int) - args ||= 0;  = &Say_Hello; - adress ||
-	
-	ptr_say_hello = &Say_Hello;  // set adress
-	func_call_another_func(ptr_say_hello, argument);  // send func_ptr to another function
+	//int argument = 42;
+	//void ( *ptr_say_hello) (int) = 0;  // void - type || (*ptr_say_hello)  - name ||  (int) - args ||= 0;  = &Say_Hello; - adress ||
+	//
+	//ptr_say_hello = &Say_Hello;  // set adress
+	//func_call_another_func(ptr_say_hello, argument);  // send func_ptr to another function
 
 	// Examples
 	/*

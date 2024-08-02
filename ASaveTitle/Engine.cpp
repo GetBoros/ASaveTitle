@@ -46,9 +46,22 @@ void ACurl_Client::CURL_Handler(wchar_t *&user_input_url)
 	// 2.0. Get title name, season, series + image if can
 	Pattern_File_Read(*Content_W, Patterns_Array);  // Loaded from file if handler is a path
 	Download_URL(user_input_url);  // use url to download content to file || CURL
-	CURL_Content_File_Read_To(*Content_W);  // read from file to wstring
-	Pattern_Find_Title(Content_W->c_str(), user_input_url);
-	Download_Image(Content_W->c_str() );
+	Read_From_File();  // read from file to wstring
+	Find_Title_From_File(user_input_url);
+	Download_Image();
+	/*
+	
+	Get_Patterns
+	Get_URL_Data
+	Get_Contents
+	Get_Title
+	Get_Image
+
+	File_Upload
+	File_Read
+	File_Title_Get
+	File_Image_Get
+	*/
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::CURL_Content_ID_Load()
@@ -225,72 +238,42 @@ void ACurl_Client::Pattern_File_Read(std::wstring &path, wchar_t **&result)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Client::Pattern_Find_Title(const wchar_t *content, wchar_t *&result)
+void ACurl_Client::Find_Title_From_File(wchar_t *&result)
 {
 	int title_name_length;
 	int title_nums_len;
-	wchar_t *num_start;
+	const wchar_t *bgn_title = Patterns_Array[(int)EPatterns_Site::Title_Bgn];
+	const wchar_t *end_title = Patterns_Array[(int)EPatterns_Site::Title_End];
+	const wchar_t *bgn_nums = Patterns_Array[(int)EPatterns_Site::Title_Num_Bgn];
+	const wchar_t *end_nums = Patterns_Array[(int)EPatterns_Site::Title_Num_End];
 
 	// 1.0. Find Title Name bgn end
-	const wchar_t *title_name_bgn = wcsstr(content, Patterns_Array[(int)EPatterns_Site::Title_Bgn]) + wcslen(Patterns_Array[(int)EPatterns_Site::Title_Bgn]);
+	const wchar_t *title_name_bgn = wcsstr(Content_W->c_str(), bgn_title) + wcslen(bgn_title);
 	if (!title_name_bgn != 0)
 		return;
-	const wchar_t *title_name_end = wcsstr(title_name_bgn, Patterns_Array[(int)EPatterns_Site::Title_End]);  // Get title end ptr
+	const wchar_t *title_name_end = wcsstr(title_name_bgn, end_title);  // Get title end ptr
 	if (!title_name_end != 0)
 		return;
 
 	// 1.1. Find Title series bgn end
-	const wchar_t *title_num_bgn = wcsstr(content, Patterns_Array[(int)EPatterns_Site::Title_Num_Bgn]) + wcslen(Patterns_Array[(int)EPatterns_Site::Title_Num_Bgn]);
+	const wchar_t *title_num_bgn = wcsstr(Content_W->c_str(), bgn_nums) + wcslen(bgn_nums);
 	if (!title_num_bgn != 0)
 		return;
-	const wchar_t *title_num_end = wcsstr(title_num_bgn, Patterns_Array[(int)EPatterns_Site::Title_Num_End]);
+	const wchar_t *title_num_end = wcsstr(title_num_bgn, end_nums);
 	if (!title_num_end != 0)
 		return;
 
 	// 2.0. Set Title and season to result
 	title_name_length = (int)(title_name_end - title_name_bgn) + 1;  // Get title name and season length
 	title_nums_len = (int)(title_num_end - title_num_bgn) + 1;  // Get title numbers length(series)
-	result = new wchar_t[title_name_length + title_nums_len]{};  // mallocate for full user input
-	wcsncpy_s(result, title_name_length, title_name_bgn, static_cast<rsize_t>(title_name_length - 1) );
+	wcsncpy_s(result, title_name_length, title_name_bgn, (rsize_t)title_name_length - 1);
 
 	// 2.1. Set Title num(series) to result
-	num_start = result + title_name_length - 1;  // find where we need to start put nums
-	num_start[0] = L' ';  // remove '\0' to space
-	num_start++;  // to next index
-	wcsncpy_s(num_start, title_nums_len, title_num_bgn, static_cast<rsize_t>(title_nums_len - 1) );
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Client::Download_Image(const wchar_t *content)
-{
-	char *c_url;
-	wchar_t *w_url;
-	const wchar_t *bgn = Patterns_Array[(int)EPatterns_Site::Image_Bgn];
-	const wchar_t *end = Patterns_Array[(int)EPatterns_Site::Image_End];
-	FILE *file;
-	CURL *url_easy;
-	CURLcode response;
-	std::wstring w_str_url;
-	
-	// 1.2. Create image url full with doment and convert to char
-	AsTools::Format_Url_Sub_WString(content, bgn, end, w_url);
-	w_str_url = std::wstring(L"https://") + Title_Site + w_url;
-	AsTools::Format_Wide_Char_To_Char(w_str_url.c_str(), c_url);
-
-	// 1.3. Init and Download
-	curl_global_init(CURL_GLOBAL_DEFAULT);
-	url_easy = curl_easy_init();
-
-	fopen_s(&file, "TemporaryName.png", "wb");
-	curl_easy_setopt(url_easy, CURLOPT_URL, c_url);  // save img
-	curl_easy_setopt(url_easy, CURLOPT_WRITEFUNCTION, CURL_Content_Write_Data);
-	curl_easy_setopt(url_easy, CURLOPT_WRITEDATA, file);
-	response = curl_easy_perform(url_easy);  // Download image to file
-	
-	if (file != 0)
-		fclose(file);
-	curl_easy_cleanup(url_easy);
-	delete[] c_url;
-	delete[] w_url;
+	result += title_name_length - 1;  // find where we need to start put nums
+	result[0] = L' ';  // remove '\0' to space
+	result++;  // to next index
+	wcsncpy_s(result, title_nums_len, title_num_bgn, (rsize_t)title_nums_len - 1);
+	result -= title_name_length;
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::Download_URL(const wchar_t *w_user_input_url)
@@ -317,7 +300,7 @@ void ACurl_Client::Download_URL(const wchar_t *w_user_input_url)
 	delete[] url;
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Client::CURL_Content_File_Read_To(std::wstring &result)
+void ACurl_Client::Read_From_File()
 {
 	int index;
 	size_t current_line;
@@ -326,6 +309,8 @@ void ACurl_Client::CURL_Content_File_Read_To(std::wstring &result)
 
 	index = 25;  // Content line from start needed
 	current_line = 0;
+	delete Content_W;
+
 	std::ifstream file(AsConfig::Temporary_File_Name[0], std::ios::binary);
 	if (!file)
 		return;
@@ -344,10 +329,43 @@ void ACurl_Client::CURL_Content_File_Read_To(std::wstring &result)
 	if (content_data_str.empty() )
 		return;
 
-	// 1.2. Conver from string to wstring and return like result
+	// !!! 1.2. Conver from string to wstring and return like result || Make AsTools
 	index = MultiByteToWideChar(CP_UTF8, 0, &content_data_str[0], (int)content_data_str.size(), 0, 0);
-	result = std::wstring(index, 0);
-	MultiByteToWideChar(CP_UTF8, 0, &content_data_str[0], (int)content_data_str.size(), &result[0], index);
+	Content_W = new std::wstring(index, 0);
+	MultiByteToWideChar(CP_UTF8, 0, &content_data_str[0], (int)content_data_str.size(), &(*Content_W)[0], index);
+}
+//------------------------------------------------------------------------------------------------------------
+void ACurl_Client::Download_Image()
+{
+	char *c_url;
+	wchar_t *w_url;
+	const wchar_t *bgn = Patterns_Array[(int)EPatterns_Site::Image_Bgn];
+	const wchar_t *end = Patterns_Array[(int)EPatterns_Site::Image_End];
+	FILE *file;
+	CURL *url_easy;
+	CURLcode response;
+	std::wstring w_str_url;
+	
+	// 1.2. Create image url full with doment and convert to char
+	AsTools::Format_Url_Sub_WString(Content_W->c_str(), bgn, end, w_url);
+	w_str_url = std::wstring(L"https://") + Title_Site + w_url;
+	AsTools::Format_Wide_Char_To_Char(w_str_url.c_str(), c_url);
+
+	// 1.3. Init and Download
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+	url_easy = curl_easy_init();
+
+	fopen_s(&file, "TemporaryName.png", "wb");
+	curl_easy_setopt(url_easy, CURLOPT_URL, c_url);  // save img
+	curl_easy_setopt(url_easy, CURLOPT_WRITEFUNCTION, CURL_Content_Write_Data);
+	curl_easy_setopt(url_easy, CURLOPT_WRITEDATA, file);
+	response = curl_easy_perform(url_easy);  // Download image to file
+	
+	if (file != 0)
+		fclose(file);
+	curl_easy_cleanup(url_easy);
+	delete[] c_url;
+	delete[] w_url;
 }
 //------------------------------------------------------------------------------------------------------------
 size_t ACurl_Client::CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream)

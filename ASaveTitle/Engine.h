@@ -94,11 +94,11 @@ private:
 	// GOOD
 	void Pattern_File_Create(wchar_t *user_input);  // Create File for user`s can set prefered patterns to curl
 	void Pattern_File_Read(std::wstring &path, wchar_t **&result);  // Read Patterns from file to Patterns Array
-	void Pattern_Find_Title(const wchar_t *content, wchar_t *&result);
+	void Find_Title_From_File(wchar_t *&result);
 
-	void Download_Image(const wchar_t *content);
 	void Download_URL(const wchar_t *w_user_input_url);  // write page to file
-	void CURL_Content_File_Read_To(std::wstring &result);  // read page from file
+	void Read_From_File();  // read page from file
+	void Download_Image();
 
 	static size_t CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream);  // Save to file
 
@@ -913,7 +913,7 @@ V			- Больше одного сайта или страниц, добавит
 /*
 	- Refactoring Curl Class
 */
-// TASKS --- 26.07.2024 --- Current ---
+// TASKS --- 26.07.2024 ---
 /*
 V	- Create .txt file with filter example:
 V		- title bgn = "user must write here title start after this words"
@@ -929,15 +929,18 @@ X	- Problem with loading some site`s picture`s
 X	- A lot of memory leak, need fat refactoring class CURL_Handler
 
 */
-// TASKS --- 25.07.2024 --- Current ---
+// TASKS --- 25.07.2024 - 01.08.2024 ---
 /*
 V	- ACurl_Component соеденить с ACURL
 
 V	- Брать из файла Config pattern для поиска по URL
-X	- Проводить тесты, до конца месяца, как работает программа, отлавливать баги и фиксить
+V	- Проводить тесты, до конца месяца, как работает программа, отлавливать баги и фиксить
 X	- Финальный рефакторинг, переносить по своим .h .cpp
 */
+// TASKS --- 02.08.2024 --- Current ---
+/*
 
+*/
 
 // TASKS
 /*

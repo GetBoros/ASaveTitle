@@ -81,9 +81,10 @@ public:
 	ACurl_Client(const EProgram &program, wchar_t *&user_input);
 
 private:
-	void CURL_Handler(wchar_t *&user_input_url);  // !!! Need Refactoring
+	void Init();
+	void CURL_Handler();  // !!! Need Refactoring
 
-	// BAD Refactoring
+	// BAD Refactoring || Save Content ID, Idea to recreate url and parsing site to check updates
 	void CURL_Content_ID_Load();  // Load ID Content from file to Content_Array
 	void CURL_Content_ID_Get(const wchar_t *url);  // get ID from url
 	void CURL_Content_ID_Emplace();
@@ -91,22 +92,21 @@ private:
 	bool CURL_Content_Url_Get(wchar_t *result, const int &id_content_index);  // make url, while get index from array
 	void CURL_Content_Pattern_Find_From_To(std::string &url, const char *start, const char *end);  // !!! refactoring Make static or 
 
-	// GOOD
-	void Pattern_File_Create(wchar_t *user_input);  // Create File for user`s can set prefered patterns to curl
-	void Pattern_File_Read(std::wstring &path, wchar_t **&result);  // Read Patterns from file to Patterns Array
-	void Find_Title_From_File(wchar_t *&result);
-
-	void Download_URL(const wchar_t *w_user_input_url);  // write page to file
-	void Read_From_File();  // read page from file
-	void Download_Image();
+	// Done | Parsing Site, Get Title Name(num, season) and Download Image
+	void Add_Pattern_File();  // Create File for user`s can set prefered patterns to curl || 164
+	void Get_Patterns();  // Try to receive valid patterns from file, if bad string next func died
+	void Get_URL_Data();  // Download content to file from user url, need to find needet data
+	void Get_Contents();  // Use pattern to find title name, nums, season and image domain
+	void Get_Title();  // Send(format) to Title_Result finale result if patterns was good
+	void Get_Image();  // Download image to temporary folder and file, don`t care about to save || 362
 
 	static size_t CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream);  // Save to file
 
-	wchar_t *Title_Site;
+	wchar_t **Patterns_Array;  // Stored patterns from file, which user can formad, need to get titles, images 
+	wchar_t *Title_Result;  // return result to called object
+	wchar_t *Title_Site;  // Just need to store site url, download image
 	wchar_t *ID_Content_Folder;
-	wchar_t **Patterns_Array;
-
-	unsigned short *ID_Content_Array;  // or use array? xD
+	unsigned short *ID_Content_Array;
 	unsigned short ID_Content_Size;
 
 	std::wstring *Content_W;

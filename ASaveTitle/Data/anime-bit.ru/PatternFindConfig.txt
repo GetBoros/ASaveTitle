@@ -1,3 +1,4 @@
+Open your page with title you want to add and press CTRL + U, Find needed pattern, example bellow
 title_bgn = laquo;
 title_end = &raquo
 title_num_bgn = Серии: [

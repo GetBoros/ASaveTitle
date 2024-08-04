@@ -1,21 +1,22 @@
 #include "AsConfig.h"
 
 // AsConfig
-
-
 const char AsConfig::Dictionary_Main_Folder[] = "Map.bin";
+const char AsConfig::Image_Name_File[] = "TemporaryName.png";
 const char AsConfig::Path_Saves_Folder[] = "Data/";
-const char AsConfig::Path_Sites_Folder[] = "Data/Sites/anime-bit.bin";
+const char AsConfig::Pattern_Default[] = "title_bgn = laquo;\ntitle_end = &raquo\ntitle_num_bgn = Серии: [\ntitle_num_end =  \nimage_bgn = <img src='\nimage_end = ' width\n";
 const char *AsConfig::Settings[] = { "Standart Background = ;", "Coordinates = ;", "Something Else = ;" };
 const char *AsConfig::Folders_Save[] = { "Watching.bin", "Library.bin", "Paused.bin", "Wishlist.bin" };
 const char *AsConfig::Temporary_File_Name[] = {"Data/1.bin", "Data/2.bin", "Data/3.bin", "Data/4.bin", "Data/5.bin", "Data/6.bin", "Data/7.bin", "Data/8.bin", };
 
+const wchar_t AsConfig::Pattern_Default_Bin[] = L"Url.bin";
+const wchar_t AsConfig::Pattern_Default_TXT[] = L"/PatternFindConfig.txt";
 const wchar_t AsConfig::Main_Image_Folder[] = L"Main_Image.png";
 const wchar_t AsConfig::Image_Folder[] = L"Pictures/";
-const wchar_t AsConfig::Invalid_Chars_Valid[] = { L',', L'е', L'е' };
 const wchar_t *AsConfig::Season_Case_Up[] = { L"I", L"II", L"III", L"IV", L"V", L"VI", L"VII", L"VIII", L"IX", L"X" };
 const wchar_t *AsConfig::Season_Case_Low[] = { L"i", L"ii", L"iii", L"iv", L"v", L"vi", L"vii", L"viii", L"ix", L"x" };
 const wchar_t *AsConfig::Text_Program_Names[] = {L"Saver", L"Book Reader", L"Invalid"};
+const wchar_t *AsConfig::Protocols[] = { L"https://", L"http://" };
 const wchar_t *AsConfig::Patterns_Config[] = { L"title_bgn = ",  L"title_end = ", L"title_num_bgn = ", L"title_num_end = ", L"image_bgn = ", L"image_end = ", L"\n" };
 const wchar_t AsConfig::Seasons[] = { 'I', 'V', 'X' };
 

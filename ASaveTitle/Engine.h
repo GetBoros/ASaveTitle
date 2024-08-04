@@ -80,34 +80,28 @@ public:
 	~ACurl_Client();
 	ACurl_Client(const EProgram &program, wchar_t *&user_input);
 
+	bool Erase_ID(const int &if_not_last_id_content);  // !!! Not Used
+	bool Make_URL(wchar_t *result, const int &id_content_index);  // !!! Not used
+
 private:
 	void Init();
 	void CURL_Handler();  // !!! Need Refactoring
 
-	// BAD Refactoring || Save Content ID, Idea to recreate url and parsing site to check updates
-	void CURL_Content_ID_Load();  // Load ID Content from file to Content_Array
-	void CURL_Content_ID_Get(const wchar_t *url);  // get ID from url
-	void CURL_Content_ID_Emplace();
-	bool CURL_Content_ID_Erase(const int &if_not_last_id_content);
-	bool CURL_Content_Url_Get(wchar_t *result, const int &id_content_index);  // make url, while get index from array
-	void CURL_Content_Pattern_Find_From_To(std::string &url, const char *start, const char *end);  // !!! refactoring Make static or 
-
 	// Done | Parsing Site, Get Title Name(num, season) and Download Image
 	void Add_Pattern_File();  // Create File for user`s can set prefered patterns to curl || 164
+	void Get_ID();  // Handle ID_Content_Array | Save / Load Array | Resize Array | Tested only Anime-bit
 	void Get_Patterns();  // Try to receive valid patterns from file, if bad string next func died
-	void Get_URL_Data();  // Download content to file from user url, need to find needet data
+	void Get_URL_Data() const;  // Download content to file from user url, need to find needet data | CURL
 	void Get_Contents();  // Use pattern to find title name, nums, season and image domain
 	void Get_Title();  // Send(format) to Title_Result finale result if patterns was good
-	void Get_Image();  // Download image to temporary folder and file, don`t care about to save || 362
+	void Get_Image();  // Download image to temporary folder and file, don`t care about to save  | CURL || 362
+	static size_t Write_To_File(void *ptr, size_t size, size_t nmemb, FILE *stream);  // Save to file
 
-	static size_t CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream);  // Save to file
-
+	unsigned short ID_Content_Size;
+	unsigned short *ID_Content_Array;  // All saved ID_Content, Handle by Get_ID
 	wchar_t **Patterns_Array;  // Stored patterns from file, which user can formad, need to get titles, images 
 	wchar_t *Title_Result;  // return result to called object
 	wchar_t *Title_Site;  // Just need to store site url, download image
-	wchar_t *ID_Content_Folder;
-	unsigned short *ID_Content_Array;
-	unsigned short ID_Content_Size;
 
 	std::wstring *Content_W;
 };
@@ -197,7 +191,6 @@ private:
 	std::thread Thread_Second;
 	std::thread Thread_Third;
 	std::thread Thread_Fourth;
-	std::mutex Mutex_Lock;
 
 	static int Context_Button_Length;
 	static int User_Input_Len;  // count user input after press enter set to zero
@@ -937,16 +930,25 @@ V	- Брать из файла Config pattern для поиска по URL
 V	- Проводить тесты, до конца месяца, как работает программа, отлавливать баги и фиксить
 X	- Финальный рефакторинг, переносить по своим .h .cpp
 */
-// TASKS --- 02.08.2024 --- Current ---
+// TASKS --- 02.08.2024 - 03.08.2024 ---
+/*
+V	- Refactoring CURL
+*/
+// TASKS --- 04.08.2024 --- Current ---
 /*
 
+V	-	Problem with current page
+V		- Fixed, architecture sucks, also need refactoring
+V	- Threads load files, 4m Tacts
 */
 
-// TASKS
+// MAIN TASKS
 /*
 --- MOST WANTED ---
 X	- Добавиить опцию, увиличение шрифта?
 		- Не тяжело но нужно ли
+
+X	- Добавить отоборжение страниц?
 
 --- Optional ---
 X	- Добавить функционал сохранения даты последнего редактирувания

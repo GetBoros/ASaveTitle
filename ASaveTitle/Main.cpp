@@ -137,8 +137,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_
 	unsigned long long value = 0xEFFC4964AE728A01ULL;
 	*/
 
-	AsMain::Main_Window = AsMain::Set_Instance(hinstance);
-	return AsMain::Main_Window->Get_WParam();
+	//AsMain::Main_Window = AsMain::Set_Instance(hinstance);
+	//return AsMain::Main_Window->Get_WParam();
+	return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -181,10 +182,10 @@ int AsMain::Get_WParam()
 //------------------------------------------------------------------------------------------------------------
 AsMain *AsMain::Set_Instance(HINSTANCE handle_instance)
 {
-	if (Main_Window == 0)
-		Main_Window = new AsMain(handle_instance);
-
-	return Main_Window;
+	if (Main_Window != 0)
+		return Main_Window;
+	else
+		return Main_Window = new AsMain(handle_instance);
 }
 //------------------------------------------------------------------------------------------------------------
 bool AsMain::Init_Instance()
@@ -240,24 +241,20 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 	case WM_PAINT:
-		if (AsMain::Main_Window == 0)
-			return !InvalidateRect(hWnd, 0, FALSE);  // if Main Window don`t created
-		else
+		if (AsMain::Main_Window != 0)
 			AsMain::Main_Window->Engine.Draw_Frame_ASaver(hWnd);
+		else
+			return !InvalidateRect(hWnd, 0, FALSE);  // if Main Window don`t created
 		break;
 
-	case WM_CHAR:  // !!! Do something with Clipboard
-	{
-		AsMain::Main_Window->Engine.Redraw_Frame(wParam == 13 ? EUI_Builder_Handler::Draw_Menu_Sub : EUI_Builder_Handler::Draw_User_Input_Button, wParam, lParam);
 
-		if (GetKeyState(VK_CONTROL) & 0x8000 && wParam == 22)  // Is ctrl + v or just handle w_char
-			AsMain::Main_Window->Engine.Get_Clipboard_From_Else();
-	}
-	break;
+	case WM_CHAR:
+		AsMain::Main_Window->Engine.Redraw_Frame(wParam == 13 ? EUI_Builder_Handler::Draw_Menu_Sub : EUI_Builder_Handler::Draw_User_Input_Button, wParam, lParam);  // if Enter
+		break;
 
 
 	case WM_LBUTTONDOWN:
-		AsMain::Main_Window->Engine.Redraw_Frame(EUI_Builder_Handler::Handle_Mouse_LButton, wParam, lParam);  // Call WM_PAINT to redraw || // 0x5095
+		AsMain::Main_Window->Engine.Redraw_Frame(EUI_Builder_Handler::Handle_Mouse_LButton, wParam, lParam);
 		break;
 
 
@@ -267,10 +264,7 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 	case WM_COMMAND:
-	{
-		int wmId = LOWORD(wParam);
-		// Parse the menu selections:
-		switch (wmId)
+		switch (const int wmId = LOWORD(wParam) )
 		{
 		case IDM_ABOUT:
 			DialogBox(GetModuleHandle(0), MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -289,8 +283,7 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
-	}
-	break;
+		break;
 
 
 	case WM_DESTROY:

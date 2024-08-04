@@ -2,27 +2,6 @@
 
 #include "AsTools.h"
 
-enum class EConfig_Params : int
-{
-	ECP_Standart_Background,
-	ECP_Coordinates,
-	ECP_Something_Else
-};
-
-enum class EDictionary_Ñhar : int
-{
-	EDC_None = -1,
-	EDC_A = 65,
-
-	EDC_P = 80,
-
-	EDC_Z = 90,
-	EDC_End = 99
-};
-
-
-
-
 // AsConfig
 class AsConfig
 {
@@ -31,20 +10,23 @@ public:
 	AsConfig();
 
 	static const char Dictionary_Main_Folder[];
+	static const char Image_Name_File[];
 	static const char Path_Saves_Folder[];
-	static const char Path_Sites_Folder[];
+	static const char Pattern_Default[];
 	static const char *Settings[];
 	static const char *Folders_Save[];
 	static const char *Temporary_File_Name[];
 
 	static const int Invalid_Chars_Len = 3;
 	static const int Patterns_Length = 7;
+	static const wchar_t Pattern_Default_Bin[];
+	static const wchar_t Pattern_Default_TXT[];
 	static const wchar_t Main_Image_Folder[];
 	static const wchar_t Image_Folder[];
-	static const wchar_t Invalid_Chars_Valid[];
 	static const wchar_t *Season_Case_Up[];
 	static const wchar_t *Season_Case_Low[];
 	static const wchar_t *Text_Program_Names[];
+	static const wchar_t *Protocols[];
 	static const wchar_t *Patterns_Config[Patterns_Length];
 	static const wchar_t Seasons[Invalid_Chars_Len];
 

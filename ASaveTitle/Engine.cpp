@@ -10,13 +10,12 @@ ACurl_Client::~ACurl_Client()
 	delete[] Patterns_Array;
 	delete[] Title_Site;
 	delete[] ID_Content_Array;
-	delete[] ID_Content_Folder;
 
 	delete Content_W;
 }
 //------------------------------------------------------------------------------------------------------------
 ACurl_Client::ACurl_Client(const EProgram &program, wchar_t *&user_input)
-  : Title_Result(user_input), Patterns_Array{}, Title_Site(0), ID_Content_Folder(0), ID_Content_Array(0), ID_Content_Size(0), Content_W(0)
+  : ID_Content_Size(0), ID_Content_Array(0), Patterns_Array{}, Title_Result(user_input), Title_Site(0), Content_W(0)
 {
 	Init();
 
@@ -36,9 +35,10 @@ ACurl_Client::ACurl_Client(const EProgram &program, wchar_t *&user_input)
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::Init()
 {
-	AsTools::Format_Url_Sub_WString(Title_Result, L"//", L"/", Title_Site);  // Receive Domain --- animevost.org ---
+	AsTools::Format_Sub_WString(Title_Result, L"//", L"/", Title_Site);  // Receive Domain --- animevost.org ---
 	Content_W = new std::wstring(L"Data/") ;
 	*Content_W += Title_Site;  // get path Data/animevost.org to create folder
+	*Content_W += L"/";
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::CURL_Handler()
@@ -46,6 +46,8 @@ void ACurl_Client::CURL_Handler()
 	if(!std::filesystem::exists(*Content_W) )  // If new site create pattern in file, need handle it personal
 		return Add_Pattern_File();
 
+	// Get ID Title, Season, Num and download image to file
+	Get_ID();
 	Get_Patterns();
 	Get_URL_Data();
 	Get_Contents();
@@ -53,71 +55,7 @@ void ACurl_Client::CURL_Handler()
 	Get_Image();
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Client::CURL_Content_ID_Load()
-{
-	delete[] ID_Content_Array;  // !!!
-
-	std::ifstream infile(ID_Content_Folder, std::ios::in | std::ios::binary);
-	if (infile)
-	{
-		infile.seekg(0, std::ios::end);
-		const unsigned short how_much_g = (unsigned short)infile.tellg();
-
-		ID_Content_Size = how_much_g / sizeof(unsigned short);
-
-		infile.seekg(0, std::ios::beg);
-		ID_Content_Array = new unsigned short [ID_Content_Size + 1] {};
-		infile.read(reinterpret_cast<char*>(ID_Content_Array), how_much_g);
-		infile.close();
-	}
-	else
-		ID_Content_Array = new unsigned short[ID_Content_Size + 1] {};  // If file don`t exist or can`t open
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Client::CURL_Content_ID_Get(const wchar_t *url)
-{
-	unsigned short id_content;
-	size_t len;
-	size_t converted_chars;
-	std::string handler_str;
-	std::vector<char> chars_buffer;
-
-	// 1.0. Init Params
-	len = std::wcslen(url) + 1; // + char for \0
-	converted_chars = 0;
-	chars_buffer.resize(len);
-
-	// 1.1. Convert from wchar_t to char
-	wcstombs_s(&converted_chars, chars_buffer.data(), len, url, len - 1);
-	handler_str = chars_buffer.data();
-
-	// 1.1. Get id content and return if already exists
-	CURL_Content_Pattern_Find_From_To(handler_str, "/content/", "/");  // !!! Receive ID Content
-	id_content = std::stoi(handler_str);
-	for (int i = 0; i <= ID_Content_Size; ++i)  // Check the same value, if find exit from component
-	{
-		if (ID_Content_Array[i] == id_content)
-			return;
-	}
-	ID_Content_Array[ID_Content_Size] = id_content;
-	CURL_Content_ID_Emplace();  // Save all to files && Resize buffer
-}
-//------------------------------------------------------------------------------------------------------------
-void ACurl_Client::CURL_Content_ID_Emplace()
-{
-	std::ofstream outfile(ID_Content_Folder, std::ios::out | std::ios::binary | std::ios::trunc);
-	if (!outfile)
-		return;
-
-	if (ID_Content_Size != 65535)
-		for (int i = 0; i <= ID_Content_Size; ++i)
-			outfile.write(reinterpret_cast<const char*>(&ID_Content_Array[i]), sizeof(ID_Content_Array[i]) );
-
-	outfile.close();
-	CURL_Content_ID_Load();  // Load to increment buffer for content
-}
-//------------------------------------------------------------------------------------------------------------
-bool ACurl_Client::CURL_Content_ID_Erase(const int &if_not_last_id_content)
+bool ACurl_Client::Erase_ID(const int &if_not_last_id_content)
 {
 	--ID_Content_Size;  // Get Array Size
 	ID_Content_Array[if_not_last_id_content] = ID_Content_Array[ID_Content_Size--];  // set last to first short
@@ -125,7 +63,7 @@ bool ACurl_Client::CURL_Content_ID_Erase(const int &if_not_last_id_content)
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-bool ACurl_Client::CURL_Content_Url_Get(wchar_t *result, const int &id_content_index)
+bool ACurl_Client::Make_URL(wchar_t *result, const int &id_content_index)
 {
 	std::wstring url;
 
@@ -146,40 +84,73 @@ bool ACurl_Client::CURL_Content_Url_Get(wchar_t *result, const int &id_content_i
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Client::CURL_Content_Pattern_Find_From_To(std::string &url, const char *start, const char *end)  // ~80 000
-{
-	size_t start_pos;
-	size_t end_pos;
-
-	start_pos = url.find(start);  // Find index at str pattern
-	if ( !(start_pos != std::string::npos) )  // Return if not found
-		return;
-
-	start_pos += std::strlen(start);  // Add to index str pattern length
-	end_pos = url.find(end, start_pos);  // find end pattern from str pattern position
-	if (end_pos != std::string::npos)
-		url = url.substr(start_pos, end_pos - start_pos);  // get string from bgn and end patterns
-}
-//------------------------------------------------------------------------------------------------------------
 void ACurl_Client::Add_Pattern_File()
 {
-	char *c_char;
-	const wchar_t source_pattern[] = L"title_bgn = laquo;\ntitle_end = &raquo\ntitle_num_bgn = Серии: [\ntitle_num_end =  \nimage_bgn = <img src='\nimage_end = ' width\n";
-
 	if (!std::filesystem::create_directories(*Content_W) )
 		return;
 
-	*Content_W += L"/PatternFindConfig.txt";
-	std::ofstream outFile(*Content_W, std::ios::binary);
-	if (!outFile)
+	*Content_W += AsConfig::Pattern_Default_TXT;
+	std::ofstream write_file(*Content_W, std::ios::binary);
+	if (!write_file)
 		return;
 
-	AsTools::Format_Wide_Char_To_Char(source_pattern, c_char);
-	outFile.write(c_char, strlen(c_char) );
-	outFile.close();
+	write_file.write(AsConfig::Pattern_Default, strlen(AsConfig::Pattern_Default) );
+	write_file.close();
 
-	delete[] c_char;
-	Title_Result[0] = '\0';
+	Title_Result[0] = '\0';  // !!! Need to say user what need format .txt to set patterns
+}
+//------------------------------------------------------------------------------------------------------------
+void ACurl_Client::Get_ID()
+{
+	char *c_id_content_data;
+	char *c_id_content;
+	unsigned short i;
+	unsigned short index_counter;
+
+	i = 0;
+	index_counter = 0;
+	if (ID_Content_Array != 0)
+		delete[] ID_Content_Array;
+
+	// 1.0. Read from file binary & Init ID_Content_Array
+	std::ifstream read_file(*Content_W + AsConfig::Pattern_Default_Bin, std::ios::in | std::ios::binary);
+	if (read_file)
+	{
+		read_file.seekg(0, std::ios::end);
+		index_counter = (unsigned short)read_file.tellg();
+		ID_Content_Size = index_counter / sizeof(unsigned short);
+		read_file.seekg(0, std::ios::beg);
+		
+		ID_Content_Array = new unsigned short [ID_Content_Size + 1] {};
+		read_file.read(reinterpret_cast<char *>(ID_Content_Array), index_counter);
+		read_file.close();
+	}
+	else
+		ID_Content_Array = new unsigned short[ID_Content_Size + 1] {};  // If file don`t exist or can`t open
+
+	// 1.1. Extract ID_Content // !!! Must be personal for each site
+	AsTools::Format_Wide_Char_To_Char(Title_Result, c_id_content_data);
+	AsTools::Format_Sub_String(c_id_content_data, "/content/", "/", c_id_content);
+	index_counter = std::stoi(c_id_content);  // Get ID_Content
+
+	// 1.2. If find same id content don`t add new
+	for (i = 0; i <= ID_Content_Size; ++i)  // while?
+		if (ID_Content_Array[i] == index_counter)
+			return;
+	ID_Content_Array[ID_Content_Size] = index_counter;
+
+	// 1.3. Save to file ID_Content_Array if not max size
+	std::ofstream write_file(*Content_W + AsConfig::Pattern_Default_Bin, std::ios::out | std::ios::binary | std::ios::trunc);
+	if (write_file)
+	{
+		if (ID_Content_Size != 65535)
+			for (i = 0; i <= ID_Content_Size; ++i)
+				write_file.write(reinterpret_cast<const char *>(&ID_Content_Array[i]), sizeof(ID_Content_Array[i]) );
+		write_file.close();
+	}
+
+	delete[] c_id_content;
+	delete[] c_id_content_data;
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::Get_Patterns()
@@ -196,7 +167,7 @@ void ACurl_Client::Get_Patterns()
 	Patterns_Array = new wchar_t *[pattern_length] {};
 	w_string_length = 0;
 	index = 0;
-	*Content_W += L"/PatternFindConfig.txt";
+	*Content_W += AsConfig::Pattern_Default_TXT;
 
 	// 1.0. Read from file to string_from_file
 	std::ifstream file(*Content_W, std::ios::binary);
@@ -230,7 +201,7 @@ void ACurl_Client::Get_Patterns()
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void ACurl_Client::Get_URL_Data()
+void ACurl_Client::Get_URL_Data() const
 {
 	char *url;
 	int size;
@@ -244,7 +215,7 @@ void ACurl_Client::Get_URL_Data()
 	fopen_s(&file, AsConfig::Temporary_File_Name[0], "wb");
 
 	curl_easy_setopt(curl, CURLOPT_URL, url);  // Options
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CURL_Content_Write_Data);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Write_To_File);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
 	res = curl_easy_perform(curl);
 	
@@ -287,7 +258,7 @@ void ACurl_Client::Get_Contents()
 	// !!! 1.2. Conver from string to wstring and return like result || Make AsTools
 	line_to_save = MultiByteToWideChar(CP_UTF8, 0, &content_from_file[0], (int)content_from_file.size(), 0, 0);
 	Content_W = new std::wstring(line_to_save, 0);
-	MultiByteToWideChar(CP_UTF8, 0, &content_from_file[0], (int)content_from_file.size(), &(*Content_W)[0], line_to_save);
+	MultiByteToWideChar(CP_UTF8, 0, &content_from_file[0], (int)content_from_file.size(), &(*Content_W)[0], line_to_save);  // !!! &(*Content_W)[0] Inresting moment
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::Get_Title()
@@ -339,18 +310,18 @@ void ACurl_Client::Get_Image()
 	CURLcode response;
 	std::wstring w_str_url;
 	
-	// 1.2. Create image url full with doment and convert to char
-	AsTools::Format_Url_Sub_WString(Content_W->c_str(), bgn, end, w_url);
-	w_str_url = std::wstring(L"https://") + Title_Site + w_url;
+	// 1.2. Create image url full with domein and convert to char
+	AsTools::Format_Sub_WString(Content_W->c_str(), bgn, end, w_url);
+	w_str_url = std::wstring(AsConfig::Protocols[0]) + Title_Site + w_url;
 	AsTools::Format_Wide_Char_To_Char(w_str_url.c_str(), c_url);
 
 	// 1.3. Init and Download
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 	url_easy = curl_easy_init();
 
-	fopen_s(&file, "TemporaryName.png", "wb");
+	fopen_s(&file, AsConfig::Image_Name_File, "wb");
 	curl_easy_setopt(url_easy, CURLOPT_URL, c_url);  // save img
-	curl_easy_setopt(url_easy, CURLOPT_WRITEFUNCTION, CURL_Content_Write_Data);
+	curl_easy_setopt(url_easy, CURLOPT_WRITEFUNCTION, Write_To_File);
 	curl_easy_setopt(url_easy, CURLOPT_WRITEDATA, file);
 	response = curl_easy_perform(url_easy);  // Download image to file
 	
@@ -361,7 +332,7 @@ void ACurl_Client::Get_Image()
 	delete[] w_url;
 }
 //------------------------------------------------------------------------------------------------------------
-size_t ACurl_Client::CURL_Content_Write_Data(void *ptr, size_t size, size_t nmemb, FILE *stream)
+size_t ACurl_Client::Write_To_File(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
 	size_t written = fwrite(ptr, size, nmemb, stream);
 	return written;
@@ -402,11 +373,17 @@ AsUI_Builder::AsUI_Builder(HDC hdc, const WPARAM &w_param, const LPARAM &l_param
   Active_Page(EActive_Page::EAP_None), User_Input_Rect{}, Rect_User_Input_Change{}, Rect_Buttons_Context{}, Prev_Context_Menu_Cords{},
   Rect_Pages{}, Input_Button_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Input_Data{}
 {
-	// !!! Bad Load map from Data/...
-	User_Map_Main_Load(User_Array_Map, "Data/Watching.bin");
-	User_Map_Main_Load(User_Library_Map, "Data/Library.bin");
-	User_Map_Main_Load(User_Paused_Map, "Data/Paused.bin");
-	User_Map_Main_Load(User_Wishlist_Map, "Data/Wishlist.bin");
+	AsTools tool;  // !!!
+
+	Thread_First = std::thread([&]() { User_Map_Main_Load(User_Array_Map, "Data/Watching.bin"); });
+	Thread_Second = std::thread([&]() { User_Map_Main_Load(User_Library_Map, "Data/Library.bin"); });
+	Thread_Third = std::thread([&]() { User_Map_Main_Load(User_Paused_Map, "Data/Paused.bin"); });
+	Thread_Fourth = std::thread([&]() { User_Map_Main_Load(User_Wishlist_Map, "Data/Wishlist.bin"); });
+
+	Thread_First.join();
+	Thread_Second.join();
+	Thread_Third.join();
+	Thread_Fourth.join();
 
 	Builder_Handler(hdc, EUI_Builder_Handler::Draw_Menu_Main, w_param, l_param);
 	Rect_User_Input_Change = new RECT[2]{};
@@ -653,12 +630,12 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 		{
 			Sub_Menu_Curr_Page++;
 			Draw_Menu_Sub(Active_Menu);
-			
+			int yy = (int)Active_Menu;
 			Active_Menu = EAM_Main;
 			if (Active_Button != (EActive_Button)-1)
 				Draw_User_Input_Request();
 			
-			Active_Menu = EAM_Watching;
+			Active_Menu = (EActive_Menu)yy;
 
 			return;
 		} else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Update]) )  // Update Button
@@ -846,7 +823,7 @@ void AsUI_Builder::Handle_Active_Button_Advence()
 	Draw_User_Input_Request();  // Draw Requests and clear prev requests
 
 	std::wstring image_path = AsConfig::Image_Folder + It_Current_User->second.Title_Name_Key + L".png";
-	Draw_User_Title_Image(image_path.c_str());  // Initialize Title Image Folder
+	Draw_User_Title_Image(image_path.c_str() );  // Initialize Title Image Folder
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Active_Button(const EActive_Button &active_button)
@@ -999,7 +976,6 @@ void AsUI_Builder::Draw_User_Title_Image(const wchar_t *image_path) const
 
 		img_cords.right = width;  // 415
 		img_cords.bottom = height;  // 636
-
 
 		StretchDIBits(Ptr_Hdc, img_cords.left, img_cords.top, img_cords.right, img_cords.bottom, 0, 0, width, height, img->pixels, &bmi, DIB_RGB_COLORS, SRCCOPY);
 	}
@@ -1233,7 +1209,7 @@ void AsUI_Builder::User_Input_Handle()
 	wchar_t *url_content;
 	int length;
 
-	if (wcsstr(User_Input, L"http://") != 0 || wcsstr(User_Input, L"https://") != 0)
+	if (wcsstr(User_Input, AsConfig::Protocols[0]) != 0 || wcsstr(User_Input, AsConfig::Protocols[1]) != 0)
 	{// If it`s url use ACurl_Client to Get ID_Content, Get Title + Num + Season
 
 		if (!std::filesystem::exists(AsConfig::Image_Folder) )
@@ -1305,7 +1281,7 @@ bool AsUI_Builder::User_Input_Set_To_Clipboard()
 	if (!(psz_text = static_cast<WCHAR*>(GlobalLock(handle_data) ) ) )
 		return false;
 
-	if (wcsstr(psz_text, L"http://") != 0 || wcsstr(psz_text, L"https://") != 0)  // If it`s url check it
+	if (wcsstr(psz_text, AsConfig::Protocols[1]) != 0 || wcsstr(psz_text, AsConfig::Protocols[0]) != 0)  // If it`s url check it
 	{
 		if (!std::filesystem::exists(AsConfig::Image_Folder) )
 			std::filesystem::create_directories(AsConfig::Image_Folder);
@@ -1397,7 +1373,6 @@ void AsUI_Builder::User_Map_Main_Load(std::map<std::wstring, SUser_Input_Data> &
 {
 	bool is_add_to_user_array = false;
 	wchar_t *user_input = new wchar_t[100]{};
-	//wchar_t ch = 0;
 	int how_much_g = 0;
 	int block_sum_ull = 0;
 	int block_sum_index = 0, str = 0;
@@ -1633,17 +1608,17 @@ unsigned short AsUI_Builder::User_Map_Save_Convert(unsigned short ch)
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, wchar_t *user_input)
 {
-	int curr_it;
+	int title_len;
 	SUser_Input_Data converted_data;
 
-	curr_it = 0;
+	title_len = (int)wcslen(user_input) - 1;
 	converted_data = {};
 	if (user_input[0] == L'\0')  // If pressed Enter while User_Input empty
 		return;
 
 	// 1.2  Check user_input orphography
 	while (user_input[wcslen(user_input) - 1] == L' ')  // If last ch = space delete
-		user_input[--User_Input_Len] = L'\0';
+		user_input[--title_len] = L'\0';
 
 	// 1.3 Init_Data before set to map
 	User_Input_Convert_Data(converted_data, user_input);
@@ -1655,15 +1630,15 @@ void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &us
 		user_arr.emplace(converted_data.Title_Name_Key, converted_data);  // if not add new title
 
 	// 1.5. If from ACurl, saved picture rename, can`t save if invalid file path
-	if (std::filesystem::exists("TemporaryName.png") )
+	if (std::filesystem::exists(AsConfig::Image_Name_File) )
 	{
 		try
 		{
-			std::filesystem::rename("TemporaryName.png", (std::wstring(AsConfig::Image_Folder) + converted_data.Title_Name_Key + std::wstring(L".png") ) );
+			std::filesystem::rename(AsConfig::Image_Name_File, (std::wstring(AsConfig::Image_Folder) + converted_data.Title_Name_Key + std::wstring(L".png") ) );
 		}
 		catch (const std::exception &)
 		{
-			std::filesystem::remove("TemporaryName.png");  // !!! Save ID Content like name to picture, or rename text || Or find invalid, if has check
+			std::filesystem::remove(AsConfig::Image_Name_File);  // !!! Save ID Content like name to picture, or rename text || Or find invalid, if has check
 		}
 	}
 
@@ -1676,8 +1651,7 @@ void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &us
 	}
 
 	// 1.7. Reset user_input
-	User_Input_Len = 0;
-	user_input[User_Input_Len] = L'\0';
+	user_input[0] = L'\0';
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Map_Erase()
@@ -1716,8 +1690,7 @@ void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &ui_data, wchar_t *u
 	int season_counter_index;
 
 	pattern_season = 0;
-	User_Input_Len = (int)wcslen(user_input) - 1;
-	current_user_input_length = User_Input_Len;
+	current_user_input_length = (int)wcslen(user_input) - 1;
 	current_ch = (unsigned short)user_input[current_user_input_length];  // 48 0 57 9
 	season_counter_index = 0;
 

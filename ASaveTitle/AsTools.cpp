@@ -4,23 +4,24 @@
 AsTools::~AsTools()
 {
 	size_t yy;
+
 	end_tick = __rdtsc();
 	delta_tick = end_tick - start_tick;  // 194176 170824 192866
 	yy = delta_tick;
 
-	if (delta_tick > 10000)  // 86000
+	if (delta_tick > 4000000)  // 86000
 		yy = 0;  // Bed | 11088 || 58 999 arr* || 25000 arr[]
-	else if (delta_tick < 10000)
+	else if (delta_tick < 4000000)
 		yy = 1;  // Good  // 9639
 }
 //------------------------------------------------------------------------------------------------------------
 AsTools::AsTools()
- : start_tick(0), end_tick(0), delta_tick(0)
+ : start_tick(0LL), end_tick(0LL), delta_tick(0LL)
 {
 	start_tick = __rdtsc();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsTools::Format_Url_Sub_WString(const wchar_t *content, const wchar_t *bgn, const wchar_t *end, wchar_t *&result)
+void AsTools::Format_Sub_WString(const wchar_t *content, const wchar_t *bgn, const wchar_t *end, wchar_t *&result)
 {
 	const wchar_t *ptr_start = wcsstr(content, bgn) + wcslen(bgn);
 	if (!ptr_start != 0)
@@ -36,7 +37,7 @@ void AsTools::Format_Url_Sub_WString(const wchar_t *content, const wchar_t *bgn,
 	wcsncpy_s(result, context_length, ptr_start, static_cast<rsize_t>(context_length - 1) );
 }
 //------------------------------------------------------------------------------------------------------------
-void AsTools::Format_Url_Sub_String(const char *content, const char *bgn, const char *end, char *&result)
+void AsTools::Format_Sub_String(const char *content, const char *bgn, const char *end, char *&result)
 {
 	int title_length = 0;
 

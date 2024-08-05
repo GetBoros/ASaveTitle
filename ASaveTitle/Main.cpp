@@ -223,7 +223,7 @@ ATOM AsMain::Register_Class()
 	wcex.hInstance = HInstance;
 	wcex.hIcon = LoadIcon(HInstance, MAKEINTRESOURCE(IDI_ASAVETITLE) );
 	wcex.hCursor = LoadCursor(0, IDC_ARROW);
-	wcex.hbrBackground = AsConfig::Brush_Background;
+	wcex.hbrBackground = AsConfig::Brush_Background_Dark;
 	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_ASAVETITLE);
 	wcex.lpszClassName = SZ_Window;
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL) );

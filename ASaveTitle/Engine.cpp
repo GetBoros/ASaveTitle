@@ -347,7 +347,6 @@ int AsUI_Builder::User_Input_Len = 0;
 int AsUI_Builder::Context_Button_Length = 5;
 const wchar_t AsUI_Builder::Main_Menu_Title_Name[] = L"Title Saver";
 const wchar_t *AsUI_Builder::Sub_Menu_Title = L"Enter text here... or URL your site";
-const std::wstring AsUI_Builder::Button_Text_List[] = { L"Watch", L"Watched", L"Paused", L"Add to wishlist", L"Errase from Array", L"Exit" };
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::~AsUI_Builder()
 {
@@ -367,7 +366,7 @@ AsUI_Builder::~AsUI_Builder()
 	delete[] User_Input_Rect;
 }
 //------------------------------------------------------------------------------------------------------------
-AsUI_Builder::AsUI_Builder(HDC hdc, const WPARAM &w_param, const LPARAM &l_param)
+AsUI_Builder::AsUI_Builder(HDC hdc)
 : Active_Menu(EAM_Main), Ptr_Hdc(hdc), Rect_Menu_List{}, User_Input{}, Rect_Menu_List_Length(0), Rect_Sub_Menu_Length(0), Sub_Menu_Curr_Page(0), Prev_Main_Menu_Button(0),
   Prev_Button(99), Main_Menu_Titles_Length_Max(50), Sub_Menu_Max_Line(31), User_Array_Max_Size(0), Active_Button(EActive_Button::EAB_Main_Menu),
   Active_Page(EActive_Page::EAP_None), User_Input_Rect{}, Rect_User_Input_Change{}, Rect_Buttons_Context{}, Prev_Context_Menu_Cords{},
@@ -385,7 +384,7 @@ AsUI_Builder::AsUI_Builder(HDC hdc, const WPARAM &w_param, const LPARAM &l_param
 	Thread_Third.join();
 	Thread_Fourth.join();
 
-	Builder_Handler(hdc, EUI_Builder_Handler::Draw_Menu_Main, w_param, l_param);
+	Draw_Menu_Main_Alpha();
 	Rect_User_Input_Change = new RECT[2]{};
 }
 //------------------------------------------------------------------------------------------------------------
@@ -396,11 +395,10 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 	switch (builder_handler)
 	{
 	case EUI_Builder_Handler::Draw_Full_Window:
-		Draw_Menu_Main();  // draw after maximazed window
-		Draw_Menu_Sub();
+		Draw_Menu_Sub();  // draw after maximazed window
 		break;
 	case EUI_Builder_Handler::Draw_Menu_Main:
-		Draw_Menu_Main();
+		Draw_Menu_Main_Alpha();
 		break;
 	case EUI_Builder_Handler::Draw_Menu_Sub:
 		User_Input_Handle();  // Enter
@@ -420,38 +418,35 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Menu_Main()
+void AsUI_Builder::Draw_Menu_Main_Alpha()
 {
 	int x, y;
 	int str_length;
 	int titles_length;
 	RECT border_rect = {};
 	
-	Rect_Menu_List_Length = sizeof(Button_Text_List) / sizeof(Button_Text_List[0]);
-
-	// 1. Init design
-	SelectObject(Ptr_Hdc, AsConfig::Brush_Background);  // Dark Background
-	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);  // Dark Text Background
-	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);  // Text Color
-
-	// 1.1. Find longest titles
 	titles_length = (int)wcslen(Main_Menu_Title_Name);
 
-	// 1.2. Draw Border
-	border_rect = Add_Border(0);
+	// 1. Draw Border || and set background and text background color + color text
+	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);  // Background
+	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);  // Text Background
+	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);  // Text Color
+	border_rect = Add_Border(0);  // !!! Can be refactored Draw border
+
+	Main_Menu_Border = border_rect;
 
 	// 2. Set Title in the middle of border
-	str_length = AsConfig::Ch_W  *titles_length;  // ch width = 8 pixels * titles length in ch
+	str_length = AsConfig::Ch_W * titles_length;  // ch width = 8 pixels * titles length in ch
 	x = (border_rect.right - str_length) / 2;  // Get the center of first middle border and half of title
 	y = border_rect.top + AsConfig::Global_Scale;  // Get offset from border top
 	TextOutW(Ptr_Hdc, x, y, Main_Menu_Title_Name, titles_length);  // x = LT + Midle - h_title
 	border_rect.top = y + AsConfig::Ch_H + AsConfig::Global_Scale;  // go to next line
 
 	// 3. Set Buttons in border and save they`re cords in Rect_Menu_List
-	Rect_Menu_List = new RECT[Rect_Menu_List_Length];
-
-	for (int i = 0; i < Rect_Menu_List_Length; i++)
-		Rect_Menu_List[i] = Add_Button(border_rect, Button_Text_List[i]);
+	if (!Rect_Menu_List != 0)  // after maximaze need redraw menu main
+		Rect_Menu_List = new RECT[AsConfig::Menu_Main_Button_Length]{};
+	for (int i = 0; i < AsConfig::Menu_Main_Button_Length; i++)
+		Rect_Menu_List[i] = Add_Button(border_rect, AsConfig::Menu_Main_Buttons_Text_Eng[i]);
 
 	Draw_User_Title_Image(AsConfig::Main_Image_Folder);
 }
@@ -469,7 +464,7 @@ void AsUI_Builder::Draw_Menu_Sub(const EActive_Menu &active_menu)
 	Prev_Button = 99;  // Need to switch between arrays
 
 	// 1.2. Draw Title
-	SelectObject(Ptr_Hdc, AsConfig::Brush_Background);
+	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
 	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);
 	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);
 	Add_Button(border_rect, str_title);  // Draw Title
@@ -518,7 +513,7 @@ void AsUI_Builder::Draw_User_Input_Button() const
 {
 	RECT button = Input_Button_Rect;
 
-	SelectObject(Ptr_Hdc, AsConfig::Brush_Background);
+	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
 	Rectangle(Ptr_Hdc, button.left, button.top, button.right, button.bottom);
 	
 	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);
@@ -570,7 +565,7 @@ void AsUI_Builder::Handle_RM_Button(const LPARAM &lParam)
 
 
 	// 2. While clk on Main menu button redraw it and draw context menu
-	for (int i = 0; i < Rect_Menu_List_Length; i++)
+	for (int i = 0; i < AsConfig::Menu_Main_Button_Length; i++)
 	{
 		if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]) )
 		{
@@ -696,70 +691,24 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 				switch ( (EActive_Menu)i)
 				{
 				case EAM_Watching:
-				{
-					wchar_t *title_name_num;
-					int title_name_num_length;
-					
-					title_name_num_length = (int)wcslen(It_Current_User->second.Title_Name_Num.c_str() + 1);
-					title_name_num = new wchar_t[title_name_num_length];
-					
-					wcsncpy_s(title_name_num, title_name_num_length, It_Current_User->second.Title_Name_Num.c_str(), wcslen(It_Current_User->second.Title_Name_Num.c_str() ) );
-					User_Map_Emplace(User_Array_Map, title_name_num);
-					User_Map_Erase();
-					Draw_Menu_Sub(Active_Menu);
-				}
-				break;
+					User_Array_Map.insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
+					break;
 
 				case EAM_Library_Menu:
-				{
-					wchar_t *title_name_num;
-					int title_name_num_length;
-					
-					title_name_num_length = (int)wcslen(It_Current_User->second.Title_Name_Num.c_str() ) + 1;
-					title_name_num = new wchar_t[title_name_num_length]{};
-					
-					wcsncpy_s(title_name_num, title_name_num_length, It_Current_User->second.Title_Name_Num.c_str(), wcslen(It_Current_User->second.Title_Name_Num.c_str() ) );
-					User_Map_Emplace(User_Library_Map, title_name_num);
-					User_Map_Erase();
-					Draw_Menu_Sub(Active_Menu);
-				}
-				break;
+					User_Library_Map.insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
+					break;
 
 				case EAM_Paused_Menu:
-				{
-					wchar_t *title_name_num;
-					int title_name_num_length;
-					
-					title_name_num_length = (int)wcslen(It_Current_User->second.Title_Name_Num.c_str() + 1);
-					title_name_num = new wchar_t[title_name_num_length];
-					
-					wcsncpy_s(title_name_num, title_name_num_length, It_Current_User->second.Title_Name_Num.c_str(), wcslen(It_Current_User->second.Title_Name_Num.c_str() ) );
-					User_Map_Emplace(User_Paused_Map, title_name_num);
-					User_Map_Erase();
-					Draw_Menu_Sub(Active_Menu);
-				}
-				break;
+					User_Paused_Map.insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
+					break;
 
 				case EAM_Wishlist:
-				{
-					wchar_t *title_name_num;
-					int title_name_num_length;
-					
-					title_name_num_length = (int)wcslen(It_Current_User->second.Title_Name_Num.c_str() + 1);
-					title_name_num = new wchar_t[title_name_num_length];
-					
-					wcsncpy_s(title_name_num, title_name_num_length, It_Current_User->second.Title_Name_Num.c_str(), wcslen(It_Current_User->second.Title_Name_Num.c_str() ) );
-					User_Map_Emplace(User_Wishlist_Map, title_name_num);
-					User_Map_Erase();
-					Draw_Menu_Sub(Active_Menu);
-				}
-					break;
-
-				case EAM_Erase:
-					User_Map_Erase();
-					Draw_Menu_Sub(Active_Menu);
+					User_Wishlist_Map.insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
 					break;
 				}
+				
+				User_Map_Erase();
+				Draw_Menu_Sub(Active_Menu);
 				return;
 			}
 		}
@@ -767,21 +716,24 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 	}
 
 
-	for (int i = 0; i < Rect_Menu_List_Length; i++)
-	{// Main Menu Handle
+	if (IntersectRect(&intersect_rect, &mouse_cord, &Main_Menu_Border) )
+	{
+		for (int i = 0; i < AsConfig::Menu_Main_Button_Length; i++)  // if is rect border
+		{// Main Menu Handle
 
-		if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]) )
-		{
-			if (Active_Menu != EAM_Main)
+			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]))
 			{
-				Active_Menu = EAM_Main;
-				Draw_User_Input_Request();
-			}
+				if (Active_Menu != EAM_Main)
+				{
+					Active_Menu = EAM_Main;
+					Draw_User_Input_Request();
+				}
 
-			Active_Menu = EAM_Main;  // if enter here we clk on main menu border
-			Handle_Active_Button( (EActive_Button)i);
-			Draw_Menu_Sub( (EActive_Menu)i);
-			return;
+				Active_Menu = EAM_Main;  // if enter here we clk on main menu border
+				Handle_Active_Button((EActive_Button)i);
+				Draw_Menu_Sub((EActive_Menu)i);
+				return;
+			}
 		}
 	}
 
@@ -861,7 +813,7 @@ void AsUI_Builder::Draw_Active_Button(const EActive_Button &active_button, std::
 
 		It_Current_User = user_array.begin();  // Prev_Button
 		std::advance(It_Current_User, (int)Prev_Button);
-		Draw_Button_Text(AsConfig::Brush_Background, AsConfig::Color_Dark, AsConfig::Color_Text_Green, User_Input_Rect[Prev_Button], It_Current_User->second.Title_Name_Num.c_str() );
+		Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, User_Input_Rect[Prev_Button], It_Current_User->second.Title_Name_Num.c_str() );
 		
 		It_Current_User = user_array.begin();  // Active Button
 		std::advance(It_Current_User, (int)active_button);
@@ -877,8 +829,8 @@ void AsUI_Builder::Draw_Active_Button(const EActive_Button &active_button, std::
 	}
 	else
 	{
-		Draw_Button_Text(AsConfig::Brush_Background, AsConfig::Color_Dark, AsConfig::Color_Text_Green, Rect_Menu_List[Prev_Main_Menu_Button], Button_Text_List[Prev_Main_Menu_Button].c_str() );
-		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, Rect_Menu_List[(int)active_button], Button_Text_List[(int)active_button].c_str() );
+		Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, Rect_Menu_List[Prev_Main_Menu_Button], AsConfig::Menu_Main_Buttons_Text_Eng[Prev_Main_Menu_Button]);
+		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, Rect_Menu_List[(int)active_button], AsConfig::Menu_Main_Buttons_Text_Eng[(int)active_button]);
 
 		Prev_Main_Menu_Button = (int)active_button;
 	}
@@ -901,8 +853,8 @@ void AsUI_Builder::Draw_User_Input_Request()
 	if (Active_Menu == EAM_Main)
 	{// clear prev request
 
-		FillRect(Ptr_Hdc, &Rect_User_Input_Change[0], AsConfig::Brush_Background);
-		FillRect(Ptr_Hdc, &Rect_User_Input_Change[1], AsConfig::Brush_Background);
+		FillRect(Ptr_Hdc, &Rect_User_Input_Change[0], AsConfig::Brush_Background_Dark);
+		FillRect(Ptr_Hdc, &Rect_User_Input_Change[1], AsConfig::Brush_Background_Dark);
 
 		Rect_User_Input_Change[0] = ui_rect_offset;
 		Rect_User_Input_Change[1] = ui_rect_offset;
@@ -910,8 +862,8 @@ void AsUI_Builder::Draw_User_Input_Request()
 	}
 	
 	ui_rect_offset = User_Input_Rect[Prev_Button];
-	FillRect(Ptr_Hdc, &Rect_User_Input_Change[0], AsConfig::Brush_Background);
-	FillRect(Ptr_Hdc, &Rect_User_Input_Change[1], AsConfig::Brush_Background);
+	FillRect(Ptr_Hdc, &Rect_User_Input_Change[0], AsConfig::Brush_Background_Dark);
+	FillRect(Ptr_Hdc, &Rect_User_Input_Change[1], AsConfig::Brush_Background_Dark);
 
 	// Change Background
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Green_Dark);
@@ -972,7 +924,7 @@ void AsUI_Builder::Draw_User_Title_Image(const wchar_t *image_path) const
 		img_cords.top = 182;
 		img_cords.right = AsConfig::Main_Image_Width;  // 415
 		img_cords.bottom = AsConfig::Main_Image_Height;  // 636
-		FillRect(Ptr_Hdc, &img_cords, AsConfig::Brush_Background);
+		FillRect(Ptr_Hdc, &img_cords, AsConfig::Brush_Background_Dark);
 
 		img_cords.right = width;  // 415
 		img_cords.bottom = height;  // 636
@@ -1049,7 +1001,7 @@ RECT AsUI_Builder::Add_Border(const int &x_cord) const
 	else
 	{// Draw Main Menu
 		border_width = (Main_Menu_Titles_Length_Max + scale) * AsConfig::Ch_W;  // 424
-		border_height = (Rect_Menu_List_Length + 2) * (AsConfig::Ch_H + 6) + scale + 1;
+		border_height = (AsConfig::Menu_Main_Button_Length + 2) * (AsConfig::Ch_H + 6) + scale + 1;
 	}
 
 	// 1.2. Set cords for first border
@@ -1074,7 +1026,7 @@ RECT AsUI_Builder::Add_Border(const int &x_cord) const
 		border_rect.right = border_rect.right - 1;
 		border_rect.bottom = border_rect.bottom - 1;
 
-		FillRect(Ptr_Hdc, &border_rect, AsConfig::Brush_Background);
+		FillRect(Ptr_Hdc, &border_rect, AsConfig::Brush_Background_Dark);
 		is_sub_menu = false;
 	}
 
@@ -1131,7 +1083,7 @@ void AsUI_Builder::Context_Menu_Draw(const int &x, const int &y)
 	int button_heigh;
 	RECT context_rect;
 
-	button_text_len = (int)Button_Text_List[3].length();
+	button_text_len = (int)wcslen(AsConfig::Menu_Main_Buttons_Text_Eng[3]);
 	scale = AsConfig::Global_Scale;
 	context_offset = 6;
 	user_input_len = button_text_len * AsConfig::Ch_W + context_offset;
@@ -1156,16 +1108,14 @@ void AsUI_Builder::Context_Menu_Draw(const int &x, const int &y)
 
 	for (int i = 0; i < Context_Button_Length; i++)
 	{
-		button_text_len = (int)Button_Text_List[i].length();
-		std::wstring w_title(Button_Text_List[i].begin(), Button_Text_List[i].end() );
-		TextOutW(Ptr_Hdc, context_rect.left + scale + 1, context_rect.top + AsConfig::Ch_H * i + scale + 1, w_title.c_str(), button_text_len);
+		button_text_len = (int)wcslen(AsConfig::Menu_Main_Buttons_Text_Eng[i]);
+		TextOutW(Ptr_Hdc, context_rect.left + scale + 1, context_rect.top + AsConfig::Ch_H * i + scale + 1, AsConfig::Menu_Main_Buttons_Text_Eng[i], button_text_len);
 
 		// 4.1. Save Context Buttons Rects || handle when LMB pressed
 		Rect_Buttons_Context[i].left = context_rect.left;
 		Rect_Buttons_Context[i].top = context_rect.top;
 		Rect_Buttons_Context[i].right = context_rect.right;
 		Rect_Buttons_Context[i].bottom = context_rect.top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H;
-
 		if (!(i < Context_Button_Length - 1) )
 			break;
 
@@ -1831,7 +1781,7 @@ void AsEngine::Draw_Frame_ASaver(HWND hwnd)
 	if (UI_Builder != 0)
 		UI_Builder->Builder_Handler(Ptr_Hdc, EBuilder_Handler, W_Param, L_Param);
 	else
-		UI_Builder = new AsUI_Builder(Ptr_Hdc, W_Param, L_Param);
+		UI_Builder = new AsUI_Builder(Ptr_Hdc);
 
 	if (!Is_After_Maximazied)
 	{

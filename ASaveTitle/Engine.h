@@ -112,10 +112,11 @@ private:
 
 // AsUI_Builder
 class AsUI_Builder
-{
+{// !!! Build UI, Handle User Inputs, Load Save Content, 
+
 public:
 	~AsUI_Builder();
-	AsUI_Builder(HDC hdc, const WPARAM &w_param, const LPARAM &l_param);
+	AsUI_Builder(HDC hdc);
 
 	void Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 
@@ -123,7 +124,7 @@ public:
 	HDC Ptr_Hdc;
 
 private:
-	void Draw_Menu_Main();  // Build Main Menu
+	void Draw_Menu_Main_Alpha();
 	void Draw_Menu_Sub(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
 	void Draw_User_Input_Button() const;  // Show user_input in sub menu
 	void Handle_User_Input(const wchar_t &text);  // Add input to User_Input
@@ -168,6 +169,9 @@ private:
 	const int Sub_Menu_Max_Line = 31;  // Нужен алгоритм что бы понять сколько влезет в пользувательский экран, или настроить через config
 	const int User_Array_Max_Size = 50;  // нужно будет выгрузить из конфига
 
+	// TEMP
+	RECT Main_Menu_Border;
+
 	AsConfig Config;
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
 	EActive_Page Active_Page;
@@ -196,7 +200,6 @@ private:
 	static int User_Input_Len;  // count user input after press enter set to zero
 	static const wchar_t Main_Menu_Title_Name[];
 	static const wchar_t *Sub_Menu_Title;
-	static const std::wstring Button_Text_List[];
 };
 //------------------------------------------------------------------------------------------------------------
 
@@ -934,12 +937,17 @@ X	- Финальный рефакторинг, переносить по сво�
 /*
 V	- Refactoring CURL
 */
-// TASKS --- 04.08.2024 --- Current ---
+// TASKS --- 04.08.2024 ---
 /*
 
 V	-	Problem with current page
 V		- Fixed, architecture sucks, also need refactoring
 V	- Threads load files, 4m Tacts
+*/
+// TASKS --- 05.08.2024 --- Current ---
+/*
+
+
 */
 
 // MAIN TASKS

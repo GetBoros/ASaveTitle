@@ -13,6 +13,8 @@ const wchar_t AsConfig::Pattern_Default_Bin[] = L"Url.bin";
 const wchar_t AsConfig::Pattern_Default_TXT[] = L"/PatternFindConfig.txt";
 const wchar_t AsConfig::Main_Image_Folder[] = L"Main_Image.png";
 const wchar_t AsConfig::Image_Folder[] = L"Pictures/";
+const wchar_t *AsConfig::Menu_Main_Buttons_Text_Eng[] = { L"Watch", L"Watched", L"Paused", L"Add to wishlist", L"Errase from Array", L"Exit" };
+const wchar_t *AsConfig::Menu_Main_Buttons_Text_Rus[] = { L"Просмотреть", L"Просмотренные", L"В перерыве", L"Добавить в желаемое", L"Удалить", L"Выход" };
 const wchar_t *AsConfig::Season_Case_Up[] = { L"I", L"II", L"III", L"IV", L"V", L"VI", L"VII", L"VIII", L"IX", L"X" };
 const wchar_t *AsConfig::Season_Case_Low[] = { L"i", L"ii", L"iii", L"iv", L"v", L"vi", L"vii", L"viii", L"ix", L"x" };
 const wchar_t *AsConfig::Text_Program_Names[] = {L"Saver", L"Book Reader", L"Invalid"};
@@ -35,7 +37,7 @@ const HBRUSH AsConfig::Brush_White  = CreateSolidBrush(RGB(255, 255, 255) );
 const HBRUSH AsConfig::Brush_Gray  = CreateSolidBrush(RGB(125, 125, 125) );
 const HBRUSH AsConfig::Brush_Green = CreateSolidBrush(RGB(0, 255, 0) );
 const HBRUSH AsConfig::Brush_Green_Dark = CreateSolidBrush(RGB(80, 146, 56) );
-const HBRUSH AsConfig::Brush_Background = CreateSolidBrush(RGB(30, 30, 30) );
+const HBRUSH AsConfig::Brush_Background_Dark = CreateSolidBrush(RGB(30, 30, 30) );
 const HBRUSH AsConfig::Brush_Background_Button_Update = CreateSolidBrush(RGB(185, 122, 87) );
 
 const unsigned long long AsConfig::LL_Max = 9223372036854775807LL;  // 9 22 33 72 03 68 54 77 58 07 LL || 8
@@ -49,7 +51,7 @@ AsConfig::~AsConfig()
 	DeleteObject(Brush_Gray);
 	DeleteObject(Brush_Green);
 	DeleteObject(Brush_Green_Dark);
-	DeleteObject(Brush_Background);
+	DeleteObject(Brush_Background_Dark);
 	DeleteObject(Brush_Background_Button_Update);
 }
 //------------------------------------------------------------------------------------------------------------

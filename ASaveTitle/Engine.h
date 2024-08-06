@@ -124,7 +124,9 @@ public:
 	HDC Ptr_Hdc;
 
 private:
-	void Draw_Menu_Main_Alpha();
+	void Draw_Border(RECT &border_rect) const;
+	void Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const;
+	void Draw_Menu_Main();
 	void Draw_Menu_Sub(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
 	void Draw_User_Input_Button() const;  // Show user_input in sub menu
 	void Handle_User_Input(const wchar_t &text);  // Add input to User_Input
@@ -138,8 +140,6 @@ private:
 	void Draw_User_Title_Image(const wchar_t *image_path) const;
 	void Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser_Input_Data> &map);  // Draw Button in subMenu
 	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
-	RECT Add_Border(const int &x_cord) const;
-	RECT Add_Button(RECT &border_rect, const std::wstring &title) const;
 	void Add_Button_Next_Page();
 	void Context_Menu_Draw(const int &x, const int &y);
 	void Context_Image_Save(const RECT &rect);  // Save image in rect
@@ -170,7 +170,7 @@ private:
 	const int User_Array_Max_Size = 50;  // нужно будет выгрузить из конфига
 
 	// TEMP
-	RECT Main_Menu_Border;
+	RECT Main_Menu_Border;  // Need to check interaction
 
 	AsConfig Config;
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
@@ -944,9 +944,13 @@ V	-	Problem with current page
 V		- Fixed, architecture sucks, also need refactoring
 V	- Threads load files, 4m Tacts
 */
-// TASKS --- 05.08.2024 --- Current ---
+// TASKS --- 05.08.2024 ---
 /*
+	- Refactoring
 
+*/
+// TASKS --- 06.08.2024 --- Current ---
+/*
 
 */
 

@@ -384,7 +384,7 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 	Thread_Third.join();
 	Thread_Fourth.join();
 
-	Draw_Menu_Main_Alpha();
+	Draw_Menu_Main();
 	Rect_User_Input_Change = new RECT[2]{};
 }
 //------------------------------------------------------------------------------------------------------------
@@ -398,7 +398,7 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 		Draw_Menu_Sub();  // draw after maximazed window
 		break;
 	case EUI_Builder_Handler::Draw_Menu_Main:
-		Draw_Menu_Main_Alpha();
+		Draw_Menu_Main();
 		break;
 	case EUI_Builder_Handler::Draw_Menu_Sub:
 		User_Input_Handle();  // Enter
@@ -418,59 +418,133 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Menu_Main_Alpha()
+void AsUI_Builder::Draw_Border(RECT &border_rect) const
+{
+	bool is_sub_menu;
+	int scale;
+	int x_cord;
+	int border_width;
+	int border_height;
+
+	x_cord = 0;
+	is_sub_menu = false;
+	scale = AsConfig::Global_Scale;
+	border_rect = {};
+
+	if (!IsRectEmpty(&Main_Menu_Border) )  // if not main menu we must reset setting
+	{// Draw Sub Menu
+		x_cord = Main_Menu_Border.right + AsConfig::Global_Scale;
+		border_width = (AsConfig::Window_Width - x_cord) - 23 * 2 - 9;  // window_width - main menu width
+		border_height = AsConfig::Window_Height + 30 - scale;
+		is_sub_menu = true;
+		SelectObject(Ptr_Hdc, AsConfig::Brush_Green);
+	}
+	else
+	{// Draw Main Menu
+
+		border_width = (Main_Menu_Titles_Length_Max + scale) * AsConfig::Ch_W;  // 424
+		border_height = (AsConfig::Menu_Main_Button_Length + 2) * (AsConfig::Ch_H + 6) + scale + 1;
+	}
+
+	// 1.2. Draw First Border
+	border_rect.left = x_cord + scale;
+	border_rect.top = scale;
+	border_rect.right = x_cord + border_width;
+	border_rect.bottom = border_height;
+	Rectangle(Ptr_Hdc, border_rect.left, border_rect.top, border_rect.right, border_rect.bottom);
+
+	// 1.2. Draw Second Border
+	border_rect.left = border_rect.left + scale;
+	border_rect.top = border_rect.top + scale;
+	border_rect.right = border_rect.right - scale;
+	border_rect.bottom = border_rect.bottom - scale;
+	Rectangle(Ptr_Hdc, border_rect.left, border_rect.top, border_rect.right, border_rect.bottom);
+	if (is_sub_menu != true)  // if not submenu return
+		return;
+
+	// 2.1. Fill Rect
+	border_rect.left = border_rect.left + 1;
+	border_rect.top = border_rect.top + 1;
+	border_rect.right = border_rect.right - 1;
+	border_rect.bottom = border_rect.bottom - 1;
+	FillRect(Ptr_Hdc, &border_rect, AsConfig::Brush_Background_Dark);  // Fill sub_menu to grey menu
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const
+{
+	int scale;
+	int button_w, button_h;
+
+	scale = AsConfig::Global_Scale;
+	button_w = border_rect.right - border_rect.left - scale;  // button width
+	button_h = border_rect.top + AsConfig::Ch_H + scale * 2;  // button height
+	button = {};
+
+	button.left = border_rect.left + scale;  // x = 3px from curr border
+	button.top = border_rect.top;
+	button.right = button.left + button_w - scale;  // border width - offset to draw button)
+	button.bottom = button_h;
+	Rectangle(Ptr_Hdc, button.left, button.top, button.right, button.bottom);  // draw button
+	TextOutW(Ptr_Hdc, button.left + scale, button.top + scale, title_name, (int)wcslen(title_name) );
+
+	border_rect.top = button.bottom + scale;  // cuting border for next button
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Draw_Menu_Main()
 {
 	int x, y;
 	int str_length;
 	int titles_length;
-	RECT border_rect = {};
+	RECT border_rect;
 	
+	x = 0, y = 0;
+	str_length = 0;
+	border_rect = {};
 	titles_length = (int)wcslen(Main_Menu_Title_Name);
+	str_length = AsConfig::Ch_W * titles_length;  // ch width = 8 pixels * titles length in ch
 
-	// 1. Draw Border || and set background and text background color + color text
+	// 1.0. Set How to draw text and bg
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);  // Background
 	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);  // Text Background
 	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);  // Text Color
-	border_rect = Add_Border(0);  // !!! Can be refactored Draw border
 
-	Main_Menu_Border = border_rect;
-
-	// 2. Set Title in the middle of border
-	str_length = AsConfig::Ch_W * titles_length;  // ch width = 8 pixels * titles length in ch
+	// 1.1. Draw Border and Text title
+	Draw_Border(Main_Menu_Border);
+	border_rect = Main_Menu_Border;
 	x = (border_rect.right - str_length) / 2;  // Get the center of first middle border and half of title
 	y = border_rect.top + AsConfig::Global_Scale;  // Get offset from border top
-	TextOutW(Ptr_Hdc, x, y, Main_Menu_Title_Name, titles_length);  // x = LT + Midle - h_title
+	TextOutW(Ptr_Hdc, x, y, Main_Menu_Title_Name, titles_length);
 	border_rect.top = y + AsConfig::Ch_H + AsConfig::Global_Scale;  // go to next line
 
-	// 3. Set Buttons in border and save they`re cords in Rect_Menu_List
+	// 1.2. Set Buttons in border and save they`re cords in Rect_Menu_List
 	if (!Rect_Menu_List != 0)  // after maximaze need redraw menu main
 		Rect_Menu_List = new RECT[AsConfig::Menu_Main_Button_Length]{};
 	for (int i = 0; i < AsConfig::Menu_Main_Button_Length; i++)
-		Rect_Menu_List[i] = Add_Button(border_rect, AsConfig::Menu_Main_Buttons_Text_Eng[i]);
+		Draw_Button(border_rect, Rect_Menu_List[i], AsConfig::Menu_Main_Buttons_Text_Eng[i]);
 
-	Draw_User_Title_Image(AsConfig::Main_Image_Folder);
+	Draw_User_Title_Image(AsConfig::Main_Image_Folder);  // For now part of menu main
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Menu_Sub(const EActive_Menu &active_menu)
 {
 	int border_offset;
+	const wchar_t *title_name = L"                                TITLE NAMES																								";
 	RECT border_rect;
-	std::wstring str_title = L"                                TITLE NAMES																								";
 
-	// 1.1.Border Settings
-	border_offset = (Main_Menu_Titles_Length_Max + AsConfig::Global_Scale) * AsConfig::Ch_W;  // where to draw next border
-	border_rect = Add_Border(border_offset);  // draw border
+	// 1.1.Draw Border
+	Draw_Border(border_rect);  // draw border
 	border_rect.top += AsConfig::Global_Scale;  // without title? i can fix but it`s look good enough
+	border_offset = (Main_Menu_Titles_Length_Max + AsConfig::Global_Scale) * AsConfig::Ch_W;  // where to draw next border
 	Prev_Button = 99;  // Need to switch between arrays
 
 	// 1.2. Draw Title
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
 	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);
 	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);
-	Add_Button(border_rect, str_title);  // Draw Title
 
 	// 1.3. Data Output to submenu
-	Input_Button_Rect = Add_Button(border_rect, Sub_Menu_Title);
+	Draw_Button(border_rect, Input_Button_Rect, title_name);
+	Draw_Button(border_rect, Input_Button_Rect, Sub_Menu_Title);
 
 	if (active_menu != EActive_Menu::EAM_Main)
 		Active_Menu = active_menu;
@@ -499,12 +573,6 @@ void AsUI_Builder::Draw_Menu_Sub(const EActive_Menu &active_menu)
 
 	case EAM_Exit:
 		PostQuitMessage(0);
-		break;
-
-
-	case EAM_Main:
-	case EAM_Erase:
-	default:
 		break;
 	}
 }
@@ -957,10 +1025,7 @@ void AsUI_Builder::Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser
 		if (curr_line >= Rect_Sub_Menu_Length)
 			break;
 		else
-		{
-			User_Input_Rect[curr_line] = Add_Button(border_rect, It_Current_User->second.Title_Name_Num);
-			curr_line++;
-		}
+			Draw_Button(border_rect, User_Input_Rect[curr_line++], It_Current_User->second.Title_Name_Num.c_str() );
 
 		if (curr_line > curr_page_max_line - 1)
 		{
@@ -979,80 +1044,6 @@ void AsUI_Builder::Draw_Button_Text(const HBRUSH &background, const COLORREF &co
 
 	Rectangle(Ptr_Hdc, rect.left, rect.top, rect.right, rect.bottom);  // draw rect
 	TextOutW(Ptr_Hdc, rect.left + AsConfig::Global_Scale, rect.top + AsConfig::Global_Scale, str, (int)wcslen(str) );  // button_prev text ( x its text out in middle
-}
-//------------------------------------------------------------------------------------------------------------
-RECT AsUI_Builder::Add_Border(const int &x_cord) const
-{
-	bool is_sub_menu = false;
-	int scale;
-	int border_width;
-	int border_height;
-	RECT border_rect = {};
-
-	scale = AsConfig::Global_Scale;
-
-	if (x_cord != 0)  // if not main menu we must reset setting
-	{// Draw Sub Menu
-		border_width = (AsConfig::Window_Width - x_cord) - 23 * 2 - 9;  // window_width - main menu width
-		border_height = AsConfig::Window_Height + 30 - scale;
-		is_sub_menu = true;
-		SelectObject(Ptr_Hdc, AsConfig::Brush_Green);
-	}
-	else
-	{// Draw Main Menu
-		border_width = (Main_Menu_Titles_Length_Max + scale) * AsConfig::Ch_W;  // 424
-		border_height = (AsConfig::Menu_Main_Button_Length + 2) * (AsConfig::Ch_H + 6) + scale + 1;
-	}
-
-	// 1.2. Set cords for first border
-	border_rect.left = x_cord + scale;
-	border_rect.top = scale;
-	border_rect.right = x_cord + border_width;
-	border_rect.bottom = border_height;
-	Rectangle(Ptr_Hdc, border_rect.left, border_rect.top, border_rect.right, border_rect.bottom);  // Draw First Border
-
-	// 1.2. Set cords for second border
-	border_rect.left = border_rect.left + scale;
-	border_rect.top = border_rect.top + scale;
-	border_rect.right = border_rect.right - scale;
-	border_rect.bottom = border_rect.bottom - scale;
-	Rectangle(Ptr_Hdc, border_rect.left, border_rect.top, border_rect.right, border_rect.bottom);  // Second Border
-
-	// 2.1. Fill Rect
-	if (is_sub_menu)
-	{// Fill sub_menu to grey menu
-		border_rect.left = border_rect.left + 1;
-		border_rect.top = border_rect.top + 1;
-		border_rect.right = border_rect.right - 1;
-		border_rect.bottom = border_rect.bottom - 1;
-
-		FillRect(Ptr_Hdc, &border_rect, AsConfig::Brush_Background_Dark);
-		is_sub_menu = false;
-	}
-
-	return border_rect;
-}
-//------------------------------------------------------------------------------------------------------------
-RECT AsUI_Builder::Add_Button(RECT &border_rect, const std::wstring &title) const
-{
-	int scale = AsConfig::Global_Scale;
-	int button_w, button_h;
-	RECT button = {};
-
-	button_w = border_rect.right - border_rect.left - scale;  // button width
-	button_h = border_rect.top + AsConfig::Ch_H + scale * 2;  // button height
-
-	button.left = border_rect.left + scale;  // x = 3px from curr border
-	button.top = border_rect.top;
-	button.right = button.left + button_w - scale;  // border width - offset to draw button)
-	button.bottom = button_h;
-
-	Rectangle(Ptr_Hdc, button.left, button.top, button.right, button.bottom);  // draw button
-	TextOutW(Ptr_Hdc, button.left + scale, button.top + scale, title.c_str(), (int)title.length() );
-
-	border_rect.top = button.bottom + scale;  // cuting border for next button
-
-	return button;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Add_Button_Next_Page()

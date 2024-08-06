@@ -73,7 +73,6 @@ void func_call_another_func(void (*res)(int), int arg)
 
 
 
-
 // HUD EXAPLES
 void widget_button(uintptr_t func_addr)
 {

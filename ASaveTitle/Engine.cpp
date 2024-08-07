@@ -345,8 +345,6 @@ size_t ACurl_Client::Write_To_File(void *ptr, size_t size, size_t nmemb, FILE *s
 // AsUI_Builder
 int AsUI_Builder::User_Input_Len = 0;
 int AsUI_Builder::Context_Button_Length = 5;
-const wchar_t AsUI_Builder::Main_Menu_Title_Name[] = L"Title Saver";
-const wchar_t *AsUI_Builder::Sub_Menu_Title = L"Enter text here... or URL your site";
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::~AsUI_Builder()
 {
@@ -404,8 +402,7 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 		User_Input_Handle();  // Enter
 		break;
 	case EUI_Builder_Handler::Draw_User_Input_Button:
-		Handle_User_Input(static_cast<wchar_t>(wParam) );
-		Draw_User_Input_Button();  // Buttons
+		User_Input_Update(static_cast<wchar_t>(wParam) );
 		break;
 	case EUI_Builder_Handler::Handle_Mouse_LButton:
 		Handle_LM_Button(lParam);
@@ -500,7 +497,7 @@ void AsUI_Builder::Draw_Menu_Main()
 	x = 0, y = 0;
 	str_length = 0;
 	border_rect = {};
-	titles_length = (int)wcslen(Main_Menu_Title_Name);
+	titles_length = (int)wcslen(AsConfig::Main_Menu_Title_Name);
 	str_length = AsConfig::Ch_W * titles_length;  // ch width = 8 pixels * titles length in ch
 
 	// 1.0. Set How to draw text and bg
@@ -513,7 +510,7 @@ void AsUI_Builder::Draw_Menu_Main()
 	border_rect = Main_Menu_Border;
 	x = (border_rect.right - str_length) / 2;  // Get the center of first middle border and half of title
 	y = border_rect.top + AsConfig::Global_Scale;  // Get offset from border top
-	TextOutW(Ptr_Hdc, x, y, Main_Menu_Title_Name, titles_length);
+	TextOutW(Ptr_Hdc, x, y, AsConfig::Main_Menu_Title_Name, titles_length);
 	border_rect.top = y + AsConfig::Ch_H + AsConfig::Global_Scale;  // go to next line
 
 	// 1.2. Set Buttons in border and save they`re cords in Rect_Menu_List
@@ -528,8 +525,7 @@ void AsUI_Builder::Draw_Menu_Main()
 void AsUI_Builder::Draw_Menu_Sub(const EActive_Menu &active_menu)
 {
 	int border_offset;
-	const wchar_t *title_name = L"                                TITLE NAMES																								";
-	RECT border_rect;
+	RECT border_rect{};
 
 	// 1.1.Draw Border
 	Draw_Border(border_rect);  // draw border
@@ -537,14 +533,12 @@ void AsUI_Builder::Draw_Menu_Sub(const EActive_Menu &active_menu)
 	border_offset = (Main_Menu_Titles_Length_Max + AsConfig::Global_Scale) * AsConfig::Ch_W;  // where to draw next border
 	Prev_Button = 99;  // Need to switch between arrays
 
-	// 1.2. Draw Title
+	// 1.2. Set colors
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
 	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);
 	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);
-
-	// 1.3. Data Output to submenu
-	Draw_Button(border_rect, Input_Button_Rect, title_name);
-	Draw_Button(border_rect, Input_Button_Rect, Sub_Menu_Title);
+	Draw_Button(border_rect, Input_Button_Rect, AsConfig::Sub_Menu_Title);  // Write Sub menu title
+	Draw_Button(border_rect, Input_Button_Rect, AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
 
 	if (active_menu != EActive_Menu::EAM_Main)
 		Active_Menu = active_menu;
@@ -577,41 +571,34 @@ void AsUI_Builder::Draw_Menu_Sub(const EActive_Menu &active_menu)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_User_Input_Button() const
+void AsUI_Builder::User_Input_Draw() const
 {
-	RECT button = Input_Button_Rect;
-
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
-	Rectangle(Ptr_Hdc, button.left, button.top, button.right, button.bottom);
+	Rectangle(Ptr_Hdc, Input_Button_Rect.left, Input_Button_Rect.top, Input_Button_Rect.right, Input_Button_Rect.bottom);
 	
-	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);
-	SetTextColor(Ptr_Hdc, AsConfig::Color_Yellow);
+	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);  // Set Text Background
+	SetTextColor(Ptr_Hdc, AsConfig::Color_Yellow);  // Set Text color
+
+	const int offset_x = Input_Button_Rect.left + AsConfig::Global_Scale;  // ofset from left
+	const int offset_y = Input_Button_Rect.top + AsConfig::Global_Scale;
 
 	if (User_Input[0] != 0)
-		TextOutW(Ptr_Hdc, button.left + AsConfig::Global_Scale, button.top + AsConfig::Global_Scale, User_Input, (int)wcslen(User_Input) );  // activ_button  text ( x its text out in middle
+		TextOutW(Ptr_Hdc, offset_x, offset_y, User_Input, (int)wcslen(User_Input) );  // write text in rect
 	else
-		TextOutW(Ptr_Hdc, button.left + AsConfig::Global_Scale, button.top + AsConfig::Global_Scale, Sub_Menu_Title, (int)wcslen(Sub_Menu_Title) );  // activ_button  text ( x its text out in middle
+		TextOutW(Ptr_Hdc, offset_x, offset_y, AsConfig::Sub_Menu_User_Input_Title, (int)wcslen(AsConfig::Sub_Menu_User_Input_Title) );
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_User_Input(const wchar_t &user_text)
+void AsUI_Builder::User_Input_Update(const wchar_t &user_text)
 {
-	if (user_text == '\r')  // if not enter
+	if (Active_Menu == EActive_Menu::EAM_Main)  // main menu
 		return;
 
-	if (Active_Menu == EActive_Menu::EAM_Main)
-		return;
-
-	if (user_text == '\b')  // Backspace handle | delete last added user_text
-	{
-		if (User_Input_Len > 0)
-			User_Input[--User_Input_Len] = 0;  // delete prev user_text
-		return;
-	}
-
-	if (User_Input_Len < AsConfig::User_Input_Buffer)
+	if (user_text != '\b' && User_Input_Len < AsConfig::User_Input_Buffer)
 		User_Input[User_Input_Len++] = user_text;
-	else
-		User_Input_Len = 0;
+	else if (User_Input_Len > 0)
+		User_Input[--User_Input_Len] = 0;  // delete prev user_text
+
+	User_Input_Draw();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_RM_Button(const LPARAM &lParam)
@@ -1008,7 +995,6 @@ void AsUI_Builder::Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser
 	int curr_page_max_line;
 	
 	delete[] User_Input_Rect;
-
 	Rect_Sub_Menu_Length = (int)map.size();
 	User_Input_Rect = new RECT[Rect_Sub_Menu_Length];
 
@@ -1025,7 +1011,10 @@ void AsUI_Builder::Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser
 		if (curr_line >= Rect_Sub_Menu_Length)
 			break;
 		else
-			Draw_Button(border_rect, User_Input_Rect[curr_line++], It_Current_User->second.Title_Name_Num.c_str() );
+		{
+			Draw_Button(border_rect, User_Input_Rect[curr_line], It_Current_User->second.Title_Name_Num.c_str() );
+			curr_line++;
+		}
 
 		if (curr_line > curr_page_max_line - 1)
 		{
@@ -1190,7 +1179,7 @@ void AsUI_Builder::User_Input_Handle()
 
 	// 3.0. Redraw All and Save
 	Draw_Menu_Sub(Active_Menu);  // Redraw All Sub Menu
-	Draw_User_Input_Button();  // Redrow User Input
+	User_Input_Draw();  // Redrow User Input
 	Handle_Active_Button_Advence();  // Show Active Button
 	User_Map_Main_Save(Active_Menu);  // Save current map in used sub menu
 }
@@ -1235,7 +1224,7 @@ bool AsUI_Builder::User_Input_Set_To_Clipboard()
 
 	GlobalUnlock(handle_data);
 	CloseClipboard();
-	Draw_User_Input_Button();
+	User_Input_Draw();
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
@@ -1270,7 +1259,7 @@ bool AsUI_Builder::User_Input_Get_From_Clipboard(wchar_t *to_clipboard)
 		GlobalFree(global_handle);  // Освободить глобальную память в случае ошибки
 
 	CloseClipboard();
-	Draw_User_Input_Button();
+	User_Input_Draw();
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------

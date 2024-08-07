@@ -128,11 +128,14 @@ private:
 	void Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const;
 	void Draw_Menu_Main();
 	void Draw_Menu_Sub(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
-	void Draw_User_Input_Button() const;  // Show user_input in sub menu
-	void Handle_User_Input(const wchar_t &text);  // Add input to User_Input
+	
+	void User_Input_Draw() const;  // Show user_input in sub menu
+	void User_Input_Update(const wchar_t &text);  // Add input to User_Input
+	
 	void Handle_RM_Button(const LPARAM &lParam);
 	void Handle_LM_Button(const LPARAM &lParam);
-	void Handle_Update_Button_Beta();
+	void Handle_Update_Button_Beta();  // !!!
+
 	void Handle_Active_Button_Advence();
 	void Handle_Active_Button(const EActive_Button &active_button);  // Redraw Button in current Active Menu
 	void Draw_Active_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array);
@@ -198,8 +201,6 @@ private:
 
 	static int Context_Button_Length;
 	static int User_Input_Len;  // count user input after press enter set to zero
-	static const wchar_t Main_Menu_Title_Name[];
-	static const wchar_t *Sub_Menu_Title;
 };
 //------------------------------------------------------------------------------------------------------------
 

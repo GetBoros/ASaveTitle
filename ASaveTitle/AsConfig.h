@@ -24,6 +24,9 @@ public:
 	static const wchar_t Pattern_Default_TXT[];
 	static const wchar_t Main_Image_Folder[];
 	static const wchar_t Image_Folder[];
+	static const wchar_t Main_Menu_Title_Name[];
+	static const wchar_t Sub_Menu_Title[];
+	static const wchar_t Sub_Menu_User_Input_Title[];
 	static const wchar_t *Menu_Main_Buttons_Text_Eng[Menu_Main_Button_Length];
 	static const wchar_t *Menu_Main_Buttons_Text_Rus[Menu_Main_Button_Length];
 	static const wchar_t *Season_Case_Up[];

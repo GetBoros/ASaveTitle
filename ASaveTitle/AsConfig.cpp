@@ -13,6 +13,10 @@ const wchar_t AsConfig::Pattern_Default_Bin[] = L"Url.bin";
 const wchar_t AsConfig::Pattern_Default_TXT[] = L"/PatternFindConfig.txt";
 const wchar_t AsConfig::Main_Image_Folder[] = L"Main_Image.png";
 const wchar_t AsConfig::Image_Folder[] = L"Pictures/";
+const wchar_t AsConfig::Main_Menu_Title_Name[] = L"Title Saver";
+const wchar_t AsConfig::Sub_Menu_Title[] = L"                                TITLE NAMES																								";
+const wchar_t AsConfig::Sub_Menu_User_Input_Title[] = L"Enter text here... or URL your site";
+
 const wchar_t *AsConfig::Menu_Main_Buttons_Text_Eng[] = { L"Watch", L"Watched", L"Paused", L"Add to wishlist", L"Errase from Array", L"Exit" };
 const wchar_t *AsConfig::Menu_Main_Buttons_Text_Rus[] = { L"Просмотреть", L"Просмотренные", L"В перерыве", L"Добавить в желаемое", L"Удалить", L"Выход" };
 const wchar_t *AsConfig::Season_Case_Up[] = { L"I", L"II", L"III", L"IV", L"V", L"VI", L"VII", L"VIII", L"IX", L"X" };
@@ -21,6 +25,7 @@ const wchar_t *AsConfig::Text_Program_Names[] = {L"Saver", L"Book Reader", L"Inv
 const wchar_t *AsConfig::Protocols[] = { L"https://", L"http://" };
 const wchar_t *AsConfig::Patterns_Config[] = { L"title_bgn = ",  L"title_end = ", L"title_num_bgn = ", L"title_num_end = ", L"image_bgn = ", L"image_end = ", L"\n" };
 const wchar_t AsConfig::Seasons[] = { 'I', 'V', 'X' };
+
 
 const int AsConfig::Settings_Size = sizeof(AsConfig::Settings) / sizeof(AsConfig::Settings[0]);
 RECT AsConfig::Window_Rect {};

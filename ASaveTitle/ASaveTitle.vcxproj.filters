@@ -24,6 +24,9 @@
     <Filter Include="Dictionary">
       <UniqueIdentifier>{b4b4616e-706c-4fdc-aa0b-fa0a09ea9867}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Tools\Examples">
+      <UniqueIdentifier>{b3696955-78df-4a20-8cdc-c3057499cbf2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -49,6 +52,9 @@
     </ClInclude>
     <ClInclude Include="Dictionary.h">
       <Filter>Dictionary</Filter>
+    </ClInclude>
+    <ClInclude Include="Examples.h">
+      <Filter>Tools\Examples</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -79,6 +85,9 @@
     </ClCompile>
     <ClCompile Include="Dictionary.cpp">
       <Filter>Dictionary</Filter>
+    </ClCompile>
+    <ClCompile Include="Examples.cpp">
+      <Filter>Tools\Examples</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

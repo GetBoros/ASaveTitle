@@ -11,7 +11,6 @@ AsMain *AsMain::Main_Window = 0;
 
 
 
-
 // Examples std::byte 
 template <typename T> void print_bytes(const T& input)
 {
@@ -97,7 +96,6 @@ void func_updataer_hud()
 void hud()
 {// AsTools tools; 22 000
 
-	
 	uintptr_t func_addr;
 	void ( *ptr_func_update) = 0;
 
@@ -111,20 +109,39 @@ void hud()
 
 
 
+
+struct A
+{
+	int a;
+};
+struct B
+{
+	int B;
+};
+
+
+
 // API_ENTRY
+#include "Examples.h"
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	//int argument = 42;
-	//void ( *ptr_say_hello) (int) = 0;  // void - type || (*ptr_say_hello)  - name ||  (int) - args ||= 0;  = &Say_Hello; - adress ||
-	//
-	//ptr_say_hello = &Say_Hello;  // set adress
-	//func_call_another_func(ptr_say_hello, argument);  // send func_ptr to another function
+	A a;
+	a.a = 5;
+	B *b = reinterpret_cast<B*>(&a);
 
-	// Examples
-	/*
-		hud();
+	AsExamples *Examples = new AsExamples();
 
+	Examples->Show_Case(EExample_Preview::EP_Show_Cast_Exam);
 
+	int argument = 42;
+	void ( *ptr_say_hello) (int) = 0;  // void - type || (*ptr_say_hello)  - name ||  (int) - args ||= 0;  = &Say_Hello; - adress ||
+	
+	ptr_say_hello = &Say_Hello;  // set adress
+	func_call_another_func(ptr_say_hello, argument);  // send func_ptr to another function
+
+	hud();
+
+	// Latter
 	func_string();
 	int arr[1000]{};
 	func(arr);
@@ -134,10 +151,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_
 	print_bytes(number); // Пример использования
 
 	unsigned long long value = 0xEFFC4964AE728A01ULL;
-	*/
 
-	//AsMain::Main_Window = AsMain::Set_Instance(hinstance);
-	//return AsMain::Main_Window->Get_WParam();
 	return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not
 }
 //------------------------------------------------------------------------------------------------------------

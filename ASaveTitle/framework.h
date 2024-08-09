@@ -19,6 +19,7 @@
 #include "array"
 #include <cwchar>  // wcstombs_s
 #include <mutex>
+#include <bitset>  // std::bitset || std::byte
 
 // TEMP
 /*

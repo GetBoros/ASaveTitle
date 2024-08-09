@@ -8,8 +8,8 @@ AsExamples::AsExamples()
 void AsExamples::Show_Case(EExample_Preview example_preview)
 {
 	// 1.0 EP_Show_Path_Info Data
-	std::wstring temp;
-	std::filesystem::path pathToDisplay(L"C:/FileSystemTest/SubDir3/SubDirLevel2/File2.txt ");
+	std::wstring result;
+	std::filesystem::path path_to_display(L"C:/FileSystemTest/SubDir3/SubDirLevel2/File2.txt ");
 
 	// 2.0. EP_Show_Func_Ptrs Data
 
@@ -18,7 +18,7 @@ void AsExamples::Show_Case(EExample_Preview example_preview)
 	case EExample_Preview::EP_None:
 		break;
 	case EExample_Preview::EP_Show_Path_Info:
-		Display_Path_Info(pathToDisplay, temp);
+		Display_Path_Info(path_to_display, result);
 		break;
 	case EExample_Preview::EP_Show_Byte_Info:
 		Display_Byte_Info();

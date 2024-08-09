@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "AsConfig.h"
+#include "Dictionary.h"
 
 //------------------------------------------------------------------------------------------------------------
 const int Timer_ID = WM_USER + 1;
@@ -124,23 +124,23 @@ public:
 	HDC Ptr_Hdc;
 
 private:
-	void Draw_Border(RECT &border_rect) const;
-	void Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const;
+	// !!! UI Draw
+	void Draw_Border(RECT &border_rect) const;  // Draw border and return inner rect
+	void Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const;  // Draw Button and return free border rect space 
 	void Draw_Menu_Main();
 	void Draw_Menu_Sub(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
-	
+
 	void User_Input_Draw() const;  // Show user_input in sub menu
 	void User_Input_Update(const wchar_t &text);  // Add input to User_Input
 	
-	void Handle_RM_Button(const LPARAM &lParam);
-	void Handle_LM_Button(const LPARAM &lParam);
-	void Handle_Update_Button_Beta();  // !!!
-
+	// !!! Change Button Color and Draw Image
 	void Handle_Active_Button_Advence();
 	void Handle_Active_Button(const EActive_Button &active_button);  // Redraw Button in current Active Menu
 	void Draw_Active_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array);
-	void Draw_User_Input_Request();  // Draw Request
-	void Draw_User_Title_Image(const wchar_t *image_path) const;
+	void Draw_User_Input_Request();  // Draw Request raise or decrease series
+	void Draw_User_Title_Image() const;  // Draw Image reacting on Active Button
+
+	// !!! 
 	void Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser_Input_Data> &map);  // Draw Button in subMenu
 	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
 	void Add_Button_Next_Page();
@@ -161,6 +161,13 @@ private:
 	void User_Map_Erase();  // Errase from Array
 	void User_Input_Convert_Data(SUser_Input_Data &converted_data, wchar_t *user_input);
 
+	// !!! Handler Input Last
+	void Handle_RM_Button(const LPARAM &lParam);
+	void Handle_LM_Button(const LPARAM &lParam);
+	void Handle_Update_Button_Beta();  // !!!
+
+
+
 	wchar_t User_Input[AsConfig::User_Input_Buffer];  // User Input Buffer | or border_width / 8 = Max_Char_Length
 	int Rect_Menu_List_Length;
 	int Rect_Sub_Menu_Length;
@@ -172,9 +179,6 @@ private:
 	const int Sub_Menu_Max_Line = 31;  // Нужен алгоритм что бы понять сколько влезет в пользувательский экран, или настроить через config
 	const int User_Array_Max_Size = 50;  // нужно будет выгрузить из конфига
 
-	// TEMP
-	RECT Main_Menu_Border;  // Need to check interaction
-
 	AsConfig Config;
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
 	EActive_Page Active_Page;
@@ -185,6 +189,7 @@ private:
 	RECT Prev_Context_Menu_Cords;  // prev context cords
 	RECT Rect_Pages[EActive_Page::EAP_Last];
 	RECT Input_Button_Rect;  // User Input RECT
+	RECT Main_Menu_Border;  // Need to check interaction
 	HDC Hdc_Memory;
 	HBITMAP H_Bitmap;
 	HGDIOBJ Saved_Object;

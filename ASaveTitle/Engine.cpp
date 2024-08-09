@@ -368,7 +368,7 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 : Active_Menu(EAM_Main), Ptr_Hdc(hdc), Rect_Menu_List{}, User_Input{}, Rect_Menu_List_Length(0), Rect_Sub_Menu_Length(0), Sub_Menu_Curr_Page(0), Prev_Main_Menu_Button(0),
   Prev_Button(99), Main_Menu_Titles_Length_Max(50), Sub_Menu_Max_Line(31), User_Array_Max_Size(0), Active_Button(EActive_Button::EAB_Main_Menu),
   Active_Page(EActive_Page::EAP_None), User_Input_Rect{}, Rect_User_Input_Change{}, Rect_Buttons_Context{}, Prev_Context_Menu_Cords{},
-  Rect_Pages{}, Input_Button_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Input_Data{}
+  Rect_Pages{}, Input_Button_Rect{}, Main_Menu_Border{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Input_Data{}
 {
 	AsTools tool;  // !!!
 
@@ -392,8 +392,9 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 
 	switch (builder_handler)
 	{
-	case EUI_Builder_Handler::Draw_Full_Window:
-		Draw_Menu_Sub();  // draw after maximazed window
+	case EUI_Builder_Handler::Draw_Full_Window:  // draw after maximazed window
+		Draw_Menu_Main();
+		Draw_Menu_Sub();
 		break;
 	case EUI_Builder_Handler::Draw_Menu_Main:
 		Draw_Menu_Main();
@@ -519,7 +520,8 @@ void AsUI_Builder::Draw_Menu_Main()
 	for (int i = 0; i < AsConfig::Menu_Main_Button_Length; i++)
 		Draw_Button(border_rect, Rect_Menu_List[i], AsConfig::Menu_Main_Buttons_Text_Eng[i]);
 
-	Draw_User_Title_Image(AsConfig::Main_Image_Folder);  // For now part of menu main
+	// 1.3. Draw Image
+	Draw_User_Title_Image();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Menu_Sub(const EActive_Menu &active_menu)
@@ -601,236 +603,14 @@ void AsUI_Builder::User_Input_Update(const wchar_t &user_text)
 	User_Input_Draw();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_RM_Button(const LPARAM &lParam)
-{
-	int i = 0;
-	RECT intersect_rect{};
-	RECT mouse_cord{};
-
-	int x = lParam & 0xffff;
-	int y = (int)(lParam >> 16);
-	mouse_cord.left = x - 1;
-	mouse_cord.top = y;
-	mouse_cord.right = x;
-	mouse_cord.bottom = y + 1;
-
-	// 1.Restore Image covered by context menu
-	if (!IsRectEmpty(&Prev_Context_Menu_Cords) )  // если контекстное меню есть
-		Context_Image_Restore(Prev_Context_Menu_Cords);
-
-
-	// 2. While clk on Main menu button redraw it and draw context menu
-	for (int i = 0; i < AsConfig::Menu_Main_Button_Length; i++)
-	{
-		if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]) )
-		{
-			Active_Menu = EAM_Main;  // Don`t touch
-			Handle_Active_Button( (EActive_Button)i);  // Change button color
-			Draw_Menu_Sub( (EActive_Menu)i);
-
-			Context_Menu_Draw(mouse_cord.right, mouse_cord.top);
-			return;
-		}
-	}
-
-
-	// 3. If sub menu wasn`t be created don`t check arrays
-	if (User_Input_Rect == 0)
-		return;
-
-
-	// 4. Draw Context_Menu_Draw if at buttons
-	for (i = Sub_Menu_Curr_Page * Sub_Menu_Max_Line; i < Rect_Sub_Menu_Length; i++)
-	{
-		if (IntersectRect(&intersect_rect, &mouse_cord, &User_Input_Rect[i]) )
-		{
-			Handle_Active_Button( (EActive_Button)i);
-			Context_Menu_Draw(mouse_cord.right, mouse_cord.top);
-			return;
-		}
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
-{
-	RECT intersect_rect{};
-	RECT mouse_cord{};
-
-	int x = lParam & 0xffff;
-	int y = (int)(lParam >> 16);
-	mouse_cord.left = x - 1;
-	mouse_cord.top = y;
-	mouse_cord.right = x;
-	mouse_cord.bottom = y + 1;
-
-	if (!IsRectEmpty(Rect_Pages) )
-	{//Rect_Pages buttons Handle
-
-		if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Prev]) )
-		{
-			if (Sub_Menu_Curr_Page < 1)
-				return;
-			else
-				Sub_Menu_Curr_Page--;
-
-			Draw_Menu_Sub(Active_Menu);
-			return;
-		}
-		else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Next]) )
-		{
-			Sub_Menu_Curr_Page++;
-			Draw_Menu_Sub(Active_Menu);
-			int yy = (int)Active_Menu;
-			Active_Menu = EAM_Main;
-			if (Active_Button != (EActive_Button)-1)
-				Draw_User_Input_Request();
-			
-			Active_Menu = (EActive_Menu)yy;
-
-			return;
-		} else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Update]) )  // Update Button
-		{
-			Handle_Update_Button_Beta();  // While press Update Page
-			//Handle_Update_Button();  // While press Update Page
-			return;
-		}
-	}
-
-
-	if (!IsRectEmpty(&Rect_User_Input_Change[0]) )
-	{// Reguest Handle
-
-		for (int i = 0; i < 2; i++)
-			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_User_Input_Change[i]) )
-			{
-				User_Input_Value_Is_Changed(i);
-				Handle_Active_Button( (EActive_Button)Prev_Button);
-				return;
-			}
-	}
-
-
-	if (!IsRectEmpty(&Input_Button_Rect) )  // !!! Refactoring
-	{// User_Input Handle || Double click on User_Input ||
-
-		if (IntersectRect(&intersect_rect, &mouse_cord, &Input_Button_Rect) )
-		{
-			if (User_Input[0] != 0)
-				User_Input_Handle();  // !!! Handle URL || What if thread?
-			else
-				User_Input_Set_To_Clipboard();
-
-			return;
-		}
-	}
-
-
-	if (!IsRectEmpty(&Prev_Context_Menu_Cords) )
-	{// Context Menu Handle
-
-		for (int i = 0; i < Context_Button_Length; i++)
-		{// check clk on context menu
-
-			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Buttons_Context[i]) )
-			{
-				EActive_Menu prev_active_mune = Active_Menu;
-				Context_Image_Restore(Prev_Context_Menu_Cords);
-
-				if (Active_Menu != EAM_Main)
-				{
-					Active_Menu = EAM_Main;
-					Draw_User_Input_Request();
-					Active_Menu = prev_active_mune;
-				}
-
-				switch ( (EActive_Menu)i)
-				{
-				case EAM_Watching:
-					User_Array_Map.insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
-					break;
-
-				case EAM_Library_Menu:
-					User_Library_Map.insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
-					break;
-
-				case EAM_Paused_Menu:
-					User_Paused_Map.insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
-					break;
-
-				case EAM_Wishlist:
-					User_Wishlist_Map.insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
-					break;
-				}
-				
-				User_Map_Erase();
-				Draw_Menu_Sub(Active_Menu);
-				return;
-			}
-		}
-		Context_Image_Restore(Prev_Context_Menu_Cords);
-	}
-
-
-	if (IntersectRect(&intersect_rect, &mouse_cord, &Main_Menu_Border) )
-	{
-		for (int i = 0; i < AsConfig::Menu_Main_Button_Length; i++)  // if is rect border
-		{// Main Menu Handle
-
-			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]))
-			{
-				if (Active_Menu != EAM_Main)
-				{
-					Active_Menu = EAM_Main;
-					Draw_User_Input_Request();
-				}
-
-				Active_Menu = EAM_Main;  // if enter here we clk on main menu border
-				Handle_Active_Button((EActive_Button)i);
-				Draw_Menu_Sub((EActive_Menu)i);
-				return;
-			}
-		}
-	}
-
-
-	for (int i = Sub_Menu_Curr_Page * Sub_Menu_Max_Line; i < Rect_Sub_Menu_Length; i++)
-	{// Sub Menu Handle
-
-		if (IntersectRect(&intersect_rect, &mouse_cord, &User_Input_Rect[i] ) )
-		{
-			Active_Button = (EActive_Button)i;
-			Handle_Active_Button_Advence();
-			return;
-		}
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Update_Button_Beta()
-{
-	int yy = 0;
-	// TASKS
-	/*
-		- How to make this in threads, and work fine?
-			- Get ID Content from file
-				- Save ID Content while handle URL
-			- Make from this id url
-			- Use url to get title with num
-			- Convert title with num to struct
-			- Use struct to find same title, and check num
-			- if different higlight new title to watch
-	*/
-}
-//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Active_Button_Advence()
 {
-	if (Active_Button == EActive_Button::EAB_Main_Menu)
+	if ( !(Active_Button != EActive_Button::EAB_Main_Menu) )
 		return;
 
 	Handle_Active_Button(Active_Button);  // Draw Active button
 	Draw_User_Input_Request();  // Draw Requests and clear prev requests
-
-	std::wstring image_path = AsConfig::Image_Folder + It_Current_User->second.Title_Name_Key + L".png";
-	Draw_User_Title_Image(image_path.c_str() );  // Initialize Title Image Folder
+	Draw_User_Title_Image();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Active_Button(const EActive_Button &active_button)
@@ -948,44 +728,50 @@ void AsUI_Builder::Draw_User_Input_Request()
 	LineTo(Ptr_Hdc, ui_rect_offset.left + half_box, ui_rect_offset.bottom - scale);
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_User_Title_Image(const wchar_t *image_path) const
+void AsUI_Builder::Draw_User_Title_Image() const
 {
 	int width = 0, height = 0, bpp = 0;
-	DirectX::ScratchImage image_title;
+	DXGI_FORMAT format {};
+	RECT img_cords {};
+	std::filesystem::path image_path {};
 	BITMAPINFO bmi = {};
-	RECT img_cords{};
+	DirectX::ScratchImage image_title {};
 
-	if (!std::filesystem::exists(image_path) )
-		DirectX::LoadFromWICFile(AsConfig::Main_Image_Folder, DirectX::WIC_FLAGS_NONE, 0, image_title);
+	if (Active_Menu != EActive_Menu::EAM_Main)
+		image_path = AsConfig::Image_Folder + It_Current_User->second.Title_Name_Key + L".png";
 	else
-		DirectX::LoadFromWICFile(image_path, DirectX::WIC_FLAGS_NONE, 0, image_title);
+		if (std::filesystem::exists(AsConfig::Main_Image_Folder) )
+			image_path = AsConfig::Main_Image_Folder;
+
+	DirectX::LoadFromWICFile(image_path.c_str(), DirectX::WIC_FLAGS_NONE, 0, image_title);
 
 	const DirectX::Image *img = image_title.GetImage(0, 0, 0);
-	if (img)
-	{
-		DXGI_FORMAT format = img->format;
-		bpp = (int)DirectX::BitsPerPixel(format);
-		width = (int)img->width;
-		height = (int)img->height;
+	if (!img != 0)
+		return;
 
-		bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-		bmi.bmiHeader.biWidth = width;
-		bmi.bmiHeader.biHeight = -height; // отрицательное значение для вертикального растеризации сверху вниз
-		bmi.bmiHeader.biPlanes = 1;
-		bmi.bmiHeader.biBitCount = bpp;
-		bmi.bmiHeader.biCompression = BI_RGB;
+	format = img->format;
+	bpp = (int)DirectX::BitsPerPixel(format);
+	width = (int)img->width;
+	height = (int)img->height;
 
-		img_cords.left = 9;
-		img_cords.top = 182;
-		img_cords.right = AsConfig::Main_Image_Width;  // 415
-		img_cords.bottom = AsConfig::Main_Image_Height;  // 636
-		FillRect(Ptr_Hdc, &img_cords, AsConfig::Brush_Background_Dark);
+	bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+	bmi.bmiHeader.biWidth = width;
+	bmi.bmiHeader.biHeight = -height; // отрицательное значение для вертикального растеризации сверху вниз
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = bpp;
+	bmi.bmiHeader.biCompression = BI_RGB;
 
-		img_cords.right = width;  // 415
-		img_cords.bottom = height;  // 636
+	img_cords.left = 9;
+	img_cords.top = 182;
+	img_cords.right = AsConfig::Main_Image_Width;  // 415
+	img_cords.bottom = AsConfig::Main_Image_Height;  // 636
+	FillRect(Ptr_Hdc, &img_cords, AsConfig::Brush_Background_Dark);
 
-		StretchDIBits(Ptr_Hdc, img_cords.left, img_cords.top, img_cords.right, img_cords.bottom, 0, 0, width, height, img->pixels, &bmi, DIB_RGB_COLORS, SRCCOPY);
-	}
+	img_cords.right = width;  // 415
+	img_cords.bottom = height;  // 636
+
+	StretchDIBits(Ptr_Hdc, img_cords.left, img_cords.top, img_cords.right, img_cords.bottom, 0, 0, width, height, img->pixels, &bmi, DIB_RGB_COLORS, SRCCOPY);
+
 	image_title.Release();
 }
 //------------------------------------------------------------------------------------------------------------
@@ -1681,6 +1467,230 @@ void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &ui_data, wchar_t *u
 	
 	ui_data.Title_Name_Num += std::to_wstring(ui_data.Title_Num);
 	ui_data.Title_Data;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_RM_Button(const LPARAM &lParam)
+{
+	int i, x, y;
+	RECT intersect_rect {};
+	RECT mouse_cord {};
+
+	i = 0;
+	x = lParam & 0xffff;
+	y = (int)(lParam >> 16);
+	mouse_cord.left = x - 1;
+	mouse_cord.top = y;
+	mouse_cord.right = x;
+	mouse_cord.bottom = y + 1;
+
+	// 1.Restore Image covered by context menu
+	if (!IsRectEmpty(&Prev_Context_Menu_Cords) )  // если контекстное меню есть
+		Context_Image_Restore(Prev_Context_Menu_Cords);
+
+
+	// 2. While clk on Main menu button redraw it and draw context menu
+	if (!IsRectEmpty(&Main_Menu_Border) )
+	{
+		for (i = 0; i < AsConfig::Menu_Main_Button_Length; i++)
+		{
+			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]) )
+			{
+				Active_Menu = EAM_Main;  // Don`t touch
+				Handle_Active_Button( (EActive_Button)i);  // Change button color
+				Draw_Menu_Sub( (EActive_Menu)i);
+
+				Context_Menu_Draw(mouse_cord.right, mouse_cord.top);
+				return;
+			}
+		}
+	}
+
+
+	// 3. If sub menu wasn`t be created don`t check arrays
+	if (User_Input_Rect == 0)
+		return;
+
+
+	// 4. Draw Context_Menu_Draw if at buttons
+	for (i = Sub_Menu_Curr_Page * Sub_Menu_Max_Line; i < Rect_Sub_Menu_Length; i++)
+	{
+		if (IntersectRect(&intersect_rect, &mouse_cord, &User_Input_Rect[i]) )
+		{
+			Handle_Active_Button( (EActive_Button) i);
+			Context_Menu_Draw(mouse_cord.right, mouse_cord.top);
+			return;
+		}
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
+{
+	RECT intersect_rect{};
+	RECT mouse_cord{};
+
+	int x = lParam & 0xffff;
+	int y = (int)(lParam >> 16);
+	mouse_cord.left = x - 1;
+	mouse_cord.top = y;
+	mouse_cord.right = x;
+	mouse_cord.bottom = y + 1;
+
+	if (!IsRectEmpty(Rect_Pages) )
+	{//Rect_Pages buttons Handle
+
+		if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Prev]) )
+		{
+			if (Sub_Menu_Curr_Page < 1)
+				return;
+			else
+				Sub_Menu_Curr_Page--;
+
+			Draw_Menu_Sub(Active_Menu);
+			return;
+		}
+		else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Next]) )
+		{
+			Sub_Menu_Curr_Page++;
+			Draw_Menu_Sub(Active_Menu);
+			int yy = (int)Active_Menu;
+			Active_Menu = EAM_Main;
+			if (Active_Button != (EActive_Button)-1)
+				Draw_User_Input_Request();
+			
+			Active_Menu = (EActive_Menu)yy;
+
+			return;
+		} else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Update]) )  // Update Button
+		{
+			Handle_Update_Button_Beta();  // While press Update Page
+			//Handle_Update_Button();  // While press Update Page
+			return;
+		}
+	}
+
+
+	if (!IsRectEmpty(&Rect_User_Input_Change[0]) )
+	{// Reguest Handle
+
+		for (int i = 0; i < 2; i++)
+			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_User_Input_Change[i]) )
+			{
+				User_Input_Value_Is_Changed(i);
+				Handle_Active_Button( (EActive_Button)Prev_Button);
+				return;
+			}
+	}
+
+
+	if (!IsRectEmpty(&Input_Button_Rect) )  // !!! Refactoring
+	{// User_Input Handle || Double click on User_Input ||
+
+		if (IntersectRect(&intersect_rect, &mouse_cord, &Input_Button_Rect) )
+		{
+			if (User_Input[0] != 0)
+				User_Input_Handle();  // !!! Handle URL || What if thread?
+			else
+				User_Input_Set_To_Clipboard();
+
+			return;
+		}
+	}
+
+
+	if (!IsRectEmpty(&Prev_Context_Menu_Cords) )
+	{// Context Menu Handle
+
+		for (int i = 0; i < Context_Button_Length; i++)
+		{// check clk on context menu
+
+			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Buttons_Context[i]) )
+			{
+				EActive_Menu prev_active_mune = Active_Menu;
+				Context_Image_Restore(Prev_Context_Menu_Cords);
+
+				if (Active_Menu != EAM_Main)
+				{
+					Active_Menu = EAM_Main;
+					Draw_User_Input_Request();
+					Active_Menu = prev_active_mune;
+				}
+
+				switch ( (EActive_Menu)i)
+				{
+				case EAM_Watching:
+					User_Array_Map.insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
+					break;
+
+				case EAM_Library_Menu:
+					User_Library_Map.insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
+					break;
+
+				case EAM_Paused_Menu:
+					User_Paused_Map.insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
+					break;
+
+				case EAM_Wishlist:
+					User_Wishlist_Map.insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
+					break;
+				}
+				
+				User_Map_Erase();
+				Draw_Menu_Sub(Active_Menu);
+				return;
+			}
+		}
+		Context_Image_Restore(Prev_Context_Menu_Cords);
+	}
+
+
+	if (IntersectRect(&intersect_rect, &mouse_cord, &Main_Menu_Border) )
+	{
+		for (int i = 0; i < AsConfig::Menu_Main_Button_Length; i++)  // if is rect border
+		{// Main Menu Handle
+
+			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]))
+			{
+				if (Active_Menu != EAM_Main)
+				{
+					Active_Menu = EAM_Main;
+					Draw_User_Input_Request();
+				}
+
+				Active_Menu = EAM_Main;  // if enter here we clk on main menu border
+				Handle_Active_Button((EActive_Button)i);
+				Draw_Menu_Sub((EActive_Menu)i);
+				return;
+			}
+		}
+	}
+
+
+	for (int i = Sub_Menu_Curr_Page * Sub_Menu_Max_Line; i < Rect_Sub_Menu_Length; i++)
+	{// Sub Menu Handle
+
+		if (IntersectRect(&intersect_rect, &mouse_cord, &User_Input_Rect[i] ) )
+		{
+			Active_Button = (EActive_Button)i;
+			Handle_Active_Button_Advence();
+			return;
+		}
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Update_Button_Beta()
+{
+	int yy = 0;
+	// TASKS
+	/*
+		- How to make this in threads, and work fine?
+			- Get ID Content from file
+				- Save ID Content while handle URL
+			- Make from this id url
+			- Use url to get title with num
+			- Convert title with num to struct
+			- Use struct to find same title, and check num
+			- if different higlight new title to watch
+	*/
 }
 //------------------------------------------------------------------------------------------------------------
 

@@ -7,10 +7,9 @@ AsMain *AsMain::Main_Window = 0;
 
 
 // API_ENTRY
-#include "Examples.h"
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	// Tutorials
+	// Tutorial
 	/*
 		AsExamples *examples = new AsExamples();
 		examples->Show_Case(EExample_Preview::EP_Show_Byte_Info);

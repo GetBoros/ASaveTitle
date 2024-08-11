@@ -394,7 +394,7 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 	{
 	case EUI_Builder_Handler::Draw_Full_Window:  // draw after maximazed window
 		Draw_Menu_Main();
-		Draw_Menu_Sub();
+		Draw_Menu_Sub_Advenced();
 		break;
 	case EUI_Builder_Handler::Draw_Menu_Main:
 		Draw_Menu_Main();
@@ -488,6 +488,35 @@ void AsUI_Builder::Draw_Button(RECT &border_rect, RECT &button, const wchar_t *t
 	border_rect.top = button.bottom + scale;  // cuting border for next button
 }
 //------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const
+{
+	SelectObject(Ptr_Hdc, background);
+	SetBkColor(Ptr_Hdc, color_bk);
+	SetTextColor(Ptr_Hdc, color_tx);
+
+	Rectangle(Ptr_Hdc, rect.left, rect.top, rect.right, rect.bottom);  // draw rect
+	TextOutW(Ptr_Hdc, rect.left + AsConfig::Global_Scale, rect.top + AsConfig::Global_Scale, str, (int)wcslen(str) );  // button_prev text ( x its text out in middle
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Draw_Button_Pages()
+{
+	int scale = AsConfig::Global_Scale;
+	RECT button_update = { 1140, 12, 1228, 30 };  // Update Page
+	RECT button_prev = { 1231, 12, 1303, 30 };  // Next Page
+	RECT button_next= { 1305, 12, 1375, 30 };  // Prev Page
+
+	Rectangle(Ptr_Hdc, button_update.left, button_update.top, button_update.right, button_update.bottom);
+	TextOutW(Ptr_Hdc, button_update.left + 1, button_update.top + 1, L"Update Page", 11);
+	Rectangle(Ptr_Hdc, button_prev.left, button_prev.top, button_prev.right, button_prev.bottom);
+	TextOutW(Ptr_Hdc, button_prev.left + 1, button_prev.top + 1, L"Prev Page", 9);
+	Rectangle(Ptr_Hdc, button_next.left, button_next.top, button_next.right, button_next.bottom);
+	TextOutW(Ptr_Hdc, button_next.left + 1, button_next.top + 1, L"Next Page", 9);
+
+	Rect_Pages[EActive_Page::EAP_Update] = button_update;
+	Rect_Pages[EActive_Page::EAP_Prev] = button_prev;
+	Rect_Pages[EActive_Page::EAP_Next] = button_next;
+}
+//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Menu_Main()
 {
 	int x, y;
@@ -524,52 +553,74 @@ void AsUI_Builder::Draw_Menu_Main()
 	Draw_User_Title_Image();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Menu_Sub(const EActive_Menu &active_menu)
+void AsUI_Builder::Draw_Menu_Sub_Advenced()
 {
-	int border_offset;
-	RECT border_rect{};
+	int curr_line;
+	int curr_page_max_line;
+	RECT border_rect;
+	std::map<std::wstring, SUser_Input_Data> *map;
 
-	// 1.1.Draw Border
-	Draw_Border(border_rect);  // draw border
-	border_rect.top += AsConfig::Global_Scale;  // without title? i can fix but it`s look good enough
-	border_offset = (Main_Menu_Titles_Length_Max + AsConfig::Global_Scale) * AsConfig::Ch_W;  // where to draw next border
+	curr_line = 0;
+	curr_page_max_line = 0;
+	border_rect = {};
+	map = 0;
 	Prev_Button = 99;  // Need to switch between arrays
 
-	// 1.2. Set colors
+	// 1.1.Draw Border, Set colors, Draw Titles and user input handler
+	Draw_Border(border_rect);  // draw border
+	border_rect.top += AsConfig::Global_Scale;  // without title? i can fix but it`s look good enough
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
 	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);
 	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);
 	Draw_Button(border_rect, Input_Button_Rect, AsConfig::Sub_Menu_Title);  // Write Sub menu title
 	Draw_Button(border_rect, Input_Button_Rect, AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
 
-	if (active_menu != EActive_Menu::EAM_Main)
-		Active_Menu = active_menu;
-
 	switch (Active_Menu)
 	{
 	case EAM_Watching:
-		Draw_User_Map(border_rect, User_Array_Map);
+		map = &User_Array_Map;
 		break;
-	
-	
 	case EAM_Library_Menu:
-		Draw_User_Map(border_rect, User_Library_Map);
+		map = &User_Library_Map;
 		break;
-
-
 	case EAM_Paused_Menu:
-		Draw_User_Map(border_rect, User_Paused_Map);
+		map = &User_Paused_Map;
 		break;
-
-
 	case EAM_Wishlist:
-		Draw_User_Map(border_rect, User_Wishlist_Map);
+		map = &User_Wishlist_Map;
 		break;
-
-
 	case EAM_Exit:
-		PostQuitMessage(0);
-		break;
+		return PostQuitMessage(0);
+	}
+
+	if (!map != 0)
+		return;
+	Draw_Button_Pages();
+
+	// 2.0. Create RECT`s for button, handle it later
+	delete[] User_Input_Rect;
+	Rect_Sub_Menu_Length = (int)map->size();
+	User_Input_Rect = new RECT[Rect_Sub_Menu_Length];
+
+	// 2.1. Set iterator to start and check sub menu
+	It_Current_User = map->begin();
+	if (map->size() < Sub_Menu_Max_Line)
+		Sub_Menu_Curr_Page = 0;
+	
+	// 2.2. If in next page move iterator to needed page
+	curr_page_max_line = Sub_Menu_Max_Line * (Sub_Menu_Curr_Page + 1);
+	curr_line = Sub_Menu_Curr_Page * Sub_Menu_Max_Line;
+	std::advance(It_Current_User, curr_line);
+
+	// 2.3. Draw needed buttons to submenu
+	for (; It_Current_User != map->end(); ++It_Current_User)
+	{
+		if (curr_line < Rect_Sub_Menu_Length && curr_line < curr_page_max_line)
+			Draw_Button(border_rect, User_Input_Rect[curr_line], It_Current_User->second.Title_Name_Num.c_str() );
+		else
+			return;
+		
+		curr_line++;
 	}
 }
 //------------------------------------------------------------------------------------------------------------
@@ -603,86 +654,19 @@ void AsUI_Builder::User_Input_Update(const wchar_t &user_text)
 	User_Input_Draw();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Active_Button_Advence()
-{
-	if ( !(Active_Button != EActive_Button::EAB_Main_Menu) )
-		return;
-
-	Handle_Active_Button(Active_Button);  // Draw Active button
-	Draw_User_Input_Request();  // Draw Requests and clear prev requests
-	Draw_User_Title_Image();
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Active_Button(const EActive_Button &active_button)
-{
-	switch (Active_Menu)
-	{
-	case EAM_Main:
-	case EAM_Watching:
-		Draw_Active_Button(active_button, User_Array_Map);
-		break;
-
-	case EAM_Library_Menu:
-		Draw_Active_Button(active_button, User_Library_Map);
-		break;
-
-	case EAM_Paused_Menu:
-		Draw_Active_Button(active_button, User_Paused_Map);
-		break;
-
-	case EAM_Wishlist:
-		Draw_Active_Button(active_button, User_Wishlist_Map);
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Active_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array)
-{
-	int title_name_length;
-
-	title_name_length = 0;
-
-	if (Active_Menu != EAM_Main)
-	{
-		if (Prev_Button == 99)
-			Prev_Button = (int)active_button;
-
-		It_Current_User = user_array.begin();  // Prev_Button
-		std::advance(It_Current_User, (int)Prev_Button);
-		Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, User_Input_Rect[Prev_Button], It_Current_User->second.Title_Name_Num.c_str() );
-		
-		It_Current_User = user_array.begin();  // Active Button
-		std::advance(It_Current_User, (int)active_button);
-
-		if (Active_Page != EAP_Update)  // if from update button change color
-			Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, User_Input_Rect[(int)active_button], It_Current_User->second.Title_Name_Num.c_str());
-		else
-		{
-			Active_Page = EAP_None;
-			Draw_Button_Text(AsConfig::Brush_Background_Button_Update, AsConfig::Color_Backgrount_Text, AsConfig::Color_Dark, User_Input_Rect[(int)active_button], It_Current_User->second.Title_Name_Num.c_str());
-		}
-		Prev_Button = (int)active_button;
-	}
-	else
-	{
-		Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, Rect_Menu_List[Prev_Main_Menu_Button], AsConfig::Menu_Main_Buttons_Text_Eng[Prev_Main_Menu_Button]);
-		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, Rect_Menu_List[(int)active_button], AsConfig::Menu_Main_Buttons_Text_Eng[(int)active_button]);
-
-		Prev_Main_Menu_Button = (int)active_button;
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_User_Input_Request()
+void AsUI_Builder::Draw_Active_Button_Request()
 {
 	int button_offset;
 	int box_size;
 	int scale;
 	int half_box;
-	RECT ui_rect_offset {};
+	RECT ui_rect_offset;
 
 	button_offset = 9;
 	box_size = 21;
 	half_box = (int)( (float)box_size / 2.0f);
 	scale = AsConfig::Global_Scale;
+	ui_rect_offset = {};
 
 	// 1. Get and set current button and drow near sub option to increase or dercrese last char
 	if (Active_Menu == EAM_Main)
@@ -775,6 +759,71 @@ void AsUI_Builder::Draw_User_Title_Image() const
 	image_title.Release();
 }
 //------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Draw_Active_Button_Advenced()
+{
+	int title_name_length;
+	std::map<std::wstring, SUser_Input_Data> *map;
+
+	title_name_length = 0;
+	map = 0;
+
+	if ( !(Active_Button != EActive_Button::EAB_Main_Menu) )
+		return;  // !!! Is this really need?
+
+
+	if (Active_Menu == EActive_Menu::EAM_Main)
+	{
+		Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, Rect_Menu_List[Prev_Main_Menu_Button], AsConfig::Menu_Main_Buttons_Text_Eng[Prev_Main_Menu_Button]);
+		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, Rect_Menu_List[(int)Active_Button], AsConfig::Menu_Main_Buttons_Text_Eng[(int)Active_Button]);
+
+		Prev_Main_Menu_Button = (int)Active_Button;
+		return;
+	}
+
+	switch (Active_Menu)
+	{
+	case EAM_Watching:
+		map = &User_Array_Map;
+		break;
+	case EAM_Library_Menu:
+		map = &User_Library_Map;
+		break;
+	case EAM_Paused_Menu:
+		map = &User_Paused_Map;
+		break;
+	case EAM_Wishlist:
+		map = &User_Wishlist_Map;
+		break;
+	case EAM_Exit:
+		return PostQuitMessage(0);
+	}
+
+	if (!map != 0)
+		return;
+
+	if (Prev_Button == 99)
+		Prev_Button = (int)Active_Button;
+
+	It_Current_User = map->begin();  // Prev_Button
+	std::advance(It_Current_User, (int)Prev_Button);
+	Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, User_Input_Rect[Prev_Button], It_Current_User->second.Title_Name_Num.c_str() );
+		
+	It_Current_User = map->begin();  // Active Button
+	std::advance(It_Current_User, (int)Active_Button);
+
+	if (Active_Page != EAP_Update)  // if from update button change color
+		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, User_Input_Rect[(int)Active_Button], It_Current_User->second.Title_Name_Num.c_str());
+	else
+	{
+		Active_Page = EAP_None;
+		Draw_Button_Text(AsConfig::Brush_Background_Button_Update, AsConfig::Color_Backgrount_Text, AsConfig::Color_Dark, User_Input_Rect[(int)Active_Button], It_Current_User->second.Title_Name_Num.c_str());
+	}
+	Prev_Button = (int)Active_Button;
+
+	Draw_Active_Button_Request();  // Draw Requests and clear prev requests
+	Draw_User_Title_Image();
+}
+//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser_Input_Data> &map)
 {
 	int curr_line;
@@ -804,40 +853,11 @@ void AsUI_Builder::Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser
 
 		if (curr_line > curr_page_max_line - 1)
 		{
-			Add_Button_Next_Page();
+			Draw_Button_Pages();
 			return;
 		}
 	}
-	Add_Button_Next_Page();
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const
-{
-	SelectObject(Ptr_Hdc, background);
-	SetBkColor(Ptr_Hdc, color_bk);
-	SetTextColor(Ptr_Hdc, color_tx);
-
-	Rectangle(Ptr_Hdc, rect.left, rect.top, rect.right, rect.bottom);  // draw rect
-	TextOutW(Ptr_Hdc, rect.left + AsConfig::Global_Scale, rect.top + AsConfig::Global_Scale, str, (int)wcslen(str) );  // button_prev text ( x its text out in middle
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Add_Button_Next_Page()
-{
-	int scale = AsConfig::Global_Scale;
-	RECT button_update = { 1140, 12, 1228, 30 };  // Update Page
-	RECT button_prev = { 1231, 12, 1303, 30 };  // Next Page
-	RECT button_next= { 1305, 12, 1375, 30 };  // Prev Page
-
-	Rectangle(Ptr_Hdc, button_update.left, button_update.top, button_update.right, button_update.bottom);
-	TextOutW(Ptr_Hdc, button_update.left + 1, button_update.top + 1, L"Update Page", 11);
-	Rectangle(Ptr_Hdc, button_prev.left, button_prev.top, button_prev.right, button_prev.bottom);
-	TextOutW(Ptr_Hdc, button_prev.left + 1, button_prev.top + 1, L"Prev Page", 9);
-	Rectangle(Ptr_Hdc, button_next.left, button_next.top, button_next.right, button_next.bottom);
-	TextOutW(Ptr_Hdc, button_next.left + 1, button_next.top + 1, L"Next Page", 9);
-
-	Rect_Pages[EActive_Page::EAP_Update] = button_update;
-	Rect_Pages[EActive_Page::EAP_Prev] = button_prev;
-	Rect_Pages[EActive_Page::EAP_Next] = button_next;
+	Draw_Button_Pages();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Context_Menu_Draw(const int &x, const int &y)
@@ -964,9 +984,9 @@ void AsUI_Builder::User_Input_Handle()
 	}
 
 	// 3.0. Redraw All and Save
-	Draw_Menu_Sub(Active_Menu);  // Redraw All Sub Menu
+	Draw_Menu_Sub_Advenced();  // Redraw All Sub Menu
 	User_Input_Draw();  // Redrow User Input
-	Handle_Active_Button_Advence();  // Show Active Button
+	Draw_Active_Button_Advenced();  // Show Active Button
 	User_Map_Main_Save(Active_Menu);  // Save current map in used sub menu
 }
 //------------------------------------------------------------------------------------------------------------
@@ -1472,12 +1492,15 @@ void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &ui_data, wchar_t *u
 void AsUI_Builder::Handle_RM_Button(const LPARAM &lParam)
 {
 	int i, x, y;
-	RECT intersect_rect {};
-	RECT mouse_cord {};
+	RECT intersect_rect;
+	RECT mouse_cord;
 
 	i = 0;
 	x = lParam & 0xffff;
 	y = (int)(lParam >> 16);
+	mouse_cord = {};
+	intersect_rect = {};
+
 	mouse_cord.left = x - 1;
 	mouse_cord.top = y;
 	mouse_cord.right = x;
@@ -1495,11 +1518,14 @@ void AsUI_Builder::Handle_RM_Button(const LPARAM &lParam)
 		{
 			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]) )
 			{
-				Active_Menu = EAM_Main;  // Don`t touch
-				Handle_Active_Button( (EActive_Button)i);  // Change button color
-				Draw_Menu_Sub( (EActive_Menu)i);
+				Active_Menu = EAM_Main;  // User Activate Main Menu while click on the main menu border
+				Active_Button = (EActive_Button)i;  // Set Active button
+				Draw_Active_Button_Advenced();
 
-				Context_Menu_Draw(mouse_cord.right, mouse_cord.top);
+				Active_Menu = (EActive_Menu)i;  // Which Active menu user choose?
+				Draw_Menu_Sub_Advenced();  // Draw It
+				Context_Menu_Draw(mouse_cord.right, mouse_cord.top);  // Draw Contenxt Menu
+				
 				return;
 			}
 		}
@@ -1516,7 +1542,8 @@ void AsUI_Builder::Handle_RM_Button(const LPARAM &lParam)
 	{
 		if (IntersectRect(&intersect_rect, &mouse_cord, &User_Input_Rect[i]) )
 		{
-			Handle_Active_Button( (EActive_Button) i);
+			Active_Button = (EActive_Button)i;
+			Draw_Active_Button_Advenced();
 			Context_Menu_Draw(mouse_cord.right, mouse_cord.top);
 			return;
 		}
@@ -1545,17 +1572,19 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 			else
 				Sub_Menu_Curr_Page--;
 
-			Draw_Menu_Sub(Active_Menu);
+			Draw_Menu_Sub_Advenced();
 			return;
 		}
 		else if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Pages[EActive_Page::EAP_Next]) )
 		{
+			const int yy = (int)Active_Menu;
+
 			Sub_Menu_Curr_Page++;
-			Draw_Menu_Sub(Active_Menu);
-			int yy = (int)Active_Menu;
-			Active_Menu = EAM_Main;
+			Draw_Menu_Sub_Advenced();
+
+			Active_Menu = EAM_Main;  // !!! Need fix | will be if fix Draw_User_Input_Request logic
 			if (Active_Button != (EActive_Button)-1)
-				Draw_User_Input_Request();
+				Draw_Active_Button_Request();
 			
 			Active_Menu = (EActive_Menu)yy;
 
@@ -1576,7 +1605,9 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_User_Input_Change[i]) )
 			{
 				User_Input_Value_Is_Changed(i);
-				Handle_Active_Button( (EActive_Button)Prev_Button);
+
+				Active_Button = (EActive_Button)Prev_Button;
+				Draw_Active_Button_Advenced();
 				return;
 			}
 	}
@@ -1611,7 +1642,7 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 				if (Active_Menu != EAM_Main)
 				{
 					Active_Menu = EAM_Main;
-					Draw_User_Input_Request();
+					Draw_Active_Button_Request();
 					Active_Menu = prev_active_mune;
 				}
 
@@ -1635,7 +1666,7 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 				}
 				
 				User_Map_Erase();
-				Draw_Menu_Sub(Active_Menu);
+				Draw_Menu_Sub_Advenced();
 				return;
 			}
 		}
@@ -1648,17 +1679,22 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 		for (int i = 0; i < AsConfig::Menu_Main_Button_Length; i++)  // if is rect border
 		{// Main Menu Handle
 
-			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]))
+			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]) )
 			{
 				if (Active_Menu != EAM_Main)
 				{
 					Active_Menu = EAM_Main;
-					Draw_User_Input_Request();
+					Draw_Active_Button_Request();
 				}
 
 				Active_Menu = EAM_Main;  // if enter here we clk on main menu border
-				Handle_Active_Button((EActive_Button)i);
-				Draw_Menu_Sub((EActive_Menu)i);
+				
+				Active_Button = (EActive_Button)i;
+				Draw_Active_Button_Advenced();
+
+				Active_Menu = (EActive_Menu)i;
+				Draw_Menu_Sub_Advenced();
+
 				return;
 			}
 		}
@@ -1671,7 +1707,7 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 		if (IntersectRect(&intersect_rect, &mouse_cord, &User_Input_Rect[i] ) )
 		{
 			Active_Button = (EActive_Button)i;
-			Handle_Active_Button_Advence();
+			Draw_Active_Button_Advenced();
 			return;
 		}
 	}
@@ -1692,7 +1728,7 @@ void AsUI_Builder::Handle_Update_Button_Beta()
 			- if different higlight new title to watch
 	*/
 }
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------ 1731
 
 
 

@@ -127,23 +127,21 @@ private:
 	// !!! UI Draw
 	void Draw_Border(RECT &border_rect) const;  // Draw border and return inner rect
 	void Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const;  // Draw Button and return free border rect space 
+	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
+	void Draw_Button_Pages();
+	
 	void Draw_Menu_Main();
-	void Draw_Menu_Sub(const EActive_Menu &active_menu = EActive_Menu::EAM_Main);  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
-
+	void Draw_Menu_Sub_Advenced();  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
 	void User_Input_Draw() const;  // Show user_input in sub menu
-	void User_Input_Update(const wchar_t &text);  // Add input to User_Input
+	void User_Input_Update(const wchar_t &text);  // Add and show input to User_Input Buttons
 	
 	// !!! Change Button Color and Draw Image
-	void Handle_Active_Button_Advence();
-	void Handle_Active_Button(const EActive_Button &active_button);  // Redraw Button in current Active Menu
-	void Draw_Active_Button(const EActive_Button &active_button, std::map<std::wstring, SUser_Input_Data> &user_array);
-	void Draw_User_Input_Request();  // Draw Request raise or decrease series
+	void Draw_Active_Button_Advenced();
+	void Draw_Active_Button_Request();  // !!! Draw Request raise or decrease series if active button not 99 
 	void Draw_User_Title_Image() const;  // Draw Image reacting on Active Button
-
+	
 	// !!! 
 	void Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser_Input_Data> &map);  // Draw Button in subMenu
-	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
-	void Add_Button_Next_Page();
 	void Context_Menu_Draw(const int &x, const int &y);
 	void Context_Image_Save(const RECT &rect);  // Save image in rect
 	void Context_Image_Restore(RECT &rect);  // redraw image
@@ -165,8 +163,6 @@ private:
 	void Handle_RM_Button(const LPARAM &lParam);
 	void Handle_LM_Button(const LPARAM &lParam);
 	void Handle_Update_Button_Beta();  // !!!
-
-
 
 	wchar_t User_Input[AsConfig::User_Input_Buffer];  // User Input Buffer | or border_width / 8 = Max_Char_Length
 	int Rect_Menu_List_Length;

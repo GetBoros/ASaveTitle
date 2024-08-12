@@ -51,13 +51,13 @@ enum EActive_Menu
 	EAM_Exit
 };
 //------------------------------------------------------------------------------------------------------------
-enum EActive_Page
+enum EPage
 {
-	EAP_None = -1,
-	EAP_Update = 0,
-	EAP_Prev,
-	EAP_Next,
-	EAP_Last
+	None = -1,
+	Update = 0,
+	Prev,
+	Next,
+	Last
 };
 //------------------------------------------------------------------------------------------------------------
 struct SUser_Input_Data
@@ -70,7 +70,17 @@ struct SUser_Input_Data
 	std::wstring Title_Name_Num = L"";
 };
 //------------------------------------------------------------------------------------------------------------
-
+enum class EPress : int
+{
+	None,
+	Button_User_Input,
+	Button_Reguest,
+	Button_Pages,
+	Menu_Context,
+	Menu_Main,
+	Menu_Sub,
+	Exit
+};
 
 
 // ACurl_Client
@@ -124,42 +134,49 @@ public:
 	HDC Ptr_Hdc;
 
 private:
+	void Init();  // Do just once
+
+	// !!! User Inputs
+	void Handler_User_Input();  // Handle User input if press Enter or twice at button
+	void User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, wchar_t *user_input);  // Need refactoring
+	void User_Input_Value_Is_Changed(const bool is_increment);  // Change active title num
+	void User_Input_Set_From_Clipboard();
+
 	// !!! UI Draw
 	void Draw_Border(RECT &border_rect) const;  // Draw border and return inner rect
 	void Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const;  // Draw Button and return free border rect space 
 	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
-	void Draw_Button_Pages();
+	void Draw_Button_Pages();  // !!! Can be refactored
 	
+	// Draw UI Parts
 	void Draw_Menu_Main();
 	void Draw_Menu_Sub_Advenced();  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
 	void User_Input_Draw() const;  // Show user_input in sub menu
 	void User_Input_Update(const wchar_t &text);  // Add and show input to User_Input Buttons
 	
-	// !!! Change Button Color and Draw Image
-	void Draw_Active_Button_Advenced();
+	// Change Button Color and Draw Image
+	void Draw_Active_Button_Advenced();  // Draw and Redraw Active Buttons in nice color
+	void Draw_Active_Button_Request_Test();  // !!! Draw Request raise or decrease series if active button not 99 
 	void Draw_Active_Button_Request();  // !!! Draw Request raise or decrease series if active button not 99 
 	void Draw_User_Title_Image() const;  // Draw Image reacting on Active Button
 	
-	// !!! 
-	void Draw_User_Map(RECT &border_rect, std::map<std::wstring, SUser_Input_Data> &map);  // Draw Button in subMenu
-	void Context_Menu_Draw(const int &x, const int &y);
-	void Context_Image_Save(const RECT &rect);  // Save image in rect
+	// Draw Context Menu
+	void Context_Menu_Draw(const int &x, const int &y);  // Draw context menu and store data rect
 	void Context_Image_Restore(RECT &rect);  // redraw image
-	void User_Input_Handle();  // Add to array
-	void User_Input_Value_Is_Changed(const bool is_increment);  // Change active title num
-	bool User_Input_Set_To_Clipboard();
-	bool User_Input_Get_From_Clipboard(wchar_t *to_clipboard);  // and Re-Draw_User_Input
-	unsigned long long User_Map_Load_Convert(unsigned long long &ch);
+
+	// Load
 	void User_Map_Main_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
-	void User_Map_Main_Save(const EActive_Menu &active_menu);  // Main Save | Threaded || Call this to save current std::map
+	void User_Map_Main_Save();  // Main Save | Threaded || Call this to save current std::map
 	void User_Map_Init_Buffer(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);  // Format std::map to wchar_t ** after save
 	void User_Map_Save_Array(const char *file_path, wchar_t **user_array, int user_input_counter);
-	unsigned short User_Map_Save_Convert(unsigned short ch);
-	void User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, wchar_t *user_input);  // Save User_Input to User_Map
-	void User_Map_Erase();  // Errase from Array
-	void User_Input_Convert_Data(SUser_Input_Data &converted_data, wchar_t *user_input);
+	
+	// Converters
+	void User_Input_Convert_Data(SUser_Input_Data &converted_data, wchar_t *user_input);  // Convert title to Data struct
+	unsigned short User_Map_Save_Convert(unsigned short ch);  // Convert title, need to save to file
+	unsigned long long User_Map_Load_Convert(unsigned long long &ch);  // Convert back and get Title
 
-	// !!! Handler Input Last
+	// Handler Input Last
+	void Handle_LM_Button_Advenced();
 	void Handle_RM_Button(const LPARAM &lParam);
 	void Handle_LM_Button(const LPARAM &lParam);
 	void Handle_Update_Button_Beta();  // !!!
@@ -177,15 +194,18 @@ private:
 
 	AsConfig Config;
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
-	EActive_Page Active_Page;
+	EPage Active_Page;
+	
+	RECT **Borders_Rect;
+
 	RECT *Rect_Menu_List;  // main menu buttons cords here when they`r created
 	RECT *User_Input_Rect;  // user_inputs cords
 	RECT *Rect_User_Input_Change;
 	RECT *Rect_Buttons_Context;
 	RECT Prev_Context_Menu_Cords;  // prev context cords
-	RECT Rect_Pages[EActive_Page::EAP_Last];
 	RECT Input_Button_Rect;  // User Input RECT
 	RECT Main_Menu_Border;  // Need to check interaction
+
 	HDC Hdc_Memory;
 	HBITMAP H_Bitmap;
 	HGDIOBJ Saved_Object;

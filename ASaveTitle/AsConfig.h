@@ -19,7 +19,7 @@ public:
 
 	static const int Invalid_Chars_Len = 3;
 	static const int Patterns_Length = 7;
-	static constexpr int Menu_Main_Button_Length = 6;
+	static constexpr int Menu_Main_Button_Count = 6;
 	static const wchar_t Pattern_Default_Bin[];
 	static const wchar_t Pattern_Default_TXT[];
 	static const wchar_t Main_Image_Folder[];
@@ -27,8 +27,8 @@ public:
 	static const wchar_t Main_Menu_Title_Name[];
 	static const wchar_t Sub_Menu_Title[];
 	static const wchar_t Sub_Menu_User_Input_Title[];
-	static const wchar_t *Menu_Main_Buttons_Text_Eng[Menu_Main_Button_Length];
-	static const wchar_t *Menu_Main_Buttons_Text_Rus[Menu_Main_Button_Length];
+	static const wchar_t *Menu_Main_Buttons_Text_Eng[Menu_Main_Button_Count];
+	static const wchar_t *Menu_Main_Buttons_Text_Rus[Menu_Main_Button_Count];
 	static const wchar_t *Season_Case_Up[];
 	static const wchar_t *Season_Case_Low[];
 	static const wchar_t *Text_Program_Names[];

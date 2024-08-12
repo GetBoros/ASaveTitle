@@ -121,7 +121,7 @@ private:
 
 
 // AsUI_Builder
-class AsUI_Builder
+class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 |
 {// !!! Build UI, Handle User Inputs, Load Save Content, 
 
 public:
@@ -156,8 +156,7 @@ private:
 	
 	// Change Button Color and Draw Image
 	void Draw_Active_Button_Advenced();  // Draw and Redraw Active Buttons in nice color
-	void Draw_Active_Button_Request_Test();  // !!! Draw Request raise or decrease series if active button not 99 
-	void Draw_Active_Button_Request();  // !!! Draw Request raise or decrease series if active button not 99 
+	void Draw_Button_Request();  // Draw Request raise or decrease series
 	void Draw_User_Title_Image() const;  // Draw Image reacting on Active Button
 	
 	// Draw Context Menu
@@ -196,15 +195,12 @@ private:
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
 	EPage Active_Page;
 	
-	RECT **Borders_Rect;
+	RECT **Borders_Rect;  // Storage for all border rects
 
 	RECT *Rect_Menu_List;  // main menu buttons cords here when they`r created
 	RECT *User_Input_Rect;  // user_inputs cords
-	RECT *Rect_User_Input_Change;
 	RECT *Rect_Buttons_Context;
 	RECT Prev_Context_Menu_Cords;  // prev context cords
-	RECT Input_Button_Rect;  // User Input RECT
-	RECT Main_Menu_Border;  // Need to check interaction
 
 	HDC Hdc_Memory;
 	HBITMAP H_Bitmap;

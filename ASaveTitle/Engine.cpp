@@ -364,7 +364,6 @@ AsUI_Builder::~AsUI_Builder()
 
 	// 1.5 Free memory
 	delete[] Borders_Rect;
-	delete[] Rect_User_Input_Change;
 	delete[] Rect_Buttons_Context;
 	delete[] Rect_Menu_List;
 	delete[] User_Input_Rect;
@@ -373,8 +372,8 @@ AsUI_Builder::~AsUI_Builder()
 AsUI_Builder::AsUI_Builder(HDC hdc)
 : Active_Menu(EAM_Main), Ptr_Hdc(hdc), Borders_Rect(0), Rect_Menu_List{}, User_Input{}, Rect_Menu_List_Length(0), Rect_Sub_Menu_Length(0), Sub_Menu_Curr_Page(0), Prev_Main_Menu_Button(0),
   Prev_Button(99), Main_Menu_Titles_Length_Max(50), Sub_Menu_Max_Line(31), User_Array_Max_Size(0), Active_Button(EActive_Button::EAB_Main_Menu),
-  Active_Page(EPage::None), User_Input_Rect{}, Rect_User_Input_Change{}, Rect_Buttons_Context{}, Prev_Context_Menu_Cords{},
-  Input_Button_Rect{}, Main_Menu_Border{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Input_Data{}
+  Active_Page(EPage::None), User_Input_Rect{}, Rect_Buttons_Context{}, Prev_Context_Menu_Cords{},
+  Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Input_Data{}
 {
 	Borders_Rect = new RECT *[(int)EPress::Exit]{};  // Exit 7 last border
 
@@ -390,7 +389,6 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 
 	Init();
 	Draw_Menu_Main();
-	Rect_User_Input_Change = new RECT[2]{};
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam)
@@ -429,6 +427,8 @@ void AsUI_Builder::Init()
 		std::filesystem::create_directories(AsConfig::Image_Folder);
 
 	Borders_Rect[(int)EPress::Button_Reguest] = new RECT[2]{};  // Increase or Decrease Buttons
+	Borders_Rect[(int)EPress::Button_User_Input] = new RECT{};  // Menu Main Border
+	Borders_Rect[(int)EPress::Menu_Main] = new RECT{};  // Menu Main Border
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handler_User_Input()
@@ -621,9 +621,10 @@ void AsUI_Builder::Draw_Border(RECT &border_rect) const
 	scale = AsConfig::Global_Scale;
 	border_rect = {};
 
-	if (!IsRectEmpty(&Main_Menu_Border) )  // if not main menu we must reset setting
+	if (!IsRectEmpty(&Borders_Rect[(int)EPress::Menu_Main][0]) )  // if not main menu we must reset setting
 	{// Draw Sub Menu
-		x_cord = Main_Menu_Border.right + AsConfig::Global_Scale;
+
+		x_cord = Borders_Rect[(int)EPress::Menu_Main][0].right + AsConfig::Global_Scale;
 		border_width = (AsConfig::Window_Width - x_cord) - 23 * 2 - 9;  // window_width - main menu width
 		border_height = AsConfig::Window_Height + 30 - scale;
 		is_sub_menu = true;
@@ -668,7 +669,6 @@ void AsUI_Builder::Draw_Button(RECT &border_rect, RECT &button, const wchar_t *t
 	scale = AsConfig::Global_Scale;
 	button_w = border_rect.right - border_rect.left - scale;  // button width
 	button_h = border_rect.top + AsConfig::Ch_H + scale * 2;  // button height
-	button = {};
 
 	button.left = border_rect.left + scale;  // x = 3px from curr border
 	button.top = border_rect.top;
@@ -731,8 +731,8 @@ void AsUI_Builder::Draw_Menu_Main()
 	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);  // Text Color
 
 	// 1.1. Draw Border and Text title
-	Draw_Border(Main_Menu_Border);
-	border_rect = Main_Menu_Border;
+	Draw_Border(Borders_Rect[(int)EPress::Menu_Main][0]);
+	border_rect = Borders_Rect[(int)EPress::Menu_Main][0];
 	x = (border_rect.right - str_length) / 2;  // Get the center of first middle border and half of title
 	y = border_rect.top + AsConfig::Global_Scale;  // Get offset from border top
 	TextOutW(Ptr_Hdc, x, y, AsConfig::Main_Menu_Title_Name, titles_length);
@@ -767,8 +767,8 @@ void AsUI_Builder::Draw_Menu_Sub_Advenced()
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
 	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);
 	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);
-	Draw_Button(border_rect, Input_Button_Rect, AsConfig::Sub_Menu_Title);  // Write Sub menu title
-	Draw_Button(border_rect, Input_Button_Rect, AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
+	Draw_Button(border_rect, Borders_Rect[(int)EPress::Button_User_Input][0], AsConfig::Sub_Menu_Title);  // Write Sub menu title
+	Draw_Button(border_rect, Borders_Rect[(int)EPress::Button_User_Input][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
 
 	switch (Active_Menu)
 	{
@@ -821,14 +821,15 @@ void AsUI_Builder::Draw_Menu_Sub_Advenced()
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Draw() const
 {
+	RECT *user_input = &Borders_Rect[(int)EPress::Button_User_Input][0];
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
-	Rectangle(Ptr_Hdc, Input_Button_Rect.left, Input_Button_Rect.top, Input_Button_Rect.right, Input_Button_Rect.bottom);
+	Rectangle(Ptr_Hdc, user_input->left, user_input->top, user_input->right, user_input->bottom);
 	
 	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);  // Set Text Background
 	SetTextColor(Ptr_Hdc, AsConfig::Color_Yellow);  // Set Text color
 
-	const int offset_x = Input_Button_Rect.left + AsConfig::Global_Scale;  // ofset from left
-	const int offset_y = Input_Button_Rect.top + AsConfig::Global_Scale;
+	const int offset_x = user_input->left + AsConfig::Global_Scale;  // ofset from left
+	const int offset_y = user_input->top + AsConfig::Global_Scale;
 
 	if (User_Input[0] != 0)
 		TextOutW(Ptr_Hdc, offset_x, offset_y, User_Input, (int)wcslen(User_Input) );  // write text in rect
@@ -849,123 +850,48 @@ void AsUI_Builder::User_Input_Update(const wchar_t &user_text)
 	User_Input_Draw();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Active_Button_Request_Test()
+void AsUI_Builder::Draw_Button_Request()
 {
 	int button_offset;
 	int box_size;
 	int scale;
 	int half_box;
-
-	Borders_Rect[(int)EPress::Button_Reguest][0];  // -
-	Borders_Rect[(int)EPress::Button_Reguest][1];  // +
-	RECT ui_rect_offset;
-
+	RECT *ui_rect_offset = 0;
+	
 	button_offset = 9;
 	box_size = 21;
 	half_box = (int)( (float)box_size / 2.0f);
 	scale = AsConfig::Global_Scale;
-	ui_rect_offset = {};
 
-	// 1. Get and set current button and drow near sub option to increase or dercrese last char
-	if (Active_Menu == EAM_Main)
-	{// clear prev request
-
-		FillRect(Ptr_Hdc, &Rect_User_Input_Change[0], AsConfig::Brush_Background_Dark);
-		FillRect(Ptr_Hdc, &Rect_User_Input_Change[1], AsConfig::Brush_Background_Dark);
-
-		Rect_User_Input_Change[0] = ui_rect_offset;
-		Rect_User_Input_Change[1] = ui_rect_offset;
+	FillRect(Ptr_Hdc, &Borders_Rect[(int)EPress::Button_Reguest][0], AsConfig::Brush_Background_Dark);  // hide buttons
+	FillRect(Ptr_Hdc, &Borders_Rect[(int)EPress::Button_Reguest][1], AsConfig::Brush_Background_Dark);
+	if (Active_Menu == EActive_Menu::EAM_Main || Active_Button == EActive_Button::EAB_Main_Menu)  // If clicked at menu main border return from func after clear buttons
 		return;
-	}
+
+	// 1.1 Draw first Rectangle decrease
+	SelectObject(Ptr_Hdc, AsConfig::Brush_Green_Dark);  // Select color
+	ui_rect_offset = &Borders_Rect[(int)EPress::Button_Reguest][0];
+	ui_rect_offset->left = User_Input_Rect[Prev_Button].right + button_offset;
+	ui_rect_offset->top = User_Input_Rect[Prev_Button].top;
+	ui_rect_offset->right = User_Input_Rect[Prev_Button].right + button_offset + box_size;
+	ui_rect_offset->bottom = User_Input_Rect[Prev_Button].top + box_size;
+
+	Rectangle(Ptr_Hdc, ui_rect_offset->left, ui_rect_offset->top, ui_rect_offset->right, ui_rect_offset->bottom);
+	MoveToEx(Ptr_Hdc, ui_rect_offset->left + scale, ui_rect_offset->top + half_box, 0);
+	LineTo(Ptr_Hdc, ui_rect_offset->right - scale, ui_rect_offset->top + half_box);
+
+	// 1.2. Draw Second rect increase
+	Borders_Rect[(int)EPress::Button_Reguest][1].left = ui_rect_offset->left + box_size + scale;
+	Borders_Rect[(int)EPress::Button_Reguest][1].top = ui_rect_offset->top;
+	Borders_Rect[(int)EPress::Button_Reguest][1].right = ui_rect_offset->right + box_size + scale;
+	Borders_Rect[(int)EPress::Button_Reguest][1].bottom = ui_rect_offset->bottom;
+	ui_rect_offset = &Borders_Rect[(int)EPress::Button_Reguest][1];
 	
-	ui_rect_offset = User_Input_Rect[Prev_Button];
-	FillRect(Ptr_Hdc, &Rect_User_Input_Change[0], AsConfig::Brush_Background_Dark);  // hide button
-	FillRect(Ptr_Hdc, &Rect_User_Input_Change[1], AsConfig::Brush_Background_Dark);  // hide button
-
-	// Change Background
-	SelectObject(Ptr_Hdc, AsConfig::Brush_Green_Dark);
-
-	// 1.1 Draw first Rectangle decrease 
-	ui_rect_offset.left = ui_rect_offset.right + button_offset;
-	ui_rect_offset.top = ui_rect_offset.top;
-	ui_rect_offset.right = ui_rect_offset.right + button_offset + box_size;
-	ui_rect_offset.bottom = ui_rect_offset.top + box_size;
-	if (Rect_User_Input_Change != 0)
-		Rect_User_Input_Change[0] = ui_rect_offset;
-	Rectangle(Ptr_Hdc, ui_rect_offset.left, ui_rect_offset.top, ui_rect_offset.right, ui_rect_offset.bottom);
-	MoveToEx(Ptr_Hdc, ui_rect_offset.left + scale, ui_rect_offset.top + half_box, 0);
-	LineTo(Ptr_Hdc, ui_rect_offset.right - scale, ui_rect_offset.top + half_box);
-
-	// 1.2 Draw second Rectangle increment
-	ui_rect_offset.left = ui_rect_offset.left + box_size + scale;
-	ui_rect_offset.top = ui_rect_offset.top;
-	ui_rect_offset.right = ui_rect_offset.right + box_size + scale;
-	ui_rect_offset.bottom = ui_rect_offset.bottom;
-	if (Rect_User_Input_Change != 0)
-		Rect_User_Input_Change[1] = ui_rect_offset;
-	Rectangle(Ptr_Hdc, ui_rect_offset.left, ui_rect_offset.top, ui_rect_offset.right, ui_rect_offset.bottom);
-	MoveToEx(Ptr_Hdc, ui_rect_offset.left + scale, ui_rect_offset.top + half_box, 0);
-	LineTo(Ptr_Hdc, ui_rect_offset.right - scale, ui_rect_offset.top + half_box);
-	MoveToEx(Ptr_Hdc, ui_rect_offset.left + half_box, ui_rect_offset.top + scale,0);
-	LineTo(Ptr_Hdc, ui_rect_offset.left + half_box, ui_rect_offset.bottom - scale);
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Active_Button_Request()
-{
-	int button_offset;
-	int box_size;
-	int scale;
-	int half_box;
-	RECT ui_rect_offset;
-
-	button_offset = 9;
-	box_size = 21;
-	half_box = (int)( (float)box_size / 2.0f);
-	scale = AsConfig::Global_Scale;
-	ui_rect_offset = {};
-
-	// 1. Get and set current button and drow near sub option to increase or dercrese last char
-	if (Active_Menu == EAM_Main)
-	{// clear prev request
-
-		FillRect(Ptr_Hdc, &Rect_User_Input_Change[0], AsConfig::Brush_Background_Dark);
-		FillRect(Ptr_Hdc, &Rect_User_Input_Change[1], AsConfig::Brush_Background_Dark);
-
-		Rect_User_Input_Change[0] = ui_rect_offset;
-		Rect_User_Input_Change[1] = ui_rect_offset;
-		return;
-	}
-	
-	ui_rect_offset = User_Input_Rect[Prev_Button];
-	FillRect(Ptr_Hdc, &Rect_User_Input_Change[0], AsConfig::Brush_Background_Dark);  // hide button
-	FillRect(Ptr_Hdc, &Rect_User_Input_Change[1], AsConfig::Brush_Background_Dark);  // hide button
-
-	// Change Background
-	SelectObject(Ptr_Hdc, AsConfig::Brush_Green_Dark);
-
-	// 1.1 Draw first Rectangle decrease 
-	ui_rect_offset.left = ui_rect_offset.right + button_offset;
-	ui_rect_offset.top = ui_rect_offset.top;
-	ui_rect_offset.right = ui_rect_offset.right + button_offset + box_size;
-	ui_rect_offset.bottom = ui_rect_offset.top + box_size;
-	if (Rect_User_Input_Change != 0)
-		Rect_User_Input_Change[0] = ui_rect_offset;
-	Rectangle(Ptr_Hdc, ui_rect_offset.left, ui_rect_offset.top, ui_rect_offset.right, ui_rect_offset.bottom);
-	MoveToEx(Ptr_Hdc, ui_rect_offset.left + scale, ui_rect_offset.top + half_box, 0);
-	LineTo(Ptr_Hdc, ui_rect_offset.right - scale, ui_rect_offset.top + half_box);
-
-	// 1.2 Draw second Rectangle increment
-	ui_rect_offset.left = ui_rect_offset.left + box_size + scale;
-	ui_rect_offset.top = ui_rect_offset.top;
-	ui_rect_offset.right = ui_rect_offset.right + box_size + scale;
-	ui_rect_offset.bottom = ui_rect_offset.bottom;
-	if (Rect_User_Input_Change != 0)
-		Rect_User_Input_Change[1] = ui_rect_offset;
-	Rectangle(Ptr_Hdc, ui_rect_offset.left, ui_rect_offset.top, ui_rect_offset.right, ui_rect_offset.bottom);
-	MoveToEx(Ptr_Hdc, ui_rect_offset.left + scale, ui_rect_offset.top + half_box, 0);
-	LineTo(Ptr_Hdc, ui_rect_offset.right - scale, ui_rect_offset.top + half_box);
-	MoveToEx(Ptr_Hdc, ui_rect_offset.left + half_box, ui_rect_offset.top + scale,0);
-	LineTo(Ptr_Hdc, ui_rect_offset.left + half_box, ui_rect_offset.bottom - scale);
+	Rectangle(Ptr_Hdc, ui_rect_offset->left, ui_rect_offset->top, ui_rect_offset->right, ui_rect_offset->bottom);
+	MoveToEx(Ptr_Hdc, ui_rect_offset->left + scale, ui_rect_offset->top + half_box, 0);
+	LineTo(Ptr_Hdc, ui_rect_offset->right - scale, ui_rect_offset->top + half_box);
+	MoveToEx(Ptr_Hdc, ui_rect_offset->left + half_box, ui_rect_offset->top + scale,0);
+	LineTo(Ptr_Hdc, ui_rect_offset->left + half_box, ui_rect_offset->bottom - scale);
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_User_Title_Image() const
@@ -1076,7 +1002,7 @@ void AsUI_Builder::Draw_Active_Button_Advenced()
 	}
 	Prev_Button = (int)Active_Button;
 
-	Draw_Active_Button_Request();  // Draw Requests and clear prev requests
+	Draw_Button_Request();
 	Draw_User_Title_Image();
 }
 //------------------------------------------------------------------------------------------------------------
@@ -1537,7 +1463,7 @@ void AsUI_Builder::Handle_RM_Button(const LPARAM &lParam)
 		Context_Image_Restore(Prev_Context_Menu_Cords);
 
 	// 2.0. Main Menu
-	if (IntersectRect(&intersect_rect, &mouse_cord, &Main_Menu_Border) )
+	if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Menu_Main][0]) )
 	{// If clicked in main menu border try to find clicked button
 
 		for (i = 0; i < AsConfig::Menu_Main_Button_Count; i++)
@@ -1579,73 +1505,71 @@ void AsUI_Builder::Handle_RM_Button(const LPARAM &lParam)
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 {
+	int x = lParam & 0xffff;
+	int y = (int)(lParam >> 16);
+	std::map<std::wstring, SUser_Input_Data> *user_array = 0;
 	RECT intersect_rect{};
 	RECT mouse_cord{};
 
-	int x = lParam & 0xffff;
-	int y = (int)(lParam >> 16);
 	mouse_cord.left = x - 1;
 	mouse_cord.top = y;
 	mouse_cord.right = x;
 	mouse_cord.bottom = y + 1;
 
-	Handle_LM_Button_Advenced();
+	Handle_LM_Button_Advenced();  // !!!
 
 	if (!IsRectEmpty(Borders_Rect[(int)EPress::Button_Pages]) )
 	{// If Page Button not empty
 
 		if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Button_Pages][EPage::Prev]) )
-		{
+		{// Page Prev Button
 			if (Sub_Menu_Curr_Page < 1)
 				return;
 			else
 				Sub_Menu_Curr_Page--;
 
 			Draw_Menu_Sub_Advenced();
+
 			return;
 		}
 		else if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Button_Pages][EPage::Next]) )
-		{
-			const int yy = (int)Active_Menu;
+		{// Page Next Button
 
 			Sub_Menu_Curr_Page++;
+			Active_Button = EActive_Button::EAB_Main_Menu;
+
 			Draw_Menu_Sub_Advenced();
-
-			Active_Menu = EAM_Main;  // !!! Need fix | will be if fix Draw_User_Input_Request logic
-			if (Active_Button != (EActive_Button)-1)
-				Draw_Active_Button_Request();
-			
-			Active_Menu = (EActive_Menu)yy;
-
+			Draw_Button_Request();
 			return;
+
 		} else if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Button_Pages][EPage::Update]) )  // Update Button
 		{
 			Handle_Update_Button_Beta();  // While press Update Page
-			//Handle_Update_Button();  // While press Update Page
 			return;
 		}
 	}
 
 
-	if (!IsRectEmpty(&Rect_User_Input_Change[0]) )
+	if (!IsRectEmpty(&Borders_Rect[(int)EPress::Button_Reguest][0]) )
 	{// Reguest Handle
 
 		for (int i = 0; i < 2; i++)
-			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_User_Input_Change[i]) )
+			if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Button_Reguest][i]) )
 			{
-				User_Input_Value_Is_Changed(i);
-
 				Active_Button = (EActive_Button)Prev_Button;
+
+				User_Input_Value_Is_Changed(i);
 				Draw_Active_Button_Advenced();
+
 				return;
 			}
 	}
 
 
-	if (!IsRectEmpty(&Input_Button_Rect) )  // !!! Refactoring
+	if (!IsRectEmpty(&Borders_Rect[(int)EPress::Button_User_Input][0]) )  // !!! Refactoring
 	{// User_Input Handle || Double click on User_Input ||
 
-		if (IntersectRect(&intersect_rect, &mouse_cord, &Input_Button_Rect) )
+		if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Button_User_Input][0]) )
 		{
 			if (User_Input[0] != 0)
 				Handler_User_Input();
@@ -1665,20 +1589,15 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 
 			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Buttons_Context[i]) )
 			{
-				EActive_Menu prev_active_mune = Active_Menu;  // Save Active Menu
+				Active_Button = EActive_Button::EAB_Main_Menu;
+				
 				Context_Image_Restore(Prev_Context_Menu_Cords);
+				Draw_Button_Request();
 
-				if (Active_Menu != EAM_Main)
-				{
-					Active_Menu = EAM_Main;
-					Draw_Active_Button_Request();
-					Active_Menu = prev_active_mune;
-				}
-
-				std::map<std::wstring, SUser_Input_Data> *user_array = 0;
-
+				// 1.1. Add to array data from iterator
 				switch ( (EActive_Menu)i)  // If pressed first button context menu choose action
 				{
+
 				case EAM_Watching:
 					user_array = &User_Array_Map;
 					break;
@@ -1697,8 +1616,7 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 				}
 				user_array->insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
 
-				if (Prev_Button == 99)
-					return;
+				// 1.2. Erase data from array i
 				switch (Active_Menu)
 				{
 				case EAM_Watching:
@@ -1717,7 +1635,7 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 				user_array->erase(It_Current_User->first);
 
 				Prev_Button = 99;  // set to no prev_button
-				User_Map_Main_Save();  // Save by Erase
+				User_Map_Main_Save();  // Save after Erase
 				Draw_Menu_Sub_Advenced();
 				return;
 			}
@@ -1726,7 +1644,7 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 	}
 
 
-	if (IntersectRect(&intersect_rect, &mouse_cord, &Main_Menu_Border) )
+	if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Menu_Main][0]) )
 	{
 		for (int i = 0; i < AsConfig::Menu_Main_Button_Count; i++)  // if is rect border
 		{// Main Menu Handle
@@ -1734,15 +1652,10 @@ void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
 			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]) )
 			{// If find button
 
-				if (Active_Menu != EAM_Main)
-				{
-					Active_Menu = EAM_Main;
-					Draw_Active_Button_Request();
-				}
-
-				Active_Menu = EAM_Main;  // if enter here we clk on main menu border
-				
+				Active_Menu = EAM_Main;
 				Active_Button = (EActive_Button)i;
+
+				Draw_Button_Request();
 				Draw_Active_Button_Advenced();
 
 				Active_Menu = (EActive_Menu)i;

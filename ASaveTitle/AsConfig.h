@@ -20,6 +20,7 @@ public:
 	static const int Invalid_Chars_Len = 3;
 	static const int Patterns_Length = 7;
 	static constexpr int Menu_Main_Button_Count = 6;
+	static constexpr int Context_Button_Count = Menu_Main_Button_Count - 1;
 	static const wchar_t Pattern_Default_Bin[];
 	static const wchar_t Pattern_Default_TXT[];
 	static const wchar_t Main_Image_Folder[];
@@ -29,11 +30,12 @@ public:
 	static const wchar_t Sub_Menu_User_Input_Title[];
 	static const wchar_t *Menu_Main_Buttons_Text_Eng[Menu_Main_Button_Count];
 	static const wchar_t *Menu_Main_Buttons_Text_Rus[Menu_Main_Button_Count];
+	static const wchar_t *Patterns_Config[Patterns_Length];
+	static const wchar_t *Battons_Page_Name[];
 	static const wchar_t *Season_Case_Up[];
 	static const wchar_t *Season_Case_Low[];
 	static const wchar_t *Text_Program_Names[];
 	static const wchar_t *Protocols[];
-	static const wchar_t *Patterns_Config[Patterns_Length];
 	static const wchar_t Seasons[Invalid_Chars_Len];
 
 	static const int Settings_Size;
@@ -41,6 +43,7 @@ public:
 	static const int Global_Scale = 3;
 	static const int Ch_W = 8;
 	static const int Ch_H = 16;
+	static const int Menu_Main_Title_Length = 50;
 	static constexpr int Window_Width = (int)( (double)960 * 1.5);
 	static constexpr int Window_Height = (int)((double)540 * 1.5);
 	static constexpr int Main_Image_Width = 424;

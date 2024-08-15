@@ -71,14 +71,19 @@ struct SUser_Input_Data
 };
 //------------------------------------------------------------------------------------------------------------
 enum class EPress : int
-{
-	None,
-	Button_User_Input,
-	Button_Reguest,
-	Button_Pages,
-	Menu_Context,
-	Menu_Main,
-	Menu_Sub,
+{// Press at border
+
+	None = -1,
+	Menu_Main = 0,  // V Border Main Menu
+	Menu_Context,  // V Border Context Menu
+	Menu_Sub,  // V Border Sub Menu
+	Non_Bordered,
+	User_Input_Handler,  // V Button to input text
+	Button_Reguest,  // V Buttons - or + series
+	Button_Pages,  // V Buttons Choose Page
+	Buttons_User_Input,  // V Buttons Titles
+	Button_Context,  // V Buttons Contexts
+	Button_Menu_Main,  // V Buttons Main Menu
 	Exit
 };
 
@@ -121,7 +126,7 @@ private:
 
 
 // AsUI_Builder
-class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 |
+class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. |
 {// !!! Build UI, Handle User Inputs, Load Save Content, 
 
 public:
@@ -146,7 +151,7 @@ private:
 	void Draw_Border(RECT &border_rect) const;  // Draw border and return inner rect
 	void Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const;  // Draw Button and return free border rect space 
 	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
-	void Draw_Button_Pages();  // !!! Can be refactored
+	void Draw_Button_Pages();
 	
 	// Draw UI Parts
 	void Draw_Menu_Main();
@@ -175,37 +180,34 @@ private:
 	unsigned long long User_Map_Load_Convert(unsigned long long &ch);  // Convert back and get Title
 
 	// Handler Input Last
-	void Handle_LM_Button_Advenced();
-	void Handle_RM_Button(const LPARAM &lParam);
-	void Handle_LM_Button(const LPARAM &lParam);
-	void Handle_Update_Button_Beta();  // !!!
+	void Handle_Button_Bordered(const EUI_Builder_Handler &builder_handlerconst, const LPARAM &lParam);
 
-	wchar_t User_Input[AsConfig::User_Input_Buffer];  // User Input Buffer | or border_width / 8 = Max_Char_Length
-	int Rect_Menu_List_Length;
-	int Rect_Sub_Menu_Length;
-	int Sub_Menu_Curr_Page;
+	void Cycle_Finder(const RECT &mouse_cord, const int border_index, const int count, int &result);
+
+	void Handle_Menu_Main();
+	void Handle_Menu_Sub();
+	void Handle_Menu_Context();
+	void Handle_Non_Bordered();
+
+	
 	int Prev_Main_Menu_Button;
 	int Prev_Button;
-	int Main_Menu_Titles_Length_Max;
-
+	int Sub_Menu_Curr_Page;  // Show curr page
 	const int Sub_Menu_Max_Line = 31;  // Нужен алгоритм что бы понять сколько влезет в пользувательский экран, или настроить через config
-	const int User_Array_Max_Size = 50;  // нужно будет выгрузить из конфига
 
 	AsConfig Config;
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
 	EPage Active_Page;
-	
-	RECT **Borders_Rect;  // Storage for all border rects
+	EPress Border_Pressed;
 
-	RECT *Rect_Menu_List;  // main menu buttons cords here when they`r created
-	RECT *User_Input_Rect;  // user_inputs cords
-	RECT *Rect_Buttons_Context;
-	RECT Prev_Context_Menu_Cords;  // prev context cords
+	RECT **Borders_Rect;  // Storage for all border rects
+	RECT *Mouse_Cord_Destination;
+	RECT *Mouse_Cord;
 
 	HDC Hdc_Memory;
 	HBITMAP H_Bitmap;
 	HGDIOBJ Saved_Object;
-	SUser_Input_Data User_Input_Data;
+
 	std::map<std::wstring, SUser_Input_Data> User_Array_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Library_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Paused_Map;
@@ -216,7 +218,8 @@ private:
 	std::thread Thread_Third;
 	std::thread Thread_Fourth;
 
-	static int Context_Button_Length;
+	wchar_t User_Input[AsConfig::User_Input_Buffer];  // User Input Buffer | or border_width / 8 = Max_Char_Length
+
 	static int User_Input_Len;  // count user input after press enter set to zero
 };
 //------------------------------------------------------------------------------------------------------------

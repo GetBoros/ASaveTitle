@@ -344,7 +344,6 @@ size_t ACurl_Client::Write_To_File(void *ptr, size_t size, size_t nmemb, FILE *s
 
 // AsUI_Builder
 int AsUI_Builder::User_Input_Len = 0;
-int AsUI_Builder::Context_Button_Length = 5;
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::~AsUI_Builder()
 {
@@ -356,7 +355,7 @@ AsUI_Builder::~AsUI_Builder()
 		DeleteObject(H_Bitmap);
 
 	// 1.3 Save map to Data/...
-	User_Map_Main_Save();  // Exit from Program | if exit save all map
+	//User_Map_Main_Save();  // Exit from Program | if exit save all map
 
 	// 1.4. 
 	for (i = 0; i < (int)EPress::Exit; i++)
@@ -364,19 +363,16 @@ AsUI_Builder::~AsUI_Builder()
 
 	// 1.5 Free memory
 	delete[] Borders_Rect;
-	delete[] Rect_Buttons_Context;
-	delete[] Rect_Menu_List;
-	delete[] User_Input_Rect;
+
+	delete Mouse_Cord_Destination;
+	delete Mouse_Cord;
 }
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::AsUI_Builder(HDC hdc)
-: Active_Menu(EAM_Main), Ptr_Hdc(hdc), Borders_Rect(0), Rect_Menu_List{}, User_Input{}, Rect_Menu_List_Length(0), Rect_Sub_Menu_Length(0), Sub_Menu_Curr_Page(0), Prev_Main_Menu_Button(0),
-  Prev_Button(99), Main_Menu_Titles_Length_Max(50), Sub_Menu_Max_Line(31), User_Array_Max_Size(0), Active_Button(EActive_Button::EAB_Main_Menu),
-  Active_Page(EPage::None), User_Input_Rect{}, Rect_Buttons_Context{}, Prev_Context_Menu_Cords{},
-  Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Input_Data{}
+: Active_Menu(EAM_Main), Ptr_Hdc(hdc), Borders_Rect(0), Mouse_Cord_Destination(0), Mouse_Cord(0), User_Input{}, Prev_Main_Menu_Button(0),
+  Prev_Button(99), Sub_Menu_Curr_Page(0), Sub_Menu_Max_Line(31), Active_Button(EActive_Button::EAB_Main_Menu),
+  Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0)
 {
-	Borders_Rect = new RECT *[(int)EPress::Exit]{};  // Exit 7 last border
-
 	Thread_First = std::thread([&]() { User_Map_Main_Load(User_Array_Map, "Data/Watching.bin"); });
 	Thread_Second = std::thread([&]() { User_Map_Main_Load(User_Library_Map, "Data/Library.bin"); });
 	Thread_Third = std::thread([&]() { User_Map_Main_Load(User_Paused_Map, "Data/Paused.bin"); });
@@ -411,10 +407,8 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 		User_Input_Update(static_cast<wchar_t>(wParam) );
 		break;
 	case EUI_Builder_Handler::Handle_Mouse_LButton:
-		Handle_LM_Button(lParam);
-		break;
 	case EUI_Builder_Handler::Handle_Mouse_RButton:
-		Handle_RM_Button(lParam);
+		Handle_Button_Bordered(builder_handler, lParam);  // lparam to glob param
 		break;
 	default:
 		break;
@@ -426,9 +420,24 @@ void AsUI_Builder::Init()
 	if (!std::filesystem::exists(AsConfig::Image_Folder) )  // !!! Need Remove from here
 		std::filesystem::create_directories(AsConfig::Image_Folder);
 
-	Borders_Rect[(int)EPress::Button_Reguest] = new RECT[2]{};  // Increase or Decrease Buttons
-	Borders_Rect[(int)EPress::Button_User_Input] = new RECT{};  // Menu Main Border
-	Borders_Rect[(int)EPress::Menu_Main] = new RECT{};  // Menu Main Border
+	Borders_Rect = new RECT *[(int)EPress::Exit] {};  // Exit 7 last border
+
+	Borders_Rect[(int)EPress::Menu_Main] = new RECT {};
+	Borders_Rect[(int)EPress::Menu_Sub] = new RECT {};
+	Borders_Rect[(int)EPress::User_Input_Handler] = new RECT {};
+	Borders_Rect[(int)EPress::Button_Reguest] = new RECT[2] {};  // Increase or Decrease Buttons
+	Borders_Rect[(int)EPress::Button_Pages] = new RECT[3] {};
+	Borders_Rect[(int)EPress::Buttons_User_Input] = new RECT[Sub_Menu_Max_Line] {};
+	Borders_Rect[(int)EPress::Button_Menu_Main] = new RECT[AsConfig::Menu_Main_Button_Count] {};
+	Borders_Rect[(int)EPress::Button_Context] = new RECT[AsConfig::Context_Button_Count] {};
+	Borders_Rect[(int)EPress::Menu_Context] = new RECT {};
+
+	Borders_Rect[(int)EPress::Button_Pages][EPage::Update] = { 1140, 12, 1228, 30 };
+	Borders_Rect[(int)EPress::Button_Pages][EPage::Prev] = { 1231, 12, 1303, 30 };
+	Borders_Rect[(int)EPress::Button_Pages][EPage::Next] = { 1305, 12, 1375, 30 };
+
+	Mouse_Cord = new RECT {};
+	Mouse_Cord_Destination = new RECT {};
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handler_User_Input()
@@ -619,7 +628,6 @@ void AsUI_Builder::Draw_Border(RECT &border_rect) const
 	x_cord = 0;
 	is_sub_menu = false;
 	scale = AsConfig::Global_Scale;
-	border_rect = {};
 
 	if (!IsRectEmpty(&Borders_Rect[(int)EPress::Menu_Main][0]) )  // if not main menu we must reset setting
 	{// Draw Sub Menu
@@ -633,7 +641,7 @@ void AsUI_Builder::Draw_Border(RECT &border_rect) const
 	else
 	{// Draw Main Menu
 
-		border_width = (Main_Menu_Titles_Length_Max + scale) * AsConfig::Ch_W;  // 424
+		border_width = (AsConfig::Menu_Main_Title_Length + scale) * AsConfig::Ch_W;  // 424
 		border_height = (AsConfig::Menu_Main_Button_Count + 2) * (AsConfig::Ch_H + 6) + scale + 1;
 	}
 
@@ -692,24 +700,15 @@ void AsUI_Builder::Draw_Button_Text(const HBRUSH &background, const COLORREF &co
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Button_Pages()
 {
+	int i = 0;
 	RECT *button = 0;
-	int scale = AsConfig::Global_Scale;
-	Borders_Rect[(int)EPress::Button_Pages] = new RECT[3]{};
 
-	Borders_Rect[(int)EPress::Button_Pages][EPage::Update] = { 1140, 12, 1228, 30 };
-	Borders_Rect[(int)EPress::Button_Pages][EPage::Prev] = { 1231, 12, 1303, 30 };
-	Borders_Rect[(int)EPress::Button_Pages][EPage::Next] = { 1305, 12, 1375, 30 };
-
-	RECT *button_update = &Borders_Rect[(int)EPress::Button_Pages][EPage::Update];
-	RECT *button_prev = &Borders_Rect[(int)EPress::Button_Pages][EPage::Prev];
-	RECT *button_next = &Borders_Rect[(int)EPress::Button_Pages][EPage::Next];
-
-	Rectangle(Ptr_Hdc, button_update->left, button_update->top, button_update->right, button_update->bottom);
-	TextOutW(Ptr_Hdc, button_update->left + 1, button_update->top + 1, L"Update Page", 11);
-	Rectangle(Ptr_Hdc, button_prev->left, button_prev->top, button_prev->right, button_prev->bottom);
-	TextOutW(Ptr_Hdc, button_prev->left + 1, button_prev->top + 1, L"Prev Page", 9);
-	Rectangle(Ptr_Hdc, button_next->left, button_next->top, button_next->right, button_next->bottom);
-	TextOutW(Ptr_Hdc, button_next->left + 1, button_next->top + 1, L"Next Page", 9);
+	for (int i = 0; i < EPage::Last; i++)
+	{
+		button = &Borders_Rect[(int)EPress::Button_Pages][i];
+		Rectangle(Ptr_Hdc, button->left, button->top, button->right, button->bottom);
+		TextOutW(Ptr_Hdc, button->left + 1, button->top + 1, AsConfig::Battons_Page_Name[i], i == 0 ? 11 : 9);
+	}
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Menu_Main()
@@ -738,11 +737,9 @@ void AsUI_Builder::Draw_Menu_Main()
 	TextOutW(Ptr_Hdc, x, y, AsConfig::Main_Menu_Title_Name, titles_length);
 	border_rect.top = y + AsConfig::Ch_H + AsConfig::Global_Scale;  // go to next line
 
-	// 1.2. Set Buttons in border and save they`re cords in Rect_Menu_List
-	if (!Rect_Menu_List != 0)  // after maximaze need redraw menu main
-		Rect_Menu_List = new RECT[AsConfig::Menu_Main_Button_Count]{};
+	// 1.2. Set Buttons in border and save they`re cords in Borders_Rect[(int)EPress::Button_Menu_Main]
 	for (int i = 0; i < AsConfig::Menu_Main_Button_Count; i++)
-		Draw_Button(border_rect, Rect_Menu_List[i], AsConfig::Menu_Main_Buttons_Text_Eng[i]);
+		Draw_Button(border_rect, Borders_Rect[(int)EPress::Button_Menu_Main][i], AsConfig::Menu_Main_Buttons_Text_Eng[i]);
 
 	// 1.3. Draw Image
 	Draw_User_Title_Image();
@@ -762,13 +759,15 @@ void AsUI_Builder::Draw_Menu_Sub_Advenced()
 	Prev_Button = 99;  // Need to switch between arrays
 
 	// 1.1.Draw Border, Set colors, Draw Titles and user input handler
-	Draw_Border(border_rect);  // draw border
+	Draw_Border(Borders_Rect[(int)EPress::Menu_Sub][0]);  // draw border
+	border_rect = Borders_Rect[(int)EPress::Menu_Sub][0];
+
 	border_rect.top += AsConfig::Global_Scale;  // without title? i can fix but it`s look good enough
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
 	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);
 	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);
-	Draw_Button(border_rect, Borders_Rect[(int)EPress::Button_User_Input][0], AsConfig::Sub_Menu_Title);  // Write Sub menu title
-	Draw_Button(border_rect, Borders_Rect[(int)EPress::Button_User_Input][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
+	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_Title);  // Write Sub menu title
+	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
 
 	switch (Active_Menu)
 	{
@@ -792,11 +791,6 @@ void AsUI_Builder::Draw_Menu_Sub_Advenced()
 		return;
 	Draw_Button_Pages();
 
-	// 2.0. Create RECT`s for button, handle it later
-	delete[] User_Input_Rect;
-	Rect_Sub_Menu_Length = (int)map->size();
-	User_Input_Rect = new RECT[Rect_Sub_Menu_Length];
-
 	// 2.1. Set iterator to start and check sub menu
 	It_Current_User = map->begin();
 	if (map->size() < Sub_Menu_Max_Line)
@@ -810,8 +804,8 @@ void AsUI_Builder::Draw_Menu_Sub_Advenced()
 	// 2.3. Draw needed buttons to submenu
 	for (; It_Current_User != map->end(); ++It_Current_User)
 	{
-		if (curr_line < Rect_Sub_Menu_Length && curr_line < curr_page_max_line)
-			Draw_Button(border_rect, User_Input_Rect[curr_line], It_Current_User->second.Title_Name_Num.c_str() );
+		if (curr_line < curr_page_max_line)
+			Draw_Button(border_rect, Borders_Rect[(int)EPress::Buttons_User_Input][curr_line], It_Current_User->second.Title_Name_Num.c_str() );
 		else
 			return;
 		
@@ -821,7 +815,7 @@ void AsUI_Builder::Draw_Menu_Sub_Advenced()
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Draw() const
 {
-	RECT *user_input = &Borders_Rect[(int)EPress::Button_User_Input][0];
+	RECT *user_input = &Borders_Rect[(int)EPress::User_Input_Handler][0];
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
 	Rectangle(Ptr_Hdc, user_input->left, user_input->top, user_input->right, user_input->bottom);
 	
@@ -871,10 +865,10 @@ void AsUI_Builder::Draw_Button_Request()
 	// 1.1 Draw first Rectangle decrease
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Green_Dark);  // Select color
 	ui_rect_offset = &Borders_Rect[(int)EPress::Button_Reguest][0];
-	ui_rect_offset->left = User_Input_Rect[Prev_Button].right + button_offset;
-	ui_rect_offset->top = User_Input_Rect[Prev_Button].top;
-	ui_rect_offset->right = User_Input_Rect[Prev_Button].right + button_offset + box_size;
-	ui_rect_offset->bottom = User_Input_Rect[Prev_Button].top + box_size;
+	ui_rect_offset->left = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button].right + button_offset;
+	ui_rect_offset->top = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button].top;
+	ui_rect_offset->right = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button].right + button_offset + box_size;
+	ui_rect_offset->bottom = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button].top + box_size;
 
 	Rectangle(Ptr_Hdc, ui_rect_offset->left, ui_rect_offset->top, ui_rect_offset->right, ui_rect_offset->bottom);
 	MoveToEx(Ptr_Hdc, ui_rect_offset->left + scale, ui_rect_offset->top + half_box, 0);
@@ -955,8 +949,8 @@ void AsUI_Builder::Draw_Active_Button_Advenced()
 
 	if (Active_Menu == EActive_Menu::EAM_Main)
 	{
-		Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, Rect_Menu_List[Prev_Main_Menu_Button], AsConfig::Menu_Main_Buttons_Text_Eng[Prev_Main_Menu_Button]);
-		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, Rect_Menu_List[(int)Active_Button], AsConfig::Menu_Main_Buttons_Text_Eng[(int)Active_Button]);
+		Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, Borders_Rect[(int)EPress::Button_Menu_Main][Prev_Main_Menu_Button], AsConfig::Menu_Main_Buttons_Text_Eng[Prev_Main_Menu_Button]);
+		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, Borders_Rect[(int)EPress::Button_Menu_Main][(int)Active_Button], AsConfig::Menu_Main_Buttons_Text_Eng[(int)Active_Button]);
 
 		Prev_Main_Menu_Button = (int)Active_Button;
 		return;
@@ -988,17 +982,17 @@ void AsUI_Builder::Draw_Active_Button_Advenced()
 
 	It_Current_User = map->begin();  // Prev_Button
 	std::advance(It_Current_User, (int)Prev_Button);
-	Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, User_Input_Rect[Prev_Button], It_Current_User->second.Title_Name_Num.c_str() );
+	Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button], It_Current_User->second.Title_Name_Num.c_str() );
 		
 	It_Current_User = map->begin();  // Active Button
 	std::advance(It_Current_User, (int)Active_Button);
 
 	if (Active_Page != EPage::Update)  // if from update button change color
-		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, User_Input_Rect[(int)Active_Button], It_Current_User->second.Title_Name_Num.c_str());
+		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, Borders_Rect[(int)EPress::Buttons_User_Input][(int)Active_Button], It_Current_User->second.Title_Name_Num.c_str());
 	else
 	{
 		Active_Page = EPage::None;
-		Draw_Button_Text(AsConfig::Brush_Background_Button_Update, AsConfig::Color_Backgrount_Text, AsConfig::Color_Dark, User_Input_Rect[(int)Active_Button], It_Current_User->second.Title_Name_Num.c_str());
+		Draw_Button_Text(AsConfig::Brush_Background_Button_Update, AsConfig::Color_Backgrount_Text, AsConfig::Color_Dark, Borders_Rect[(int)EPress::Buttons_User_Input][(int)Active_Button], It_Current_User->second.Title_Name_Num.c_str());
 	}
 	Prev_Button = (int)Active_Button;
 
@@ -1013,57 +1007,52 @@ void AsUI_Builder::Context_Menu_Draw(const int &x, const int &y)
 	int context_offset;
 	int user_input_len;
 	int button_heigh;
-	RECT context_rect;
-
+	RECT *context_rect;
+	
+	context_rect = &Borders_Rect[(int)EPress::Menu_Context][0];
 	button_text_len = (int)wcslen(AsConfig::Menu_Main_Buttons_Text_Eng[3]);
 	scale = AsConfig::Global_Scale;
 	context_offset = 6;
 	user_input_len = button_text_len * AsConfig::Ch_W + context_offset;
-	button_heigh = AsConfig::Ch_H * Context_Button_Length + context_offset;
-	context_rect = {};
+	button_heigh = AsConfig::Ch_H * AsConfig::Context_Button_Count + context_offset;
 
 	// 1. Start point where RMB pressed, then we take longest word and add his len like width
-	context_rect.left = x;
-	context_rect.top = y;
-	context_rect.right = context_rect.left + user_input_len;
-	context_rect.bottom = context_rect.top + button_heigh;
-
-	// 2. Delete all prev Button Context Rect and create new
-	delete[] Rect_Buttons_Context;
-	Rect_Buttons_Context = new RECT[Context_Button_Length];
+	context_rect->left = x;
+	context_rect->top = y;
+	context_rect->right = context_rect->left + user_input_len;
+	context_rect->bottom = context_rect->top + button_heigh;
 
 	// 3. Before draw Context Menu save Image where we draw it to reload
 	Hdc_Memory = CreateCompatibleDC(Ptr_Hdc);
 	if (!Hdc_Memory != 0)
 		return;
 
-	H_Bitmap = CreateCompatibleBitmap(Ptr_Hdc, context_rect.right - context_rect.left, context_rect.bottom - context_rect.top);
+	H_Bitmap = CreateCompatibleBitmap(Ptr_Hdc, context_rect->right - context_rect->left, context_rect->bottom - context_rect->top);
 	if (!H_Bitmap != 0)
 		return;
 
 	Saved_Object = SelectObject(Hdc_Memory, H_Bitmap);
-	BitBlt(Hdc_Memory, 0, 0, context_rect.right - context_rect.left, context_rect.bottom - context_rect.top, Ptr_Hdc, context_rect.left, context_rect.top, SRCCOPY);
+	BitBlt(Hdc_Memory, 0, 0, context_rect->right - context_rect->left, context_rect->bottom - context_rect->top, Ptr_Hdc, context_rect->left, context_rect->top, SRCCOPY);
 
 	// 4. Draw Context Menu
-	Rectangle(Ptr_Hdc, context_rect.left, context_rect.top, context_rect.right, context_rect.bottom);
+	Rectangle(Ptr_Hdc, context_rect->left, context_rect->top, context_rect->right, context_rect->bottom);
 
-	for (int i = 0; i < Context_Button_Length; i++)
+	for (int i = 0; i < AsConfig::Context_Button_Count; i++)
 	{
 		button_text_len = (int)wcslen(AsConfig::Menu_Main_Buttons_Text_Eng[i]);
-		TextOutW(Ptr_Hdc, context_rect.left + scale + 1, context_rect.top + AsConfig::Ch_H * i + scale + 1, AsConfig::Menu_Main_Buttons_Text_Eng[i], button_text_len);
+		TextOutW(Ptr_Hdc, context_rect->left + scale + 1, context_rect->top + AsConfig::Ch_H * i + scale + 1, AsConfig::Menu_Main_Buttons_Text_Eng[i], button_text_len);
 
 		// 4.1. Save Context Buttons Rects || handle when LMB pressed
-		Rect_Buttons_Context[i].left = context_rect.left;
-		Rect_Buttons_Context[i].top = context_rect.top;
-		Rect_Buttons_Context[i].right = context_rect.right;
-		Rect_Buttons_Context[i].bottom = context_rect.top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H;
-		if (!(i < Context_Button_Length - 1) )
+		Borders_Rect[(int)EPress::Button_Context][i].left = context_rect->left;
+		Borders_Rect[(int)EPress::Button_Context][i].top = context_rect->top;
+		Borders_Rect[(int)EPress::Button_Context][i].right = context_rect->right;
+		Borders_Rect[(int)EPress::Button_Context][i].bottom = context_rect->top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H;
+		if (!(i < AsConfig::Context_Button_Count - 1) )
 			break;
 
-		MoveToEx(Ptr_Hdc, context_rect.left + scale, context_rect.top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H, 0);
-		LineTo(Ptr_Hdc, context_rect.left + scale + button_text_len * 8, context_rect.top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H);
+		MoveToEx(Ptr_Hdc, context_rect->left + scale, context_rect->top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H, 0);
+		LineTo(Ptr_Hdc, context_rect->left + scale + button_text_len * 8, context_rect->top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H);
 	}
-	Prev_Context_Menu_Cords = context_rect;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Context_Image_Restore(RECT &rect)
@@ -1425,276 +1414,176 @@ unsigned long long  AsUI_Builder::User_Map_Load_Convert(unsigned long long &ch)
 	return 0LL;  // Bad Reserved 99
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_LM_Button_Advenced()
+void AsUI_Builder::Cycle_Finder(const RECT &mouse_cord, const int border_index, const int count, int &result)
 {
-	bool is_left = false, is_right = false;
-	int x = 0;
-	int y = 0;
-	RECT intersect_rect{};
-	RECT mouse_cord{};
-	EPress Pressed {};
-	//int x = lParam & 0xffff;
-	
-	mouse_cord.left = x - 1;
-	mouse_cord.top = y;
-	mouse_cord.right = x;
-	mouse_cord.bottom = y + 1;
+	for (result = 0; result < count; result++)
+		if (IntersectRect(Mouse_Cord_Destination, &mouse_cord, &Borders_Rect[border_index][result] ) )
+			break;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_RM_Button(const LPARAM &lParam)
+void AsUI_Builder::Handle_Menu_Main()
 {
-	int i, x, y;
-	RECT intersect_rect;
-	RECT mouse_cord;
+	int i = 0;
 
-	i = 0;
-	x = lParam & 0xffff;
-	y = (int)(lParam >> 16);
-	mouse_cord = {};
-	intersect_rect = {};
-
-	mouse_cord.left = x - 1;
-	mouse_cord.top = y;
-	mouse_cord.right = x;
-	mouse_cord.bottom = y + 1;
-
-	// 1.0. Restore Image covered by context menu
-	if (!IsRectEmpty(&Prev_Context_Menu_Cords) )  // if context menu not empty
-		Context_Image_Restore(Prev_Context_Menu_Cords);
-
-	// 2.0. Main Menu
-	if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Menu_Main][0]) )
-	{// If clicked in main menu border try to find clicked button
-
-		for (i = 0; i < AsConfig::Menu_Main_Button_Count; i++)
-		{
-			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]) )
-			{// If find button
-
-				Active_Menu = EAM_Main;  // User Activate Main Menu while click on the main menu border
-				Active_Button = (EActive_Button)i;  // Set Active button
-				Draw_Active_Button_Advenced();
-
-				Active_Menu = (EActive_Menu)i;  // Which Active menu user choose?
-				Draw_Menu_Sub_Advenced();  // Draw It
-				Context_Menu_Draw(mouse_cord.right, mouse_cord.top);  // Draw Contenxt Menu
-				
-				return;
-			}
-		}
-	}
-
-
-	// 3.0. If sub menu wasn`t be created don`t check arrays
-	if (User_Input_Rect == 0)
+	Cycle_Finder(*Mouse_Cord, (int)Border_Pressed, AsConfig::Menu_Main_Button_Count, i);
+	if ( !(i != AsConfig::Menu_Main_Button_Count) )
 		return;
 
+	Active_Menu = EAM_Main;
+	Active_Button = (EActive_Button)i;
+	Draw_Button_Request();  // Clean reguest
+	Draw_Active_Button_Advenced();  // Redraw pressed button
 
-	// 4. Draw Context_Menu_Draw if at buttons
-	for (i = Sub_Menu_Curr_Page * Sub_Menu_Max_Line; i < Rect_Sub_Menu_Length; i++)
-	{
-		if (IntersectRect(&intersect_rect, &mouse_cord, &User_Input_Rect[i]) )
-		{
-			Active_Button = (EActive_Button)i;
-			Draw_Active_Button_Advenced();
-			Context_Menu_Draw(mouse_cord.right, mouse_cord.top);
-			return;
-		}
-	}
+	Active_Menu = (EActive_Menu)i;
+	Draw_Menu_Sub_Advenced();  // Draw sub menu with current active menu
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_LM_Button(const LPARAM &lParam)
+void AsUI_Builder::Handle_Menu_Context()
 {
-	int x = lParam & 0xffff;
-	int y = (int)(lParam >> 16);
+	int i = 0;
 	std::map<std::wstring, SUser_Input_Data> *user_array = 0;
-	RECT intersect_rect{};
-	RECT mouse_cord{};
 
-	mouse_cord.left = x - 1;
-	mouse_cord.top = y;
-	mouse_cord.right = x;
-	mouse_cord.bottom = y + 1;
+	Cycle_Finder(*Mouse_Cord, (int)EPress::Button_Context, AsConfig::Context_Button_Count, i);
 
-	Handle_LM_Button_Advenced();  // !!!
+	// 1.0. Add to Array
+	switch ( (EActive_Menu)i)  // If pressed first button context menu choose action
+	{
+	case EAM_Watching:
+		user_array = &User_Array_Map;
+		break;
+	case EAM_Library_Menu:
+		user_array = &User_Library_Map;
+		break;
+	case EAM_Paused_Menu:
+		user_array = &User_Paused_Map;
+		break;
+	case EAM_Wishlist:
+		user_array = &User_Wishlist_Map;
+		break;
+	}
+	user_array->insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
 
-	if (!IsRectEmpty(Borders_Rect[(int)EPress::Button_Pages]) )
-	{// If Page Button not empty
+	// 1.1. Erase from array
+	switch (Active_Menu)
+	{
+	case EAM_Watching:
+		user_array = &User_Array_Map;
+		break;
+	case EAM_Library_Menu:
+		user_array = &User_Library_Map;
+		break;
+	case EAM_Paused_Menu:
+		user_array = &User_Paused_Map;
+		break;
+	case EAM_Wishlist:
+		user_array = &User_Wishlist_Map;
+		break;
+	}
+	user_array->erase(It_Current_User->first);
 
-		if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Button_Pages][EPage::Prev]) )
-		{// Page Prev Button
+	Active_Button = EActive_Button::EAB_Main_Menu;
+	Prev_Button = 99;  // set to no prev_button
+	Draw_Button_Request();
+	Draw_Menu_Sub_Advenced();
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Non_Bordered()
+{
+	int i = 0;
+	const int how_many_buttons = 2;
+
+	Cycle_Finder(*Mouse_Cord, (int)EPress::Button_Reguest, how_many_buttons, i);
+	if (i == how_many_buttons)  // if cant find any return
+		return;
+
+	Active_Button = (EActive_Button)Prev_Button;
+	User_Input_Value_Is_Changed(i);
+	Draw_Active_Button_Advenced();
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Menu_Sub()
+{// 1.0. Manu Sab Handler
+	int i = 0;
+
+	// 1.1. User Input Button Handler
+	if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[(int)EPress::User_Input_Handler][0] ) )
+		if (User_Input[0] != 0)
+			return Handler_User_Input();
+		else
+			return User_Input_Set_From_Clipboard();
+
+	// 1.2. Next or Prev page Handler
+	Cycle_Finder(*Mouse_Cord, (int)EPress::Button_Pages, (int)EPage::Last, i);
+	if (i != (int)EPage::Last)
+	{
+		if (i == EPage::Prev)
 			if (Sub_Menu_Curr_Page < 1)
 				return;
 			else
 				Sub_Menu_Curr_Page--;
 
-			Draw_Menu_Sub_Advenced();
-
-			return;
-		}
-		else if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Button_Pages][EPage::Next]) )
-		{// Page Next Button
-
+		if (i == EPage::Next)
 			Sub_Menu_Curr_Page++;
-			Active_Button = EActive_Button::EAB_Main_Menu;
 
-			Draw_Menu_Sub_Advenced();
-			Draw_Button_Request();
-			return;
-
-		} else if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Button_Pages][EPage::Update]) )  // Update Button
-		{
-			Handle_Update_Button_Beta();  // While press Update Page
-			return;
-		}
+		Active_Button = EActive_Button::EAB_Main_Menu;
+		Draw_Menu_Sub_Advenced();
+		Draw_Button_Request();
+		return;
 	}
 
+	// 1.3. Title Buttons
+	for (i = Sub_Menu_Curr_Page * Sub_Menu_Max_Line; i < i + Sub_Menu_Max_Line; i++)
+		if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[(int)EPress::Buttons_User_Input][i] ) )
+			break;
 
-	if (!IsRectEmpty(&Borders_Rect[(int)EPress::Button_Reguest][0]) )
-	{// Reguest Handle
-
-		for (int i = 0; i < 2; i++)
-			if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Button_Reguest][i]) )
-			{
-				Active_Button = (EActive_Button)Prev_Button;
-
-				User_Input_Value_Is_Changed(i);
-				Draw_Active_Button_Advenced();
-
-				return;
-			}
-	}
-
-
-	if (!IsRectEmpty(&Borders_Rect[(int)EPress::Button_User_Input][0]) )  // !!! Refactoring
-	{// User_Input Handle || Double click on User_Input ||
-
-		if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Button_User_Input][0]) )
-		{
-			if (User_Input[0] != 0)
-				Handler_User_Input();
-			else
-				User_Input_Set_From_Clipboard();
-
-			return;
-		}
-	}
-
-
-	if (!IsRectEmpty(&Prev_Context_Menu_Cords) )
-	{// Context Menu Handle
-
-		for (int i = 0; i < Context_Button_Length; i++)
-		{// check clk on context menu
-
-			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Buttons_Context[i]) )
-			{
-				Active_Button = EActive_Button::EAB_Main_Menu;
-				
-				Context_Image_Restore(Prev_Context_Menu_Cords);
-				Draw_Button_Request();
-
-				// 1.1. Add to array data from iterator
-				switch ( (EActive_Menu)i)  // If pressed first button context menu choose action
-				{
-
-				case EAM_Watching:
-					user_array = &User_Array_Map;
-					break;
-
-				case EAM_Library_Menu:
-					user_array = &User_Library_Map;
-					break;
-
-				case EAM_Paused_Menu:
-					user_array = &User_Paused_Map;
-					break;
-
-				case EAM_Wishlist:
-					user_array = &User_Wishlist_Map;
-					break;
-				}
-				user_array->insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
-
-				// 1.2. Erase data from array i
-				switch (Active_Menu)
-				{
-				case EAM_Watching:
-					user_array = &User_Array_Map;
-					break;
-				case EAM_Library_Menu:
-					user_array = &User_Library_Map;
-					break;
-				case EAM_Paused_Menu:
-					user_array = &User_Paused_Map;
-					break;
-				case EAM_Wishlist:
-					user_array = &User_Wishlist_Map;
-					break;
-				}
-				user_array->erase(It_Current_User->first);
-
-				Prev_Button = 99;  // set to no prev_button
-				User_Map_Main_Save();  // Save after Erase
-				Draw_Menu_Sub_Advenced();
-				return;
-			}
-		}
-		Context_Image_Restore(Prev_Context_Menu_Cords);
-	}
-
-
-	if (IntersectRect(&intersect_rect, &mouse_cord, &Borders_Rect[(int)EPress::Menu_Main][0]) )
-	{
-		for (int i = 0; i < AsConfig::Menu_Main_Button_Count; i++)  // if is rect border
-		{// Main Menu Handle
-
-			if (IntersectRect(&intersect_rect, &mouse_cord, &Rect_Menu_List[i]) )
-			{// If find button
-
-				Active_Menu = EAM_Main;
-				Active_Button = (EActive_Button)i;
-
-				Draw_Button_Request();
-				Draw_Active_Button_Advenced();
-
-				Active_Menu = (EActive_Menu)i;
-				Draw_Menu_Sub_Advenced();
-
-				return;
-			}
-		}
-	}
-
-
-	for (int i = Sub_Menu_Curr_Page * Sub_Menu_Max_Line; i < Rect_Sub_Menu_Length; i++)
-	{// Sub Menu Handle
-
-		if (IntersectRect(&intersect_rect, &mouse_cord, &User_Input_Rect[i] ) )
-		{
-			Active_Button = (EActive_Button)i;
-			Draw_Active_Button_Advenced();
-			return;
-		}
-	}
+	Active_Button = (EActive_Button)i;
+	Draw_Active_Button_Advenced();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Update_Button_Beta()
+void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_handler, const LPARAM &lParam)
 {
-	int yy = 0;
-	// TASKS
-	/*
-		- How to make this in threads, and work fine?
-			- Get ID Content from file
-				- Save ID Content while handle URL
-			- Make from this id url
-			- Use url to get title with num
-			- Convert title with num to struct
-			- Use struct to find same title, and check num
-			- if different higlight new title to watch
-	*/
+	const int x = lParam & 0xffff;
+	const int y = (int)(lParam >> 16);
+	int index = 0;
+
+	Mouse_Cord->left = x - 1;
+	Mouse_Cord->top = y;
+	Mouse_Cord->right = x;
+	Mouse_Cord->bottom = y + 1;
+
+	for (index = 0; index < (int)EPress::Non_Bordered; index++)  // at which border pressed, get index
+		if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[index][0] ) )
+			break;
+
+	if (Borders_Rect[(int)EPress::Menu_Context][0].left != 0)  // if rect is not empty clear context menu
+		Context_Image_Restore(Borders_Rect[ (int)EPress::Menu_Context][0] );
+
+	switch (Border_Pressed = (EPress)index)
+	{
+	case EPress::Non_Bordered:
+		Handle_Non_Bordered();
+		break;
+
+	case EPress::Menu_Main:
+		Border_Pressed = EPress::Button_Menu_Main;
+		Handle_Menu_Main();
+		break;
+
+	case EPress::Menu_Context:
+		Border_Pressed = EPress::Button_Context;
+		Handle_Menu_Context();
+		break;
+
+	case EPress::Menu_Sub:
+		Border_Pressed = EPress::User_Input_Handler;  // Find from user input
+		Handle_Menu_Sub();
+		break;
+	}
+	
+	if (builder_handler == EUI_Builder_Handler::Handle_Mouse_RButton)  // If RM Button
+		Context_Menu_Draw(Mouse_Cord->right, Mouse_Cord->top);
 }
-//------------------------------------------------------------------------------------------------------------ 1731
+//------------------------------------------------------------------------------------------------------------  1850 - 1583
 
 
 

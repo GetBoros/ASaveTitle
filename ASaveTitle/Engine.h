@@ -181,13 +181,11 @@ private:
 
 	// Handler Input Last
 	void Handle_Button_Bordered(const EUI_Builder_Handler &builder_handlerconst, const LPARAM &lParam);
-
-	void Cycle_Finder(const RECT &mouse_cord, const int border_index, const int count, int &result);
-
 	void Handle_Menu_Main();
-	void Handle_Menu_Sub();
 	void Handle_Menu_Context();
 	void Handle_Non_Bordered();
+	void Handle_Menu_Sub();
+	void Cycle_Finder(const RECT& mouse_cord, const int border_index, const int count, int& result);
 
 	
 	int Prev_Main_Menu_Button;

@@ -1414,11 +1414,48 @@ unsigned long long  AsUI_Builder::User_Map_Load_Convert(unsigned long long &ch)
 	return 0LL;  // Bad Reserved 99
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Cycle_Finder(const RECT &mouse_cord, const int border_index, const int count, int &result)
+void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_handler, const LPARAM &lParam)
 {
-	for (result = 0; result < count; result++)
-		if (IntersectRect(Mouse_Cord_Destination, &mouse_cord, &Borders_Rect[border_index][result] ) )
+	const int x = lParam & 0xffff;
+	const int y = (int)(lParam >> 16);
+	int index = 0;
+
+	Mouse_Cord->left = x - 1;
+	Mouse_Cord->top = y;
+	Mouse_Cord->right = x;
+	Mouse_Cord->bottom = y + 1;
+
+	for (index = 0; index < (int)EPress::Non_Bordered; index++)  // at which border pressed, get index
+		if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[index][0] ) )
 			break;
+
+	if (Borders_Rect[(int)EPress::Menu_Context][0].left != 0)  // if rect is not empty clear context menu
+		Context_Image_Restore(Borders_Rect[ (int)EPress::Menu_Context][0] );
+
+	switch (Border_Pressed = (EPress)index)
+	{
+	case EPress::Non_Bordered:
+		Handle_Non_Bordered();
+		break;
+
+	case EPress::Menu_Main:
+		Border_Pressed = EPress::Button_Menu_Main;
+		Handle_Menu_Main();
+		break;
+
+	case EPress::Menu_Context:
+		Border_Pressed = EPress::Button_Context;
+		Handle_Menu_Context();
+		break;
+
+	case EPress::Menu_Sub:
+		Border_Pressed = EPress::User_Input_Handler;  // Find from user input
+		Handle_Menu_Sub();
+		break;
+	}
+	
+	if (builder_handler == EUI_Builder_Handler::Handle_Mouse_RButton)  // If RM Button
+		Context_Menu_Draw(Mouse_Cord->right, Mouse_Cord->top);
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Main()
@@ -1540,48 +1577,11 @@ void AsUI_Builder::Handle_Menu_Sub()
 	Draw_Active_Button_Advenced();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_handler, const LPARAM &lParam)
+void AsUI_Builder::Cycle_Finder(const RECT &mouse_cord, const int border_index, const int count, int &result)
 {
-	const int x = lParam & 0xffff;
-	const int y = (int)(lParam >> 16);
-	int index = 0;
-
-	Mouse_Cord->left = x - 1;
-	Mouse_Cord->top = y;
-	Mouse_Cord->right = x;
-	Mouse_Cord->bottom = y + 1;
-
-	for (index = 0; index < (int)EPress::Non_Bordered; index++)  // at which border pressed, get index
-		if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[index][0] ) )
+	for (result = 0; result < count; result++)
+		if (IntersectRect(Mouse_Cord_Destination, &mouse_cord, &Borders_Rect[border_index][result] ) )
 			break;
-
-	if (Borders_Rect[(int)EPress::Menu_Context][0].left != 0)  // if rect is not empty clear context menu
-		Context_Image_Restore(Borders_Rect[ (int)EPress::Menu_Context][0] );
-
-	switch (Border_Pressed = (EPress)index)
-	{
-	case EPress::Non_Bordered:
-		Handle_Non_Bordered();
-		break;
-
-	case EPress::Menu_Main:
-		Border_Pressed = EPress::Button_Menu_Main;
-		Handle_Menu_Main();
-		break;
-
-	case EPress::Menu_Context:
-		Border_Pressed = EPress::Button_Context;
-		Handle_Menu_Context();
-		break;
-
-	case EPress::Menu_Sub:
-		Border_Pressed = EPress::User_Input_Handler;  // Find from user input
-		Handle_Menu_Sub();
-		break;
-	}
-	
-	if (builder_handler == EUI_Builder_Handler::Handle_Mouse_RButton)  // If RM Button
-		Context_Menu_Draw(Mouse_Cord->right, Mouse_Cord->top);
 }
 //------------------------------------------------------------------------------------------------------------  1850 - 1583
 

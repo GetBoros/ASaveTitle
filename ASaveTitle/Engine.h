@@ -60,6 +60,14 @@ enum EPage
 	Last
 };
 //------------------------------------------------------------------------------------------------------------
+struct S_Extend
+{
+	int Title_Num = 0;
+	int Title_Data = 0;
+	int Title_Season = 0;
+	wchar_t Title_Name_Key;
+	wchar_t Title_Name_Num;
+};
 struct SUser_Input_Data
 {// Some day refactor this poop
 
@@ -169,6 +177,8 @@ private:
 	void Context_Image_Restore(RECT &rect);  // redraw image
 
 	// Load
+	void User_Map_Load(const char *file_path);  // !!! Can be refactored
+
 	void User_Map_Main_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
 	void User_Map_Main_Save();  // Main Save | Threaded || Call this to save current std::map
 	void User_Map_Init_Buffer(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);  // Format std::map to wchar_t ** after save
@@ -187,6 +197,7 @@ private:
 	void Handle_Menu_Sub();
 	void Cycle_Finder(const RECT& mouse_cord, const int border_index, const int count, int& result);
 
+	wchar_t **Data_From_File;
 	
 	int Prev_Main_Menu_Button;
 	int Prev_Button;
@@ -206,7 +217,7 @@ private:
 	HBITMAP H_Bitmap;
 	HGDIOBJ Saved_Object;
 
-	std::map<std::wstring *, SUser_Input_Data * > *User_Map_Active;
+	std::map<wchar_t *, S_Extend *> *User_Map_Active;
 
 	std::map<std::wstring, SUser_Input_Data> User_Array_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Library_Map;

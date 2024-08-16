@@ -369,18 +369,15 @@ AsUI_Builder::~AsUI_Builder()
 }
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::AsUI_Builder(HDC hdc)
-: Active_Menu(EAM_Main), Ptr_Hdc(hdc), Borders_Rect(0), Mouse_Cord_Destination(0), Mouse_Cord(0), User_Input{}, Prev_Main_Menu_Button(0),
+: Active_Menu(EAM_Main), Ptr_Hdc(hdc), Borders_Rect(0), Mouse_Cord_Destination(0), Mouse_Cord(0), User_Input{}, Data_From_File {}, Prev_Main_Menu_Button(0),
   Prev_Button(99), Sub_Menu_Curr_Page(0), Sub_Menu_Max_Line(31), Active_Button(EActive_Button::EAB_Main_Menu),
   Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Map_Active(0)
 {
-	// TEMP
-	
-	// 1.0. Load from and add to User_Map_Active
+	User_Map_Active = new std::map<wchar_t *, S_Extend *>;
+	User_Map_Load("Data/Watching.bin");  // Load from file and add to User_Map_Active
 
-
-	// TEMP END
-
-	Thread_First = std::thread([&]() { User_Map_Main_Load(User_Array_Map, "Data/Watching.bin"); });
+	// Main
+	/*Thread_First = std::thread([&]() { User_Map_Main_Load(User_Array_Map, "Data/Watching.bin"); });
 	Thread_Second = std::thread([&]() { User_Map_Main_Load(User_Library_Map, "Data/Library.bin"); });
 	Thread_Third = std::thread([&]() { User_Map_Main_Load(User_Paused_Map, "Data/Paused.bin"); });
 	Thread_Fourth = std::thread([&]() { User_Map_Main_Load(User_Wishlist_Map, "Data/Wishlist.bin"); });
@@ -389,6 +386,7 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 	Thread_Second.join();
 	Thread_Third.join();
 	Thread_Fourth.join();
+	*/
 
 	Init();
 	Draw_Menu_Main();
@@ -776,6 +774,11 @@ void AsUI_Builder::Draw_Menu_Sub_Advenced()
 	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_Title);  // Write Sub menu title
 	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
 
+	// FIASKO?
+	std::map<wchar_t *, S_Extend *>::iterator it = User_Map_Active->begin();
+	Draw_Button(border_rect, Borders_Rect[(int)EPress::Buttons_User_Input][curr_line], it->first);
+
+
 	switch (Active_Menu)
 	{
 	case EAM_Watching:
@@ -1075,6 +1078,83 @@ void AsUI_Builder::Context_Image_Restore(RECT &rect)
 		Saved_Object = 0;
 	}
 	rect = {};  // обнуляем
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Map_Load(const char *file_path)
+{
+	bool is_add_to_user_array = false;
+	wchar_t *to_map = 0;
+	wchar_t *user_input = new wchar_t[100]{};
+	int how_much_g = 0;
+	int block_sum_ull = 0;
+	int block_sum_index = 0, str = 0;
+	unsigned long long *ull_array_blocks = 0;
+	unsigned long long ull_char = 0;
+	unsigned long long ull_index = 0;
+	unsigned long long ull_number = 0;
+	
+	std::ifstream infile(file_path, std::ios::binary);
+	if (!infile)
+		return;
+	infile.seekg(0, std::ios::end);  // Go to last char in file
+	how_much_g = (int)infile.tellg();    // How many char in file || Need use seekg
+	block_sum_ull = how_much_g / sizeof(unsigned long long);  // (long long) 8 / size = how manny ULL in file
+	infile.seekg(0, std::ios::beg);  // Go to first char in file
+	ull_array_blocks = new unsigned long long[block_sum_ull];  // Get memory to cast 
+	infile.read(reinterpret_cast<char *>(ull_array_blocks), how_much_g);  // reinterpret file size to ull by char
+
+	while (block_sum_index < block_sum_ull)
+	{
+		ull_number = ull_array_blocks[block_sum_index];
+		ull_index = AsConfig::ULL_Index_Length;
+
+		while (ull_index != 0)
+		{
+			ull_char = ull_number / ull_index;
+			ull_index /= 100;
+			ull_char %= 100;
+
+			while (ull_char == 0)
+			{// If invalid ull_char need to find valid
+
+				if (ull_index == 0)
+					break;
+				ull_char = ull_number / ull_index;
+				ull_char %= 100;
+				ull_index /= 100;
+			}
+
+			if (ull_char >= 43 && ull_char <= 52)  // 43 == 0 52 == 9
+				is_add_to_user_array = true;
+
+			if (is_add_to_user_array && ull_char > 52 || is_add_to_user_array && ull_char < 43)  // If after ull_number end
+			{
+				user_input[str] = L'\0';  // Title end here
+				user_input[0] = user_input[0] - 32;  // Upper Case first char
+
+				to_map = new wchar_t[wcslen(user_input) + 1] {};
+				wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
+				User_Map_Active->emplace(to_map, new S_Extend {});
+				
+				is_add_to_user_array = false;  // look next numbers
+				str = 0;
+			}
+			user_input[str++] = (wchar_t)User_Map_Load_Convert(ull_char);  // Convert to norm wchar_t and add to user_input
+		}
+		
+		block_sum_index++;  // go to next index
+		if (block_sum_index == block_sum_ull && user_input[0] != L'\0')
+		{// If block last and user_input not empty save unsaved
+
+			user_input[str] = L'\0';  // say it`s end
+			user_input[0] = user_input[0] - 32;  // Set Upper Case first symbol
+
+			to_map = new wchar_t[wcslen(user_input) + 1] {};
+			wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
+			User_Map_Active->emplace(to_map, new S_Extend {});
+		}
+	}
+	infile.close();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Map_Main_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)

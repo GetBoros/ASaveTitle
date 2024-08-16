@@ -3,48 +3,53 @@
 // AsExamples
 AsExamples::AsExamples()
 {
+
 }
 //------------------------------------------------------------------------------------------------------------
-void AsExamples::Show_Case(EExample_Preview example_preview)
+AsExamples::AsExamples(const EShow_Preview show_preview)
 {
 	// 1.0 EP_Show_Path_Info Data
-	std::wstring result;
 	std::filesystem::path path_to_display(L"C:/FileSystemTest/SubDir3/SubDirLevel2/File2.txt ");
 
 	// 2.0. EP_Show_Func_Ptrs Data
-
-	switch (example_preview)
+	switch (show_preview)
 	{
-	case EExample_Preview::EP_None:
+	case EShow_Preview::EP_None:
 		break;
-	case EExample_Preview::EP_Show_Path_Info:
-		Display_Path_Info(path_to_display, result);
+	case EShow_Preview::EP_Show_Path_Info:
+		Display_Path_Info(path_to_display);
 		break;
-	case EExample_Preview::EP_Show_Byte_Info:
+	case EShow_Preview::EP_Show_Byte_Info:
 		Display_Byte_Info();
 		break;
-	case EExample_Preview::EP_Show_Void_Ptrs:
+	case EShow_Preview::EP_Show_Void_Ptrs:
 		Display_Void_Ptrs();
 		break;
-	case EExample_Preview::EP_Show_Func_Ptrs:
+	case EShow_Preview::EP_Show_Func_Ptrs:
 		Display_Func_Ptrs();
 		break;
-	case EExample_Preview::EP_Show_Func_Ptrs_Advenced:
+	case EShow_Preview::EP_Show_Func_Ptrs_Advenced:
 		Display_Func_Ptrs_Advenced();
 		break;
-	case EExample_Preview::EP_Show_Cast_Exam
-		:Display_Cast_Exam();
+	case EShow_Preview::EP_Show_Cast_Exam:
+		Display_Cast_Exam();
 		break;
 
-	default:
+	case EShow_Preview::STD_Map_Pair_Ptrs:
+		Display_Map_Pair_Ptr();
 		break;
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsExamples::Display_Path_Info(std::filesystem::path &path, std::wstring &result)
+void AsExamples::Show_Case(EShow_Preview example_preview)
+{
+
+}
+//------------------------------------------------------------------------------------------------------------
+void AsExamples::Display_Path_Info(std::filesystem::path &path)
 {
 	int i;
-	std::wostringstream w_string_stream;
+	std::wostringstream w_string_stream;  // stor folder
 
 	i = 0;
 	w_string_stream << L"Displaying path info for: " << path << std::endl;
@@ -63,7 +68,7 @@ void AsExamples::Display_Path_Info(std::filesystem::path &path, std::wstring &re
 		<< L"stem() = " << path.stem() << std::endl  // file format
 		<< L"extension() = " << path.extension() << std::endl;  // .txt
 
-	result = w_string_stream.str();
+	int yy = 0;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_Byte_Info()
@@ -90,7 +95,7 @@ void AsExamples::Display_Func_Ptrs()
 {// For what? but we can so...
 
 	void(AsExamples:: *ptr_func_arg_0)() = 0;  // can get ptr to func with zero arguments and type void
-	void (AsExamples:: *ptr_func_arg_1) (EExample_Preview) = 0;  // void - return type || ( *ptr_func_arg_1)  - name ||  (int) - func args || = 0;  = &Say_Hello; - adress func with arg int||
+	void (AsExamples:: *ptr_func_arg_1) (EShow_Preview) = 0;  // void - return type || ( *ptr_func_arg_1)  - name ||  (int) - func args || = 0;  = &Say_Hello; - adress func with arg int||
 	AsExamples experemental;
 
 	// 1.0 Inits
@@ -108,10 +113,10 @@ void AsExamples::Display_Func_Ptrs()
 //------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_Func_Ptrs_Advenced()
 {
-	void (AsExamples:: *ptr_func_update)(EExample_Preview) = 0;  // Тип(void) (где, указателя на функцию-член класса)(аргументы) = нулевой указатель
+	void (AsExamples:: *ptr_func_update)(EShow_Preview) = 0;  // Тип(void) (где, указателя на функцию-член класса)(аргументы) = нулевой указатель
 	void *ptr_func = 0;  // Тип, имя указателя общего типа void * (универсальный указатель) может указывать на любой тип данных
 	uintptr_t func_addr = 0;  // Тип, имя адресса для хранения целочисленного представления адреса указателя
-	void ( *restored_func_ptr)(EExample_Preview) = 0;  // Объявление указателя на функцию которая принимает аргумент типа EExample_Preview и возвращает void
+	void ( *restored_func_ptr)(EShow_Preview) = 0;  // Объявление указателя на функцию которая принимает аргумент типа EShow_Preview и возвращает void
 	
 	// Преобразование указателя на функцию
 	ptr_func_update = &AsExamples::Show_Case;  // Назначение указателю ptr_func_update адреса функции-члена Show_Case класса AsExamples.
@@ -119,8 +124,8 @@ void AsExamples::Display_Func_Ptrs_Advenced()
 	func_addr = reinterpret_cast<uintptr_t>(ptr_func);  // Преобразование void * в uintptr_t полезно передать адрес функции между модулями, сохранить его для последующего использования
 
 	// Восстановление указателя на функцию и вызов функции
-	restored_func_ptr = reinterpret_cast<void (*) (EExample_Preview)> (func_addr);  // Привести func_addr в void * c arg. Необходимо, чтобы корректно вызвать функцию через указатель.
-	restored_func_ptr(EExample_Preview::EP_None);  //  Вызов функции через восстановленный указатель и передача аргумента типа EExample_Preview.
+	restored_func_ptr = reinterpret_cast<void (*) (EShow_Preview)> (func_addr);  // Привести func_addr в void * c arg. Необходимо, чтобы корректно вызвать функцию через указатель.
+	restored_func_ptr(EShow_Preview::EP_None);  //  Вызов функции через восстановленный указатель и передача аргумента типа EShow_Preview.
 }
 //------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_Cast_Exam()
@@ -150,5 +155,31 @@ void AsExamples::Display_Replace_S()
 		.replace(string_need_replace.find("this"), 4, ""); // Убираем "this"
 
 	string_need_replace += "Well Done";
+}
+//------------------------------------------------------------------------------------------------------------
+void AsExamples::Display_Map_Pair_Ptr()
+{
+	struct S_Test { int a; int b; } S_Example = {};
+
+	std::map<std::wstring *, S_Test *> *Base_Array = 0;
+	std::pair<std::wstring *, S_Test *> pair_exmpl = {};
+
+	// 1.0. Create pointer and pair
+	Base_Array = new std::map<std::wstring *, S_Test *> {};
+	pair_exmpl.first = new std::wstring(L"Hello");
+	pair_exmpl.second = new S_Test {};
+
+	// 1.1. Add to Base_Array
+	Base_Array->emplace(pair_exmpl);
+	
+	// 1.2. How to erase from array and delete all data || Free allocated memmory
+	for (std::map<std::wstring *, S_Test*>::iterator it = Base_Array->begin(); it != Base_Array->end(); )
+	{
+		delete it->second;
+		delete it->first;
+
+		it = Base_Array->erase(it); // Удаляем элемент и перемещаем итератор на следующий
+	}
+	delete Base_Array;
 }
 //------------------------------------------------------------------------------------------------------------

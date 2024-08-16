@@ -371,8 +371,15 @@ AsUI_Builder::~AsUI_Builder()
 AsUI_Builder::AsUI_Builder(HDC hdc)
 : Active_Menu(EAM_Main), Ptr_Hdc(hdc), Borders_Rect(0), Mouse_Cord_Destination(0), Mouse_Cord(0), User_Input{}, Prev_Main_Menu_Button(0),
   Prev_Button(99), Sub_Menu_Curr_Page(0), Sub_Menu_Max_Line(31), Active_Button(EActive_Button::EAB_Main_Menu),
-  Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0)
+  Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Map_Active(0)
 {
+	// TEMP
+	
+	// 1.0. Load from and add to User_Map_Active
+
+
+	// TEMP END
+
 	Thread_First = std::thread([&]() { User_Map_Main_Load(User_Array_Map, "Data/Watching.bin"); });
 	Thread_Second = std::thread([&]() { User_Map_Main_Load(User_Library_Map, "Data/Library.bin"); });
 	Thread_Third = std::thread([&]() { User_Map_Main_Load(User_Paused_Map, "Data/Paused.bin"); });

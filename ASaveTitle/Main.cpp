@@ -8,52 +8,13 @@ AsMain *AsMain::Main_Window = 0;
 
 
 
-//------------------------------------------------------------------------------------------------------------
-static void Init_Pair(std::pair<std::wstring *, SUser_Input_Data *> &pair_exmpl)
-{
-	pair_exmpl.first = new std::wstring(L"Hello");
-	pair_exmpl.second = new SUser_Input_Data {};
-}
-//------------------------------------------------------------------------------------------------------------
-static void Init_Pair_test(std::pair<std::wstring *, SUser_Input_Data *> &pair_exmpl)
-{
-	pair_exmpl.first = new std::wstring(L"World");
-	pair_exmpl.second = new SUser_Input_Data {};
-}
-//------------------------------------------------------------------------------------------------------------
-
-
-
 
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	std::map<std::wstring *, SUser_Input_Data *> *Base_Array;
-	std::pair<std::wstring *, SUser_Input_Data *> pair_exmpl;
-
-	Base_Array = new std::map<std::wstring *, SUser_Input_Data *> {};
-
-	Init_Pair(pair_exmpl);
-	Base_Array->emplace(pair_exmpl);
-	
-	//Init_Pair_test(pair_exmpl);
-	//Base_Array->insert(pair_exmpl);
-
-	for (std::map<std::wstring *, SUser_Input_Data *>::iterator it = Base_Array->begin(); it != Base_Array->end(); )
-	{
-		delete it->second; // Освобождаем память для SUser_Input_Data
-		delete it->first;  // Освобождаем память для std::wstring
-
-		it = Base_Array->erase(it); // Удаляем элемент и перемещаем итератор на следующий
-	}
-
-	delete Base_Array;
-
-	return 0;
 	// Tutorial
 	/*
-		AsExamples *examples = new AsExamples();
-		examples->Show_Case(EExample_Preview::EP_Show_Byte_Info);
+		AsExamples *examples = new AsExamples(EShow_Preview::STD_Map_Pair_Ptrs);
 	*/
 	
 	return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not

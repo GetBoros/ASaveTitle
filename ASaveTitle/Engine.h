@@ -206,6 +206,8 @@ private:
 	HBITMAP H_Bitmap;
 	HGDIOBJ Saved_Object;
 
+	std::map<std::wstring *, SUser_Input_Data * > *User_Map_Active;
+
 	std::map<std::wstring, SUser_Input_Data> User_Array_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Library_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Paused_Map;

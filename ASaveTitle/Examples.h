@@ -2,7 +2,7 @@
 
 #include "AsConfig.h"
 
-enum class EExample_Preview : int
+enum class EShow_Preview : int
 {
 	EP_None,
 	EP_Show_Path_Info,  // File Path example
@@ -11,7 +11,8 @@ enum class EExample_Preview : int
 	EP_Show_Func_Ptrs,  // how to get func ptr and handle it
 	EP_Show_Func_Ptrs_Advenced,  // how to get func ptr and handle it advenced
 	EP_Show_Cast_Exam,  // Reinterpret cast examples and other useful thinks
-	EP_Show_String_Replace  // Example how to handle string, replace, find texts
+	EP_Show_String_Replace,  // Example how to handle string, replace, find texts
+	STD_Map_Pair_Ptrs  // 
 };
 
 // AsExamples
@@ -19,16 +20,18 @@ class AsExamples
 {
 public:
 	AsExamples();
+	AsExamples(const EShow_Preview show_preview);
 	
-	void Show_Case(EExample_Preview example_preview);
+	void Show_Case(EShow_Preview example_preview);
 
 private:
-	void Display_Path_Info(std::filesystem::path &path, std::wstring &result);  // File System Examples
+	void Display_Path_Info(std::filesystem::path &path);  // File System Examples
 	void Display_Byte_Info();
 	void Display_Void_Ptrs();
 	void Display_Func_Ptrs();
 	void Display_Func_Ptrs_Advenced();
 	void Display_Cast_Exam();
 	void Display_Replace_S();  // Example how replace std::string
+	void Display_Map_Pair_Ptr();
 };
 //------------------------------------------------------------------------------------------------------------

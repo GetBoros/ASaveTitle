@@ -354,6 +354,8 @@ AsUI_Builder::~AsUI_Builder()
 	if (H_Bitmap != 0)
 		DeleteObject(H_Bitmap);
 
+	Erase_Data();  // !!! How about to save?
+
 	// 1.3 Save map to Data/...
 	//User_Map_Main_Save();  // Exit from Program | if exit save all map
 
@@ -373,8 +375,20 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
   Prev_Button(99), Sub_Menu_Curr_Page(0), Sub_Menu_Max_Line(31), Active_Button(EActive_Button::EAB_Main_Menu),
   Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Map_Active(0)
 {
-	User_Map_Active = new std::map<wchar_t *, S_Extend *>;
+
+	// THREAD FIRST
+	User_Map_Active = new std::map<wchar_t *, S_Extend *, cmp_wchar>;
 	User_Map_Load("Data/Watching.bin");  // Load from file and add to User_Map_Active
+	It_User_Map_Active = User_Map_Active->begin();
+
+	// TASK 2 || Conver all Data to struct
+	for (auto &it : *User_Map_Active)
+		Convert_Data(it.first, it.second);
+	
+	// TASK 3 || Save
+
+	// TASK 4 Erase From Data
+
 
 	// Main
 	/*Thread_First = std::thread([&]() { User_Map_Main_Load(User_Array_Map, "Data/Watching.bin"); });
@@ -774,10 +788,8 @@ void AsUI_Builder::Draw_Menu_Sub_Advenced()
 	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_Title);  // Write Sub menu title
 	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
 
-	// FIASKO?
-	std::map<wchar_t *, S_Extend *>::iterator it = User_Map_Active->begin();
-	Draw_Button(border_rect, Borders_Rect[(int)EPress::Buttons_User_Input][curr_line], it->first);
-
+	Draw_Menu_Sub();
+	return;
 
 	switch (Active_Menu)
 	{
@@ -1134,7 +1146,8 @@ void AsUI_Builder::User_Map_Load(const char *file_path)
 
 				to_map = new wchar_t[wcslen(user_input) + 1] {};
 				wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-				User_Map_Active->emplace(to_map, new S_Extend {});
+				User_Map_Active->emplace(to_map, new S_Extend{} );
+
 				
 				is_add_to_user_array = false;  // look next numbers
 				str = 0;
@@ -1155,6 +1168,151 @@ void AsUI_Builder::User_Map_Load(const char *file_path)
 		}
 	}
 	infile.close();
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Convert_Data(wchar_t *user_input, S_Extend *&data)
+{
+	unsigned short current_ch;
+	wchar_t *pattern_season;
+	int user_input_length;
+	int season_counter;
+
+	pattern_season = 0;
+	user_input_length = (int)wcslen(user_input) - 1;
+	current_ch = (unsigned short)user_input[user_input_length];
+	season_counter = 0;
+
+	while (current_ch == L' ' || current_ch >= 48 && current_ch <= 57)
+	{//Find spaces if current ch numeric
+
+		if (current_ch == L' ')
+		{// If space str to int
+
+			if (data->Title_Num == 0)
+				data->Title_Num = std::stoi(user_input + user_input_length + 1);  // if first ' ' get num
+			else
+				data->Title_Season = std::stoi(user_input + user_input_length + 1);  // if second ' ' get seasons
+
+			user_input[user_input_length] = L'\0';  // Hide nums
+		}
+		current_ch = (unsigned short)user_input[--user_input_length];
+		
+		while (user_input[user_input_length] == L'X' || user_input[user_input_length] == L'I' || user_input[user_input_length] == L'V')
+		{
+			season_counter++;
+			user_input[user_input_length--] += L' ';
+		}
+		user_input_length += season_counter;
+		
+		while (user_input[user_input_length] == L'x' || user_input[user_input_length] == L'i' || user_input[user_input_length] == L'v')  // Find Seasons =) 
+		{// Find next season character
+
+			user_input_length--;
+			if (user_input[user_input_length] == L' ')
+			{// Find next space
+
+				pattern_season = user_input + user_input_length + 1;
+				for (int i = 0; i < 10; i++)
+				{// Find Pattern in Config and set to data
+
+					if (wcscmp(pattern_season, AsConfig::Season_Case_Low[i]) == 0)
+					{
+						data->Title_Season = i + 1;
+						break;
+					}
+				}
+				user_input[user_input_length] = L'\0';  // erase season from user_input
+			}
+		}
+	}
+	
+	// Title_Name_Key
+	data->Title_Name_Key = new wchar_t[wcslen(user_input) + 1] {};
+	wcsncpy_s(data->Title_Name_Key, wcslen(user_input) + 1, user_input, wcslen(user_input) );
+
+	// TITLE_NAME_NUM
+	if (data->Title_Num == 0)
+		data->Title_Num = 1;
+
+	if (data->Title_Season != 0)
+	{
+		const wchar_t *season_char = AsConfig::Season_Case_Up[data->Title_Season - 1];
+		season_counter = (int)wcslen(season_char);
+
+		user_input[user_input_length] = L' ';
+		user_input[user_input_length + season_counter + 1] = ' ';
+
+		do { user_input[user_input_length + season_counter] = season_char[season_counter - 1]; }
+		while (--season_counter != 0);  // Changle Seasons to upper case
+	}
+	else
+		user_input[user_input_length + 1] = L' ';
+
+	data->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
+	wcsncpy_s(data->Title_Name_Num, wcslen(user_input) + 1, user_input, wcslen(user_input) );
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Erase_Data()
+{
+	for (std::map<wchar_t *, S_Extend *>::iterator it = User_Map_Active->begin(); it != User_Map_Active->end(); )
+	{// Free Memorry from all pointers in map
+
+		delete it->second->Title_Name_Key;
+		delete it->second->Title_Name_Num;
+		delete it->second;
+		delete it->first;
+
+		it = User_Map_Active->erase(it);
+	}
+
+	delete User_Map_Active;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Draw_Menu_Sub()
+{
+	int curr_line;
+	int curr_page_max_line;
+	RECT border_rect;
+
+	curr_line = 0;
+	curr_page_max_line = 0;
+	border_rect = {};
+	Prev_Button = 99;  // Need to switch between arrays
+
+	// 1.1.Draw Border, Set colors, Draw Titles and user input handler
+	Draw_Border(Borders_Rect[(int)EPress::Menu_Sub][0]);  // draw border
+	border_rect = Borders_Rect[(int)EPress::Menu_Sub][0];
+
+	border_rect.top += AsConfig::Global_Scale;  // without title? i can fix but it`s look good enough
+	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
+	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);
+	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);
+	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_Title);  // Write Sub menu title
+	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
+
+	std::map<wchar_t *, S_Extend *, cmp_wchar>::iterator it = User_Map_Active->begin();
+
+	Draw_Button_Pages();
+
+	// 2.1. Set iterator to start and check sub menu
+	if (User_Map_Active->size() < Sub_Menu_Max_Line)
+		Sub_Menu_Curr_Page = 0;
+	
+	// 2.2. If in next page move iterator to needed page
+	curr_page_max_line = Sub_Menu_Max_Line * (Sub_Menu_Curr_Page + 1);
+	curr_line = Sub_Menu_Curr_Page * Sub_Menu_Max_Line;
+	std::advance(it, curr_line);
+
+	// 2.3. Draw needed buttons to submenu
+	for (; it != User_Map_Active->end(); ++it)
+	{
+		if (curr_line < curr_page_max_line)
+			Draw_Button(border_rect, Borders_Rect[(int)EPress::Buttons_User_Input][curr_line], it->first);
+		else
+			return;
+		
+		curr_line++;
+	}
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Map_Main_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
@@ -1553,8 +1711,12 @@ void AsUI_Builder::Handle_Menu_Main()
 	if ( !(i != AsConfig::Menu_Main_Button_Count) )
 		return;
 
+	if ( (Active_Menu = (EActive_Menu)i) == EActive_Menu::EAM_Exit)
+		return PostQuitMessage(0);
+
 	Active_Menu = EAM_Main;
 	Active_Button = (EActive_Button)i;
+
 	Draw_Button_Request();  // Clean reguest
 	Draw_Active_Button_Advenced();  // Redraw pressed button
 

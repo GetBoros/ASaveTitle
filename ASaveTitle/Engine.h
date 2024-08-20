@@ -62,11 +62,10 @@ enum EPage
 //------------------------------------------------------------------------------------------------------------
 struct S_Extend
 {
+	wchar_t *Title_Name_Key = 0;  // Title without season and num
+	wchar_t *Title_Name_Num = 0;  // Title with season and num
 	int Title_Num = 0;
-	int Title_Data = 0;
 	int Title_Season = 0;
-	wchar_t Title_Name_Key;
-	wchar_t Title_Name_Num;
 };
 struct SUser_Input_Data
 {// Some day refactor this poop
@@ -177,7 +176,6 @@ private:
 	void Context_Image_Restore(RECT &rect);  // redraw image
 
 	// Load
-	void User_Map_Load(const char *file_path);  // !!! Can be refactored
 
 	void User_Map_Main_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
 	void User_Map_Main_Save();  // Main Save | Threaded || Call this to save current std::map
@@ -217,7 +215,19 @@ private:
 	HBITMAP H_Bitmap;
 	HGDIOBJ Saved_Object;
 
-	std::map<wchar_t *, S_Extend *> *User_Map_Active;
+	// TEMP
+	struct cmp_wchar { bool operator()(const wchar_t *a, const wchar_t *b) const { return std::wcscmp(a, b) < 0; } };
+
+	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Active;
+	std::map<wchar_t *, S_Extend *>::iterator It_User_Map_Active;
+	void User_Map_Load(const char *file_path);  // !!! Can be refactored
+	void Convert_Data(wchar_t *user_input, S_Extend *&data);  // !!! Refactoring some day
+	void Erase_Data();  // Erase only User_Map_Active
+	void Draw_Menu_Sub();  // How to sort?
+
+	// TEMP END
+
+
 
 	std::map<std::wstring, SUser_Input_Data> User_Array_Map;
 	std::map<std::wstring, SUser_Input_Data> User_Library_Map;

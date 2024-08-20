@@ -354,8 +354,10 @@ AsUI_Builder::~AsUI_Builder()
 	if (H_Bitmap != 0)
 		DeleteObject(H_Bitmap);
 
-	User_Map_Save();
-	Erase_Data();
+	User_Map_Save("99.bin", *User_Map_Ptr);
+	User_Map_Save("98.bin", *User_Map_Library);
+	Erase_Data(*User_Map_Ptr);
+	Erase_Data(*User_Map_Library);
 
 	// 1.3 Save map to Data/...
 	//User_Map_Main_Save();  // Exit from Program | if exit save all map
@@ -374,23 +376,33 @@ AsUI_Builder::~AsUI_Builder()
 AsUI_Builder::AsUI_Builder(HDC hdc)
 : Active_Menu(EAM_Main), Ptr_Hdc(hdc), Borders_Rect(0), Mouse_Cord_Destination(0), Mouse_Cord(0), User_Input{}, Data_From_File {}, Prev_Main_Menu_Button(0),
   Prev_Button(99), Sub_Menu_Curr_Page(0), Sub_Menu_Max_Line(31), Active_Button(EActive_Button::EAB_Main_Menu),
-  Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Map_Active(0)
+  Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Map_Ptr(0), User_Map_Library(0)
 {
-	auto user_map_loader = [&]()
+	auto user_map_loaders = [&]()
 		{
-			User_Map_Active = new std::map<wchar_t *, S_Extend *, cmp_wchar>;
-			User_Map_Load("Data/Watching.bin");  // Load from file and add to User_Map_Active
-			for (auto& it : *User_Map_Active)
+			User_Map_Ptr = new std::map<wchar_t *, S_Extend *, cmp_wchar>;
+			User_Map_Load("Data/Watching.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
+			for (auto &it : *User_Map_Ptr)  // Convert to User_Map_Ptr
+				Convert_Data(it.first, it.second);
+		};
+
+	auto user_map_library = [&]()
+		{
+			User_Map_Library = new std::map<wchar_t *, S_Extend *, cmp_wchar>;
+			User_Map_Load("Data/Library.bin", *User_Map_Library);  // Load from file and add to User_Map_Library
+			for (auto &it : *User_Map_Library)  // Convert to User_Map_Library
 				Convert_Data(it.first, it.second);
 		};
 
 	// THREAD FIRST
-	std::thread thread_add(user_map_loader);
+	std::thread thread_wch(user_map_loaders);
+	std::thread thread_lib(user_map_library);
 
 	Init();
 	Draw_Menu_Main();
 
-	thread_add.detach();
+	thread_wch.detach();
+	thread_lib.detach();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam)
@@ -907,7 +919,7 @@ void AsUI_Builder::Draw_User_Title_Image() const
 	DirectX::ScratchImage image_title {};
 
 	if (Active_Menu != EActive_Menu::EAM_Main)
-		image_path = AsConfig::Image_Folder + It_Current_User->second.Title_Name_Key + L".png";
+		image_path = AsConfig::Image_Folder + std::wstring(It_User_Map_Active->second->Title_Name_Key) + L".png";
 	else
 		if (std::filesystem::exists(AsConfig::Main_Image_Folder) )
 			image_path = AsConfig::Main_Image_Folder;
@@ -947,7 +959,7 @@ void AsUI_Builder::Draw_User_Title_Image() const
 void AsUI_Builder::Draw_Active_Button_Advenced()
 {
 	int title_name_length;
-	std::map<std::wstring, SUser_Input_Data> *map;
+	std::map<wchar_t *, S_Extend *, cmp_wchar> *map;
 
 	title_name_length = 0;
 	map = 0;
@@ -968,16 +980,16 @@ void AsUI_Builder::Draw_Active_Button_Advenced()
 	switch (Active_Menu)
 	{
 	case EAM_Watching:
-		map = &User_Array_Map;
+		map = User_Map_Ptr;
 		break;
 	case EAM_Library_Menu:
-		map = &User_Library_Map;
+		map = User_Map_Library;
 		break;
 	case EAM_Paused_Menu:
-		map = &User_Paused_Map;
+		//map = &User_Paused_Map;
 		break;
 	case EAM_Wishlist:
-		map = &User_Wishlist_Map;
+		//map = &User_Wishlist_Map;
 		break;
 	case EAM_Exit:
 		return PostQuitMessage(0);
@@ -989,19 +1001,19 @@ void AsUI_Builder::Draw_Active_Button_Advenced()
 	if (Prev_Button == 99)
 		Prev_Button = (int)Active_Button;
 
-	It_Current_User = map->begin();  // Prev_Button
-	std::advance(It_Current_User, (int)Prev_Button);
-	Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button], It_Current_User->second.Title_Name_Num.c_str() );
+	It_User_Map_Active = map->begin();  // Prev_Button
+	std::advance(It_User_Map_Active, (int)Prev_Button);
+	Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button], It_User_Map_Active->second->Title_Name_Num);
 		
-	It_Current_User = map->begin();  // Active Button
-	std::advance(It_Current_User, (int)Active_Button);
+	It_User_Map_Active = map->begin();  // Active Button
+	std::advance(It_User_Map_Active, (int)Active_Button);
 
 	if (Active_Page != EPage::Update)  // if from update button change color
-		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, Borders_Rect[(int)EPress::Buttons_User_Input][(int)Active_Button], It_Current_User->second.Title_Name_Num.c_str());
+		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, Borders_Rect[(int)EPress::Buttons_User_Input][(int)Active_Button], It_User_Map_Active->second->Title_Name_Num);
 	else
 	{
 		Active_Page = EPage::None;
-		Draw_Button_Text(AsConfig::Brush_Background_Button_Update, AsConfig::Color_Backgrount_Text, AsConfig::Color_Dark, Borders_Rect[(int)EPress::Buttons_User_Input][(int)Active_Button], It_Current_User->second.Title_Name_Num.c_str());
+		Draw_Button_Text(AsConfig::Brush_Background_Button_Update, AsConfig::Color_Backgrount_Text, AsConfig::Color_Dark, Borders_Rect[(int)EPress::Buttons_User_Input][(int)Active_Button], It_User_Map_Active->second->Title_Name_Num);
 	}
 	Prev_Button = (int)Active_Button;
 
@@ -1079,7 +1091,7 @@ void AsUI_Builder::Context_Image_Restore(RECT &rect)
 	rect = {};  // обнуляем
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Load(const char *file_path)
+void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map)
 {
 	bool is_add_to_user_array = false;
 	wchar_t *to_map = 0;
@@ -1133,7 +1145,7 @@ void AsUI_Builder::User_Map_Load(const char *file_path)
 
 				to_map = new wchar_t[wcslen(user_input) + 1] {};
 				wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-				User_Map_Active->emplace(to_map, new S_Extend{} );
+				map.emplace(to_map, new S_Extend{} );
 
 				
 				is_add_to_user_array = false;  // look next numbers
@@ -1151,7 +1163,7 @@ void AsUI_Builder::User_Map_Load(const char *file_path)
 
 			to_map = new wchar_t[wcslen(user_input) + 1] {};
 			wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-			User_Map_Active->emplace(to_map, new S_Extend {});
+			map.emplace(to_map, new S_Extend{});
 		}
 	}
 	infile.close();
@@ -1239,9 +1251,9 @@ void AsUI_Builder::Convert_Data(wchar_t *user_input, S_Extend *&data)
 	wcsncpy_s(data->Title_Name_Num, wcslen(user_input) + 1, user_input, wcslen(user_input) );
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Erase_Data()
+void AsUI_Builder::Erase_Data(std::map<wchar_t *, S_Extend *, cmp_wchar> &map)
 {
-	for (std::map<wchar_t *, S_Extend *>::iterator it = User_Map_Active->begin(); it != User_Map_Active->end(); )
+	for (std::map<wchar_t *, S_Extend *>::iterator it = map.begin(); it != map.end(); )
 	{// Free Memorry from all pointers in map
 
 		delete it->second->Title_Name_Key;
@@ -1249,24 +1261,24 @@ void AsUI_Builder::Erase_Data()
 		delete it->second;
 		delete it->first;
 
-		it = User_Map_Active->erase(it);
+		it = map.erase(it);
 	}
 
-	delete User_Map_Active;
+	delete &map;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Save()
+void AsUI_Builder::User_Map_Save(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map)
 {
 	int title_index = 0, title_index_length = 0;
 	int number_index = 0;
 	unsigned short ch_i = 0;
 	unsigned long long numbers = 0;
 
-	std::ofstream outfile("99.bin", std::ios::out | std::ios::binary);  // Создаем новые данные
+	std::ofstream outfile(file_path, std::ios::out | std::ios::binary);  // Создаем новые данные
 	if (!outfile)
 		return;
 
-	for (std::pair<wchar_t *, S_Extend *> it : *User_Map_Active)
+	for (std::pair<wchar_t *, S_Extend *> it : map)
 	{
 		while (it.second->Title_Name_Num[title_index_length] != L'\0')
 		{// Title length
@@ -1312,12 +1324,12 @@ void AsUI_Builder::Draw_Menu_Sub()
 	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_Title);  // Write Sub menu title
 	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
 
-	std::map<wchar_t *, S_Extend *, cmp_wchar>::iterator it = User_Map_Active->begin();
+	std::map<wchar_t *, S_Extend *, cmp_wchar>::iterator it = User_Map_Ptr->begin();
 
 	Draw_Button_Pages();
 
 	// 2.1. Set iterator to start and check sub menu
-	if (User_Map_Active->size() < Sub_Menu_Max_Line)
+	if (User_Map_Ptr->size() < Sub_Menu_Max_Line)
 		Sub_Menu_Curr_Page = 0;
 	
 	// 2.2. If in next page move iterator to needed page
@@ -1326,7 +1338,7 @@ void AsUI_Builder::Draw_Menu_Sub()
 	std::advance(it, curr_line);
 
 	// 2.3. Draw needed buttons to submenu
-	for (; it != User_Map_Active->end(); ++it)
+	for (; it != User_Map_Ptr->end(); ++it)
 	{
 		if (curr_line < curr_page_max_line)
 			Draw_Button(border_rect, Borders_Rect[(int)EPress::Buttons_User_Input][curr_line], it->first);

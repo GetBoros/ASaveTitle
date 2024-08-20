@@ -217,13 +217,16 @@ private:
 	// TEMP
 	struct cmp_wchar { bool operator()(const wchar_t *a, const wchar_t *b) const { return std::wcscmp(a, b) < 0; } };
 
-	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Active;
+	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Ptr;
+	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Library;
 	std::map<wchar_t *, S_Extend *>::iterator It_User_Map_Active;
+	
 	void Convert_Data(wchar_t *user_input, S_Extend *&data);  // !!! Refactoring some day
-	void Erase_Data();  // Free All memory from User_Map_Active
-	void User_Map_Load(const char *file_path);  //Load from file to User_Map_Active || !!! Can be refactored
-	void User_Map_Save();  // Save User_Map_Active to file
-	void Draw_Menu_Sub();  // Done draw User_Map_Active
+	void Erase_Data(std::map<wchar_t *, S_Extend *, cmp_wchar> &map);  // Free All memory
+	void User_Map_Load(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map);  //Load from file || !!! Can be refactored
+	void User_Map_Save(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map);  // Save to file User_Map_Ptr
+	
+	void Draw_Menu_Sub();  // Done draw User_Map_Ptr
 
 	// TEMP END
 

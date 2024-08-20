@@ -354,7 +354,8 @@ AsUI_Builder::~AsUI_Builder()
 	if (H_Bitmap != 0)
 		DeleteObject(H_Bitmap);
 
-	Erase_Data();  // !!! How about to save?
+	User_Map_Save();
+	Erase_Data();
 
 	// 1.3 Save map to Data/...
 	//User_Map_Main_Save();  // Exit from Program | if exit save all map
@@ -375,35 +376,21 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
   Prev_Button(99), Sub_Menu_Curr_Page(0), Sub_Menu_Max_Line(31), Active_Button(EActive_Button::EAB_Main_Menu),
   Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Map_Active(0)
 {
+	auto user_map_loader = [&]()
+		{
+			User_Map_Active = new std::map<wchar_t *, S_Extend *, cmp_wchar>;
+			User_Map_Load("Data/Watching.bin");  // Load from file and add to User_Map_Active
+			for (auto& it : *User_Map_Active)
+				Convert_Data(it.first, it.second);
+		};
 
 	// THREAD FIRST
-	User_Map_Active = new std::map<wchar_t *, S_Extend *, cmp_wchar>;
-	User_Map_Load("Data/Watching.bin");  // Load from file and add to User_Map_Active
-	It_User_Map_Active = User_Map_Active->begin();
-
-	// TASK 2 || Conver all Data to struct
-	for (auto &it : *User_Map_Active)
-		Convert_Data(it.first, it.second);
-	
-	// TASK 3 || Save
-
-	// TASK 4 Erase From Data
-
-
-	// Main
-	/*Thread_First = std::thread([&]() { User_Map_Main_Load(User_Array_Map, "Data/Watching.bin"); });
-	Thread_Second = std::thread([&]() { User_Map_Main_Load(User_Library_Map, "Data/Library.bin"); });
-	Thread_Third = std::thread([&]() { User_Map_Main_Load(User_Paused_Map, "Data/Paused.bin"); });
-	Thread_Fourth = std::thread([&]() { User_Map_Main_Load(User_Wishlist_Map, "Data/Wishlist.bin"); });
-
-	Thread_First.join();
-	Thread_Second.join();
-	Thread_Third.join();
-	Thread_Fourth.join();
-	*/
+	std::thread thread_add(user_map_loader);
 
 	Init();
 	Draw_Menu_Main();
+
+	thread_add.detach();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam)
@@ -1266,6 +1253,41 @@ void AsUI_Builder::Erase_Data()
 	}
 
 	delete User_Map_Active;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Map_Save()
+{
+	int title_index = 0, title_index_length = 0;
+	int number_index = 0;
+	unsigned short ch_i = 0;
+	unsigned long long numbers = 0;
+
+	std::ofstream outfile("99.bin", std::ios::out | std::ios::binary);  // Создаем новые данные
+	if (!outfile)
+		return;
+
+	for (std::pair<wchar_t *, S_Extend *> it : *User_Map_Active)
+	{
+		while (it.second->Title_Name_Num[title_index_length] != L'\0')
+		{// Title length
+
+			ch_i = User_Map_Save_Convert( (unsigned short)it.second->Title_Name_Num[title_index_length++]);
+			if (++number_index % 9 == 0)
+			{
+				numbers += ch_i;
+				outfile.write(reinterpret_cast<const char *>( &numbers), sizeof(numbers) );
+				numbers = 0;
+			}
+			else
+				numbers = (numbers + ch_i) * 100;
+		}
+		title_index_length = 0;
+	}
+
+	if (number_index % 9 == 0)
+		outfile.close();
+	else
+		outfile.write(reinterpret_cast<const char *>( &numbers), sizeof(numbers) );
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Menu_Sub()

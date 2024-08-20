@@ -176,7 +176,6 @@ private:
 	void Context_Image_Restore(RECT &rect);  // redraw image
 
 	// Load
-
 	void User_Map_Main_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
 	void User_Map_Main_Save();  // Main Save | Threaded || Call this to save current std::map
 	void User_Map_Init_Buffer(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);  // Format std::map to wchar_t ** after save
@@ -220,10 +219,11 @@ private:
 
 	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Active;
 	std::map<wchar_t *, S_Extend *>::iterator It_User_Map_Active;
-	void User_Map_Load(const char *file_path);  // !!! Can be refactored
 	void Convert_Data(wchar_t *user_input, S_Extend *&data);  // !!! Refactoring some day
-	void Erase_Data();  // Erase only User_Map_Active
-	void Draw_Menu_Sub();  // How to sort?
+	void Erase_Data();  // Free All memory from User_Map_Active
+	void User_Map_Load(const char *file_path);  //Load from file to User_Map_Active || !!! Can be refactored
+	void User_Map_Save();  // Save User_Map_Active to file
+	void Draw_Menu_Sub();  // Done draw User_Map_Active
 
 	// TEMP END
 

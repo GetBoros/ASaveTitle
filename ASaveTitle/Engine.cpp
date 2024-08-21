@@ -379,7 +379,8 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 	auto user_map_loaders = [&]()
 		{
 			User_Map_Ptr = new std::map<wchar_t *, S_Extend *, cmp_wchar>;
-			User_Map_Load("Data/Watching.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
+			User_Map_Load("99.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
+			//User_Map_Load("Data/Watching.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
 			for (auto &it : *User_Map_Ptr)  // Convert to User_Map_Ptr
 				Convert_Data(it.first, it.second);
 		};
@@ -387,7 +388,8 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 	auto user_map_library = [&]()
 		{
 			User_Map_Library = new std::map<wchar_t *, S_Extend *, cmp_wchar>;
-			User_Map_Load("Data/Library.bin", *User_Map_Library);  // Load from file and add to User_Map_Library
+			User_Map_Load("98.bin", *User_Map_Library);  // Load from file and add to User_Map_Library
+			//User_Map_Load("Data/Library.bin", *User_Map_Library);  // Load from file and add to User_Map_Library
 			for (auto &it : *User_Map_Library)  // Convert to User_Map_Library
 				Convert_Data(it.first, it.second);
 		};
@@ -419,7 +421,7 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 	case EUI_Builder_Handler::Draw_Menu_Sub:
 		Handler_User_Input();
 		break;
-	case EUI_Builder_Handler::Draw_User_Input_Button:
+	case EUI_Builder_Handler::Draw_User_Input_Button:  // Enter text manualy from keyboard
 		User_Input_Update(static_cast<wchar_t>(wParam) );
 		break;
 	case EUI_Builder_Handler::Handle_Mouse_LButton:
@@ -507,67 +509,42 @@ void AsUI_Builder::Handler_User_Input()
 	//Draw_Active_Button_Advenced();  // Show Active Button
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, wchar_t *user_input)
-{
-	int title_len;
-	SUser_Input_Data converted_data;
-
-	title_len = (int)wcslen(user_input) - 1;
-	converted_data = {};
-	if (user_input[0] == L'\0')  // If pressed Enter while User_Input empty
-		return;
-
-	// 1.2  Check user_input orphography
-	while (user_input[wcslen(user_input) - 1] == L' ')  // If last ch = space delete
-		user_input[--title_len] = L'\0';
-
-	// 1.3 Init_Data before set to map
-	User_Input_Convert_Data(converted_data, user_input);
-
-	// 1.4. Check if containts the same key if not save to map
-	if (user_arr.contains(converted_data.Title_Name_Key) )
-		user_arr[converted_data.Title_Name_Key] = converted_data;
-	else
-		user_arr.emplace(converted_data.Title_Name_Key, converted_data);  // if not add new title
-
-	// 1.5. If from ACurl, saved picture rename, can`t save if invalid file path
-	if (std::filesystem::exists(AsConfig::Image_Name_File) )
-	{
-		try
-		{
-			std::filesystem::rename(AsConfig::Image_Name_File, (std::wstring(AsConfig::Image_Folder) + converted_data.Title_Name_Key + std::wstring(L".png") ) );
-		}
-		catch (const std::exception &)
-		{
-			std::filesystem::remove(AsConfig::Image_Name_File);  // !!! Save ID Content like name to picture, or rename text || Or find invalid, if has check
-		}
-	}
-
-	// 1.6. Show and select new added title to window
-	if (Active_Menu != -1)
-	{
-		It_Current_User = user_arr.find(user_input);
-		Active_Button = (EActive_Button)std::distance(user_arr.begin(), It_Current_User);
-		Sub_Menu_Curr_Page = ( (int)Active_Button - 1) / Sub_Menu_Max_Line;  // Find Page
-	}
-
-	// 1.7. Reset user_input
-	user_input[0] = L'\0';
-}
-//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Value_Is_Changed(const bool is_increment)
 {
+	wchar_t *title_num;
+	int last_num_index;
+
+	title_num = It_User_Map_Active->second->Title_Name_Num;
+	last_num_index = (int)wcslen(title_num) - 1;
+	title_num += last_num_index;
+
+	while (*title_num != ' ')
+	{
+		if (*title_num != '9')
+		{
+			*title_num += 1;
+			break;
+		}
+		else
+		{
+			*title_num -= 9;
+			*title_num--;
+		}
+	}
+
 	if (is_increment)
-		It_Current_User->second.Title_Num++;
+		It_User_Map_Active->second->Title_Num++;
 	else
-		It_Current_User->second.Title_Num--;
-
-	It_Current_User->second.Title_Name_Num.erase();
-
-	if (It_Current_User->second.Title_Season != 0)
-		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + AsConfig::Season_Case_Up[It_Current_User->second.Title_Season - 1] + L" " + std::to_wstring(It_Current_User->second.Title_Num);
-	else
-		It_Current_User->second.Title_Name_Num = It_Current_User->second.Title_Name_Key + L" " + std::to_wstring(It_Current_User->second.Title_Num);
+	{
+		It_User_Map_Active->second->Title_Num--;
+		if (*title_num != '0')
+			*title_num -= 1;
+		else
+		{
+			*title_num += 9;
+			*(title_num - 1) -= 1;
+		}
+	}
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Set_From_Clipboard()
@@ -1257,114 +1234,6 @@ void AsUI_Builder::Draw_Menu_Sub()
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Save_Array(const char *file_path, wchar_t **user_array, int user_input_counter)
-{
-	int title_index = 0, title_index_length = 0;
-	int number_index = 0;
-	unsigned short ch_i = 0;
-	unsigned long long numbers = 0;
-
-	std::ofstream outfile(file_path, std::ios::out | std::ios::binary);  // Создаем новые данные
-	if (!outfile)
-		return;
-
-	while (user_input_counter != 0)
-	{// Titles counter
-
-		while (user_array[title_index][title_index_length] != L'\0')
-		{// Title length
-
-			ch_i = User_Map_Save_Convert( (unsigned short)user_array[title_index][title_index_length++]);
-			if (++number_index % 9 == 0)
-			{
-				numbers += ch_i;
-				outfile.write(reinterpret_cast<const char *>( &numbers), sizeof(numbers) );
-				numbers = 0;
-			}
-			else
-				numbers = (numbers + ch_i) * 100;
-		}
-		title_index++;
-		title_index_length = 0;
-		user_input_counter--;
-	}
-	if (number_index % 9 == 0)
-		outfile.close();
-	else
-		outfile.write(reinterpret_cast<const char *>( &numbers), sizeof(numbers) );
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Convert_Data(SUser_Input_Data &ui_data, wchar_t *user_input)
-{
-	unsigned short current_ch;
-	wchar_t *pattern_season;
-	int current_user_input_length;
-	int season_counter_index;
-
-	pattern_season = 0;
-	current_user_input_length = (int)wcslen(user_input) - 1;
-	current_ch = (unsigned short)user_input[current_user_input_length];  // 48 0 57 9
-	season_counter_index = 0;
-
-	while (current_ch == L' ' || current_ch >= 48 && current_ch <= 57)
-	{//Find spaces if current ch numeric
-
-		if (current_ch == L' ')
-		{// If space str to int
-
-			if (ui_data.Title_Num == 0)
-				ui_data.Title_Num = std::stoi(user_input + current_user_input_length + 1);  // if first ' ' get num
-			else
-				ui_data.Title_Season = std::stoi(user_input + current_user_input_length + 1);  // if second ' ' get seasons
-
-			user_input[current_user_input_length] = L'\0';  // Hide nums
-		}
-		current_ch = (unsigned short)user_input[--current_user_input_length];
-		while (user_input[current_user_input_length] == L'X' || user_input[current_user_input_length] == L'I' || user_input[current_user_input_length] == L'V')
-		{
-			season_counter_index++;
-			user_input[current_user_input_length--] += L' ';
-		}
-		current_user_input_length += season_counter_index;
-		while (user_input[current_user_input_length] == L'x' || user_input[current_user_input_length] == L'i' || user_input[current_user_input_length] == L'v')  // Find Seasons =) 
-		{// Find next season character
-
-			current_user_input_length--;
-			if (user_input[current_user_input_length] == L' ')
-			{// Find next space
-
-				pattern_season = user_input + current_user_input_length + 1;
-				for (int i = 0; i < 10; i++)
-				{// Find Pattern in Config and set to data
-
-					if (wcscmp(pattern_season, AsConfig::Season_Case_Low[i]) == 0)
-					{
-						ui_data.Title_Season = i + 1;
-						break;
-					}
-				}
-				user_input[current_user_input_length] = L'\0';  // erase season from user_input
-			}
-		}
-	}
-	
-	// Initialize TITLE_NAME_NUM
-	if (ui_data.Title_Num == 0)
-		ui_data.Title_Num = 1;
-
-	ui_data.Title_Name_Key = user_input;  // Init key
-	ui_data.Title_Name_Num += ui_data.Title_Name_Key;
-	ui_data.Title_Name_Num.append(L" ");
-	if (ui_data.Title_Season != 0)
-	{
-		ui_data.Title_Name_Num += AsConfig::Season_Case_Up[ui_data.Title_Season - 1];
-		ui_data.Title_Name_Num.append(L" ");
-	}
-	
-	ui_data.Title_Name_Num += std::to_wstring(ui_data.Title_Num);
-	ui_data.Title_Data;
-}
-//------------------------------------------------------------------------------------------------------------
 unsigned short AsUI_Builder::User_Map_Save_Convert(unsigned short ch)
 {
 	// 1.1 Russian || Other Languages
@@ -1628,7 +1497,7 @@ void AsUI_Builder::Cycle_Finder(const RECT &mouse_cord, const int border_index, 
 		if (IntersectRect(Mouse_Cord_Destination, &mouse_cord, &Borders_Rect[border_index][result] ) )
 			break;
 }
-//------------------------------------------------------------------------------------------------------------  1850 - 1583
+//------------------------------------------------------------------------------------------------------------  1850 - 1475
 
 
 

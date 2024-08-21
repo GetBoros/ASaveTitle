@@ -149,7 +149,6 @@ private:
 	void Init();  // Do just once
 
 	// !!! User Inputs
-	void User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, wchar_t *user_input);  // Need refactoring
 	void User_Input_Value_Is_Changed(const bool is_increment);  // Change active title num
 	void User_Input_Set_From_Clipboard();
 
@@ -173,11 +172,7 @@ private:
 	void Context_Menu_Draw(const int &x, const int &y);  // Draw context menu and store data rect
 	void Context_Image_Restore(RECT &rect);  // redraw image
 
-	// Load
-	void User_Map_Save_Array(const char *file_path, wchar_t **user_array, int user_input_counter);
-	
 	// Converters
-	void User_Input_Convert_Data(SUser_Input_Data &converted_data, wchar_t *user_input);  // Convert title to Data struct
 	unsigned short User_Map_Save_Convert(unsigned short ch);  // Convert title, need to save to file
 	unsigned long long User_Map_Load_Convert(unsigned long long &ch);  // Convert back and get Title
 
@@ -225,11 +220,6 @@ private:
 	
 	void Draw_Menu_Sub();  // Sub Menu draw arrays from curr active button
 	void Handler_User_Input();  // Handle User input if press Enter or twice at button
-
-	// TEMP END
-
-	// TEMP DEPRECEATED
-	// TEMP END DEPRECEATED
 
 	std::map<std::wstring, SUser_Input_Data>::iterator It_Current_User;
 

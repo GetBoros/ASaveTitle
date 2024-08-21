@@ -359,9 +359,6 @@ AsUI_Builder::~AsUI_Builder()
 	Erase_Data(*User_Map_Ptr);
 	Erase_Data(*User_Map_Library);
 
-	// 1.3 Save map to Data/...
-	//User_Map_Main_Save();  // Exit from Program | if exit save all map
-
 	// 1.4. 
 	for (i = 0; i < (int)EPress::Exit; i++)
 		delete Borders_Rect[i];
@@ -376,7 +373,8 @@ AsUI_Builder::~AsUI_Builder()
 AsUI_Builder::AsUI_Builder(HDC hdc)
 : Active_Menu(EAM_Main), Ptr_Hdc(hdc), Borders_Rect(0), Mouse_Cord_Destination(0), Mouse_Cord(0), User_Input{}, Data_From_File {}, Prev_Main_Menu_Button(0),
   Prev_Button(99), Sub_Menu_Curr_Page(0), Sub_Menu_Max_Line(31), Active_Button(EActive_Button::EAB_Main_Menu),
-  Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Map_Ptr(0), User_Map_Library(0)
+  Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0),
+  User_Map_Ptr(0), User_Map_Library(0), User_Map_Paused(0), User_Map_Wishlist(0)
 {
 	auto user_map_loaders = [&]()
 		{
@@ -413,7 +411,7 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 	{
 	case EUI_Builder_Handler::Draw_Full_Window:  // draw after maximazed window
 		Draw_Menu_Main();
-		Draw_Menu_Sub_Advenced();
+		Draw_Menu_Sub();
 		break;
 	case EUI_Builder_Handler::Draw_Menu_Main:
 		Draw_Menu_Main();
@@ -462,8 +460,7 @@ void AsUI_Builder::Handler_User_Input()
 {
 	wchar_t *url_content;
 	int length;
-	std::map<std::wstring, SUser_Input_Data> *user_array = 0;
-	SUser_Input_Data converted_data = {};
+	//std::map<wchar_t *, S_Extend *, cmp_wchar> *map = 0;
 
 	// 1.0. If it`s url use ACurl_Client to Get ID_Content, Get Title + Num + Season
 	if (wcsstr(User_Input, AsConfig::Protocols[0]) != 0 || wcsstr(User_Input, AsConfig::Protocols[1]) != 0)
@@ -480,70 +477,34 @@ void AsUI_Builder::Handler_User_Input()
 		delete[] url_content;
 	}
 
-	// 2.0. Add User_Input to opened SubMenu
-	switch (Active_Menu)
-	{
-	case EAM_Watching:
-		user_array = &User_Array_Map;
-		break;
-	case EAM_Library_Menu:
-		user_array = &User_Library_Map;
-		break;
-	case EAM_Paused_Menu:
-		user_array = &User_Paused_Map;
-		break;
-	case EAM_Wishlist:
-		user_array = &User_Wishlist_Map;
-		break;
-	}
-
-	if (!user_array != 0)
-		return;
-	length = (int)wcslen(User_Input) - 1;
-	converted_data = {};
-
-	// 1.2  Check User_Input orphography
-	if (User_Input[0] == L'\0')  // If pressed Enter while User_Input empty
-		return;
-	while (User_Input[wcslen(User_Input) - 1] == L' ')  // If last ch = space delete
-		User_Input[--length] = L'\0';
-
-	// 1.3 Init_Data before set to map | Handle User Input, get extract data
-	User_Input_Convert_Data(converted_data, User_Input);
-
-	// 1.4. Add to map if not containts the same key
-	if (user_array->contains(converted_data.Title_Name_Key) )
-		( *user_array)[converted_data.Title_Name_Key] = converted_data;
-	else
-		user_array->emplace(converted_data.Title_Name_Key, converted_data);  // if not add new title
+	return;
 
 	// 1.5. If from ACurl, saved picture rename, can`t save if invalid file path
-	if (std::filesystem::exists(AsConfig::Image_Name_File) )  // !!! Need Remove from here
-	{
-		try
-		{
-			std::filesystem::rename(AsConfig::Image_Name_File, (std::wstring(AsConfig::Image_Folder) + converted_data.Title_Name_Key + std::wstring(L".png") ) );
-		}
-		catch (const std::exception &)
-		{
-			std::filesystem::remove(AsConfig::Image_Name_File);  // !!! Save ID Content like name to picture, or rename text || Or find invalid, if has check
-		}
-	}
+	//if (std::filesystem::exists(AsConfig::Image_Name_File) )  // !!! Need Remove from here
+	//{
+	//	try
+	//	{
+	//		std::filesystem::rename(AsConfig::Image_Name_File, (std::wstring(AsConfig::Image_Folder) + converted_data.Title_Name_Key + std::wstring(L".png") ) );
+	//	}
+	//	catch (const std::exception &)
+	//	{
+	//		std::filesystem::remove(AsConfig::Image_Name_File);  // !!! Save ID Content like name to picture, or rename text || Or find invalid, if has check
+	//	}
+	//}
 
 	// 1.6. Show and select new added title to window
-	if (Active_Menu != EActive_Menu::EAM_Main)
-	{
-		It_Current_User = user_array->find(User_Input);  // Find title and set it to iterator
-		Active_Button = (EActive_Button)std::distance(user_array->begin(), It_Current_User);  // Set num to active button
-		Sub_Menu_Curr_Page = ( (int)Active_Button - 1) / Sub_Menu_Max_Line;  // Find Page to draw useing active button
-	}
+	//if (Active_Menu != EActive_Menu::EAM_Main)
+	//{
+	//	It_User_Map_Active = User_Map_Ptr->find(User_Input);  // Find title and set it to iterator
+	//	Active_Button = (EActive_Button)std::distance(User_Map_Ptr->begin(), It_Current_User);  // Set num to active button
+	//	Sub_Menu_Curr_Page = ( (int)Active_Button - 1) / Sub_Menu_Max_Line;  // Find Page to draw useing active button
+	//}
 
-	// 3.0. Final redraw All and Save
-	User_Input[0] = L'\0';  // Reset User_Input
-	Draw_Menu_Sub_Advenced();  // Redraw All Sub Menu
-	User_Input_Draw();  // Redrow User Input
-	Draw_Active_Button_Advenced();  // Show Active Button
-	User_Map_Main_Save();  // Save current map in used sub menu
+	//// 3.0. Final redraw All and Save
+	//User_Input[0] = L'\0';  // Reset User_Input
+	//Draw_Menu_Sub();  // Redraw All Sub Menu
+	//User_Input_Draw();  // Redrow User Input
+	//Draw_Active_Button_Advenced();  // Show Active Button
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, wchar_t *user_input)
@@ -763,77 +724,6 @@ void AsUI_Builder::Draw_Menu_Main()
 	Draw_User_Title_Image();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Menu_Sub_Advenced()
-{
-	int curr_line;
-	int curr_page_max_line;
-	RECT border_rect;
-	std::map<std::wstring, SUser_Input_Data> *map;
-
-	curr_line = 0;
-	curr_page_max_line = 0;
-	border_rect = {};
-	map = 0;
-	Prev_Button = 99;  // Need to switch between arrays
-
-	// 1.1.Draw Border, Set colors, Draw Titles and user input handler
-	Draw_Border(Borders_Rect[(int)EPress::Menu_Sub][0]);  // draw border
-	border_rect = Borders_Rect[(int)EPress::Menu_Sub][0];
-
-	border_rect.top += AsConfig::Global_Scale;  // without title? i can fix but it`s look good enough
-	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
-	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);
-	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);
-	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_Title);  // Write Sub menu title
-	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
-
-	Draw_Menu_Sub();
-	return;
-
-	switch (Active_Menu)
-	{
-	case EAM_Watching:
-		map = &User_Array_Map;
-		break;
-	case EAM_Library_Menu:
-		map = &User_Library_Map;
-		break;
-	case EAM_Paused_Menu:
-		map = &User_Paused_Map;
-		break;
-	case EAM_Wishlist:
-		map = &User_Wishlist_Map;
-		break;
-	case EAM_Exit:
-		return PostQuitMessage(0);
-	}
-
-	if (!map != 0)
-		return;
-	Draw_Button_Pages();
-
-	// 2.1. Set iterator to start and check sub menu
-	It_Current_User = map->begin();
-	if (map->size() < Sub_Menu_Max_Line)
-		Sub_Menu_Curr_Page = 0;
-	
-	// 2.2. If in next page move iterator to needed page
-	curr_page_max_line = Sub_Menu_Max_Line * (Sub_Menu_Curr_Page + 1);
-	curr_line = Sub_Menu_Curr_Page * Sub_Menu_Max_Line;
-	std::advance(It_Current_User, curr_line);
-
-	// 2.3. Draw needed buttons to submenu
-	for (; It_Current_User != map->end(); ++It_Current_User)
-	{
-		if (curr_line < curr_page_max_line)
-			Draw_Button(border_rect, Borders_Rect[(int)EPress::Buttons_User_Input][curr_line], It_Current_User->second.Title_Name_Num.c_str() );
-		else
-			return;
-		
-		curr_line++;
-	}
-}
-//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Draw() const
 {
 	RECT *user_input = &Borders_Rect[(int)EPress::User_Input_Handler][0];
@@ -963,10 +853,8 @@ void AsUI_Builder::Draw_Active_Button_Advenced()
 
 	title_name_length = 0;
 	map = 0;
-
 	if ( !(Active_Button != EActive_Button::EAB_Main_Menu) )
 		return;  // !!! Is this really need?
-
 
 	if (Active_Menu == EActive_Menu::EAM_Main)
 	{
@@ -986,10 +874,10 @@ void AsUI_Builder::Draw_Active_Button_Advenced()
 		map = User_Map_Library;
 		break;
 	case EAM_Paused_Menu:
-		//map = &User_Paused_Map;
+		map = User_Map_Paused;
 		break;
 	case EAM_Wishlist:
-		//map = &User_Wishlist_Map;
+		map = User_Map_Wishlist;
 		break;
 	case EAM_Exit:
 		return PostQuitMessage(0);
@@ -1306,10 +1194,13 @@ void AsUI_Builder::Draw_Menu_Sub()
 {
 	int curr_line;
 	int curr_page_max_line;
+	std::map<wchar_t *, S_Extend *, cmp_wchar> *map;
+	std::map<wchar_t *, S_Extend *, cmp_wchar>::iterator it;
 	RECT border_rect;
 
 	curr_line = 0;
 	curr_page_max_line = 0;
+	map = 0;
 	border_rect = {};
 	Prev_Button = 99;  // Need to switch between arrays
 
@@ -1324,21 +1215,38 @@ void AsUI_Builder::Draw_Menu_Sub()
 	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_Title);  // Write Sub menu title
 	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
 
-	std::map<wchar_t *, S_Extend *, cmp_wchar>::iterator it = User_Map_Ptr->begin();
+	switch (Active_Menu)
+	{
+	case EAM_Watching:
+		map = User_Map_Ptr;
+		break;
+	case EAM_Library_Menu:
+		map = User_Map_Library;
+		break;
+	case EAM_Paused_Menu:
+		map = User_Map_Paused;
+		break;
+	case EAM_Wishlist:
+		map = User_Map_Wishlist;
+		break;
+	default:
+		return;
 
-	Draw_Button_Pages();
+	}
 
 	// 2.1. Set iterator to start and check sub menu
-	if (User_Map_Ptr->size() < Sub_Menu_Max_Line)
+	it = map->begin();
+	if (map->size() < Sub_Menu_Max_Line)
 		Sub_Menu_Curr_Page = 0;
 	
 	// 2.2. If in next page move iterator to needed page
 	curr_page_max_line = Sub_Menu_Max_Line * (Sub_Menu_Curr_Page + 1);
 	curr_line = Sub_Menu_Curr_Page * Sub_Menu_Max_Line;
 	std::advance(it, curr_line);
+	Draw_Button_Pages();
 
 	// 2.3. Draw needed buttons to submenu
-	for (; it != User_Map_Ptr->end(); ++it)
+	for (; it != map->end(); ++it)
 	{
 		if (curr_line < curr_page_max_line)
 			Draw_Button(border_rect, Borders_Rect[(int)EPress::Buttons_User_Input][curr_line], it->first);
@@ -1347,157 +1255,6 @@ void AsUI_Builder::Draw_Menu_Sub()
 		
 		curr_line++;
 	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Main_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path)
-{
-	bool is_add_to_user_array = false;
-	wchar_t *user_input = new wchar_t[100]{};
-	int how_much_g = 0;
-	int block_sum_ull = 0;
-	int block_sum_index = 0, str = 0;
-	unsigned long long *ull_array_blocks = 0;
-	unsigned long long ull_char = 0;
-	unsigned long long ull_index = 0;
-	unsigned long long ull_number = 0;
-	
-	std::ifstream infile(file_path, std::ios::binary);
-	if (!infile)
-		return;
-	infile.seekg(0, std::ios::end);  // Go to last char in file
-	how_much_g = (int)infile.tellg();    // How many char in file || Need use seekg
-	block_sum_ull = how_much_g / sizeof(unsigned long long);  // (long long) 8 / size = how manny ULL in file
-	infile.seekg(0, std::ios::beg);  // Go to first char in file
-	ull_array_blocks = new unsigned long long[block_sum_ull];  // Get memory to cast 
-	infile.read(reinterpret_cast<char *>(ull_array_blocks), how_much_g);  // reinterpret file size to ull by char
-
-	while (block_sum_index < block_sum_ull)
-	{
-		ull_number = ull_array_blocks[block_sum_index];
-		ull_index = AsConfig::ULL_Index_Length;
-
-		while (ull_index != 0)
-		{
-			ull_char = ull_number / ull_index;
-			ull_index /= 100;
-			ull_char %= 100;
-
-			while (ull_char == 0)
-			{// If invalid ull_char need to find valid
-
-				if (ull_index == 0)
-					break;
-				ull_char = ull_number / ull_index;
-				ull_char %= 100;
-				ull_index /= 100;
-			}
-
-			if (ull_char >= 43 && ull_char <= 52)  // 43 == 0 52 == 9
-				is_add_to_user_array = true;
-
-			if (is_add_to_user_array && ull_char > 52 || is_add_to_user_array && ull_char < 43)  // If after ull_number end
-			{
-				user_input[str] = L'\0';  // Title end here
-				user_input[0] = user_input[0] - 32;  // Upper Case first char
-				User_Map_Emplace(user_arr, user_input);  // Add to array
-				is_add_to_user_array = false;  // look next numbers
-				str = 0;
-			}
-			user_input[str++] = (wchar_t)User_Map_Load_Convert(ull_char);  // Convert to norm wchar_t and add to user_input
-		}
-		
-		block_sum_index++;  // go to next index
-		if (block_sum_index == block_sum_ull && user_input[0] != L'\0')
-		{// If block last and user_input not empty save unsaved
-
-			user_input[str] = L'\0';  // say it`s end
-			user_input[0] = user_input[0] - 32;  // Set Upper Case first symbol
-			User_Map_Emplace(user_arr, user_input);  // Emplace to map
-		}
-	}
-	infile.close();
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Main_Save()
-{
-	switch (Active_Menu)
-	{
-	case EAM_Watching:
-		Thread_First = std::thread([&]() { User_Map_Init_Buffer(User_Array_Map, AsConfig::Folders_Save[Active_Menu]); });
-		Thread_First.join();
-		break;
-
-	case EAM_Library_Menu:
-		Thread_Second = std::thread([&]() { User_Map_Init_Buffer(User_Library_Map, AsConfig::Folders_Save[Active_Menu]); });
-		Thread_Second.join();
-		break;
-
-	case EAM_Paused_Menu:
-		Thread_Third = std::thread([&]() { User_Map_Init_Buffer(User_Paused_Map, AsConfig::Folders_Save[Active_Menu]); });
-		Thread_Third.join();
-		break;
-
-	case EAM_Wishlist:
-		Thread_Fourth = std::thread([&]() { User_Map_Init_Buffer(User_Wishlist_Map, AsConfig::Folders_Save[Active_Menu]); });
-		Thread_Fourth.join();
-		break;
-
-	case EAM_Exit:
-		Thread_First = std::thread([&]() { User_Map_Init_Buffer(User_Array_Map, AsConfig::Folders_Save[EActive_Menu::EAM_Watching]); });
-		Thread_Second = std::thread([&]() { User_Map_Init_Buffer(User_Library_Map, AsConfig::Folders_Save[EActive_Menu::EAM_Library_Menu]); });
-		Thread_Third = std::thread([&]() { User_Map_Init_Buffer(User_Paused_Map, AsConfig::Folders_Save[EActive_Menu::EAM_Paused_Menu]); });
-		Thread_Fourth = std::thread([&]() { User_Map_Init_Buffer(User_Wishlist_Map, AsConfig::Folders_Save[EActive_Menu::EAM_Wishlist]); });
-
-		Thread_First.join();
-		Thread_Second.join();
-		Thread_Third.join();
-		Thread_Fourth.join();
-		break;
-
-	default:
-		break;
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Init_Buffer(const std::map<std::wstring, SUser_Input_Data> &user_map, const char *file_path)
-{
-	int i = 0, len = 0;
-	int user_array_size;
-	wchar_t **user_array;
-	std::string user_input_saved_folder = AsConfig::Path_Saves_Folder;
-
-	if (!std::filesystem::exists(user_input_saved_folder) )  // if in Data
-		std::filesystem::create_directory(user_input_saved_folder);
-
-	user_input_saved_folder += file_path;  // add specific name
-	if (user_map.size() == 0)  // If array empty don`t need to save it
-		if (std::filesystem::exists(user_input_saved_folder) )
-			if(std::filesystem::remove(user_input_saved_folder) )  // If folder exist remove
-				return;
-			else
-				return;
-
-	user_array_size = (int)user_map.size();  // How many pointers
-	user_array = new wchar_t *[user_array_size]{};  // Create pointers
-
-	for (auto &it : user_map)
-	{// Cpy Title with nums to user_array by pointers
-
-		const std::wstring &key = it.second.Title_Name_Num;
-		len = (int)key.length() + 1;
-		if (i < user_array_size)
-		{
-			user_array[i] = new wchar_t[len]{};
-			wcscpy_s(user_array[i], len, key.c_str() );
-			i++;
-		}
-	}
-
-	User_Map_Save_Array(user_input_saved_folder.c_str(), user_array, user_array_size);  // save data to disk
-	
-	for (int i = 0; i < user_array_size; i++)  // free memory
-		delete[] user_array[i];
-	delete[] user_array;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Map_Save_Array(const char *file_path, wchar_t **user_array, int user_input_counter)
@@ -1704,13 +1461,16 @@ void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_han
 	Mouse_Cord->right = x;
 	Mouse_Cord->bottom = y + 1;
 
-	for (index = 0; index < (int)EPress::Non_Bordered; index++)  // at which border pressed, get index
+	// 1.0. Border Chooser : at which border pressed, get index
+	for (index = 0; index < (int)EPress::Non_Bordered; index++)
 		if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[index][0] ) )
 			break;
 
-	if (Borders_Rect[(int)EPress::Menu_Context][0].left != 0)  // if rect is not empty clear context menu
+	// 1.1. Context Menu if rect is not empty clear
+	if (Borders_Rect[(int)EPress::Menu_Context][0].left != 0)
 		Context_Image_Restore(Borders_Rect[ (int)EPress::Menu_Context][0] );
 
+	// 1.2. Borders Handler
 	switch (Border_Pressed = (EPress)index)
 	{
 	case EPress::Non_Bordered:
@@ -1755,56 +1515,58 @@ void AsUI_Builder::Handle_Menu_Main()
 	Draw_Active_Button_Advenced();  // Redraw pressed button
 
 	Active_Menu = (EActive_Menu)i;
-	Draw_Menu_Sub_Advenced();  // Draw sub menu with current active menu
+	Draw_Menu_Sub();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Context()
 {
-	int i = 0;
-	std::map<std::wstring, SUser_Input_Data> *user_array = 0;
+	int i;
+	std::map<wchar_t *, S_Extend *, cmp_wchar> *map;
 
+	i = 0;
+	map = 0;
 	Cycle_Finder(*Mouse_Cord, (int)EPress::Button_Context, AsConfig::Context_Button_Count, i);
 
 	// 1.0. Add to Array
 	switch ( (EActive_Menu)i)  // If pressed first button context menu choose action
 	{
 	case EAM_Watching:
-		user_array = &User_Array_Map;
+		map = User_Map_Ptr;
 		break;
 	case EAM_Library_Menu:
-		user_array = &User_Library_Map;
+		map = User_Map_Library;
 		break;
 	case EAM_Paused_Menu:
-		user_array = &User_Paused_Map;
+		map = User_Map_Paused;
 		break;
 	case EAM_Wishlist:
-		user_array = &User_Wishlist_Map;
+		map = User_Map_Wishlist;
 		break;
 	}
-	user_array->insert(std::make_pair(It_Current_User->first, std::move(It_Current_User->second) ) );
+	map->insert(std::make_pair(It_User_Map_Active->first, std::move(It_User_Map_Active->second) ) );
 
 	// 1.1. Erase from array
 	switch (Active_Menu)
 	{
 	case EAM_Watching:
-		user_array = &User_Array_Map;
+		map = User_Map_Ptr;
 		break;
 	case EAM_Library_Menu:
-		user_array = &User_Library_Map;
+		map = User_Map_Library;
 		break;
 	case EAM_Paused_Menu:
-		user_array = &User_Paused_Map;
+		map = User_Map_Paused;
 		break;
 	case EAM_Wishlist:
-		user_array = &User_Wishlist_Map;
+		map = User_Map_Wishlist;
 		break;
 	}
-	user_array->erase(It_Current_User->first);
+	map->erase(It_User_Map_Active->first);
 
 	Active_Button = EActive_Button::EAB_Main_Menu;
 	Prev_Button = 99;  // set to no prev_button
 	Draw_Button_Request();
-	Draw_Menu_Sub_Advenced();
+	Draw_Menu_Sub();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Non_Bordered()
@@ -1846,7 +1608,7 @@ void AsUI_Builder::Handle_Menu_Sub()
 			Sub_Menu_Curr_Page++;
 
 		Active_Button = EActive_Button::EAB_Main_Menu;
-		Draw_Menu_Sub_Advenced();
+		Draw_Menu_Sub();
 		Draw_Button_Request();
 		return;
 	}

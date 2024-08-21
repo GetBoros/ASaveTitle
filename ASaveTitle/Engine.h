@@ -149,7 +149,6 @@ private:
 	void Init();  // Do just once
 
 	// !!! User Inputs
-	void Handler_User_Input();  // Handle User input if press Enter or twice at button
 	void User_Map_Emplace(std::map<std::wstring, SUser_Input_Data> &user_arr, wchar_t *user_input);  // Need refactoring
 	void User_Input_Value_Is_Changed(const bool is_increment);  // Change active title num
 	void User_Input_Set_From_Clipboard();
@@ -162,7 +161,6 @@ private:
 	
 	// Draw UI Parts
 	void Draw_Menu_Main();
-	void Draw_Menu_Sub_Advenced();  // Sub Menu draw arrays from curr active button || User_Array_Map or User_Array_Library
 	void User_Input_Draw() const;  // Show user_input in sub menu
 	void User_Input_Update(const wchar_t &text);  // Add and show input to User_Input Buttons
 	
@@ -176,9 +174,6 @@ private:
 	void Context_Image_Restore(RECT &rect);  // redraw image
 
 	// Load
-	void User_Map_Main_Load(std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);
-	void User_Map_Main_Save();  // Main Save | Threaded || Call this to save current std::map
-	void User_Map_Init_Buffer(const std::map<std::wstring, SUser_Input_Data> &user_arr, const char *file_path);  // Format std::map to wchar_t ** after save
 	void User_Map_Save_Array(const char *file_path, wchar_t **user_array, int user_input_counter);
 	
 	// Converters
@@ -219,6 +214,8 @@ private:
 
 	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Ptr;
 	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Library;
+	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Paused;
+	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Wishlist;
 	std::map<wchar_t *, S_Extend *>::iterator It_User_Map_Active;
 	
 	void Convert_Data(wchar_t *user_input, S_Extend *&data);  // !!! Refactoring some day
@@ -226,21 +223,15 @@ private:
 	void User_Map_Load(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map);  //Load from file || !!! Can be refactored
 	void User_Map_Save(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map);  // Save to file User_Map_Ptr
 	
-	void Draw_Menu_Sub();  // Done draw User_Map_Ptr
+	void Draw_Menu_Sub();  // Sub Menu draw arrays from curr active button
+	void Handler_User_Input();  // Handle User input if press Enter or twice at button
 
 	// TEMP END
 
+	// TEMP DEPRECEATED
+	// TEMP END DEPRECEATED
 
-
-	std::map<std::wstring, SUser_Input_Data> User_Array_Map;
-	std::map<std::wstring, SUser_Input_Data> User_Library_Map;
-	std::map<std::wstring, SUser_Input_Data> User_Paused_Map;
-	std::map<std::wstring, SUser_Input_Data> User_Wishlist_Map;
 	std::map<std::wstring, SUser_Input_Data>::iterator It_Current_User;
-	std::thread Thread_First;
-	std::thread Thread_Second;
-	std::thread Thread_Third;
-	std::thread Thread_Fourth;
 
 	wchar_t User_Input[AsConfig::User_Input_Buffer];  // User Input Buffer | or border_width / 8 = Max_Char_Length
 

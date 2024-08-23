@@ -1,5 +1,11 @@
 ﻿#include "Main.h"
-#include <utility>
+//extern "C"
+//{
+//#include <libavformat/avformat.h>
+//#include <libavcodec/avcodec.h>
+//#include <libswscale/swscale.h>
+//#include <libavutil/imgutils.h>
+//}
 
 // Singlton
 AsMain *AsMain::Main_Window = 0;
@@ -15,6 +21,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_
 	// Tutorial
 	/*
 		AsExamples *examples = new AsExamples(EShow_Preview::STD_Map_Pair_Ptrs);
+
+			const char* url = "99.mp4";
+	const AVInputFormat *fmt = 0;
+	AVDictionary** options = 0;
+	AVFormatContext **FormatContext = 0;
+
+	if (avformat_open_input(FormatContext, url, fmt, options) )
+		return 0;
+
+	return 0;
+
 	*/
 	
 	return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not

@@ -12,7 +12,9 @@ enum class EShow_Preview : int
 	EP_Show_Func_Ptrs_Advenced,  // how to get func ptr and handle it advenced
 	EP_Show_Cast_Exam,  // Reinterpret cast examples and other useful thinks
 	EP_Show_String_Replace,  // Example how to handle string, replace, find texts
-	STD_Map_Pair_Ptrs  // 
+	EP_Show_Std_Map_Pair_Ptrs,  // Example how tu use ptr Maps and pairs
+	EP_Show_FFmpeg_Ex,  // Example, commands and how to use ffmpeg
+	Last
 };
 
 // AsExamples
@@ -33,5 +35,6 @@ private:
 	void Display_Cast_Exam();
 	void Display_Replace_S();  // Example how replace std::string
 	void Display_Map_Pair_Ptr();
+	void Display_Ffmpeg_Examples();
 };
 //------------------------------------------------------------------------------------------------------------

@@ -17,7 +17,8 @@ enum class EPatterns_Site : byte
 };
 //------------------------------------------------------------------------------------------------------------
 enum class EProgram
-{
+{// !!!
+
 	Invalid = -1,
 	ASaver = 0,
 	ABook_Reader,
@@ -67,15 +68,6 @@ struct S_Extend
 	int Title_Num = 0;
 	int Title_Season = 0;
 };
-struct SUser_Input_Data
-{// Some day refactor this poop
-
-	int Title_Num = 0;
-	int Title_Data = 0;
-	int Title_Season = 0;
-	std::wstring Title_Name_Key = L"";
-	std::wstring Title_Name_Num = L"";
-};
 //------------------------------------------------------------------------------------------------------------
 enum class EPress : int
 {// Press at border
@@ -93,6 +85,9 @@ enum class EPress : int
 	Button_Menu_Main,  // V Buttons Main Menu
 	Exit
 };
+//------------------------------------------------------------------------------------------------------------
+
+
 
 
 // ACurl_Client
@@ -133,7 +128,7 @@ private:
 
 
 // AsUI_Builder
-class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. |
+class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. | 520 : 22.08.2024
 {// !!! Build UI, Handle User Inputs, Load Save Content, 
 
 public:
@@ -185,7 +180,7 @@ private:
 	void Cycle_Finder(const RECT& mouse_cord, const int border_index, const int count, int& result);
 
 	wchar_t **Data_From_File;
-	
+	int Button_User_Offset;
 	int Prev_Main_Menu_Button;
 	int Prev_Button;
 	int Sub_Menu_Curr_Page;  // Show curr page
@@ -220,8 +215,6 @@ private:
 	
 	void Draw_Menu_Sub();  // Sub Menu draw arrays from curr active button
 	void Handler_User_Input();  // Handle User input if press Enter or twice at button
-
-	std::map<std::wstring, SUser_Input_Data>::iterator It_Current_User;
 
 	wchar_t User_Input[AsConfig::User_Input_Buffer];  // User Input Buffer | or border_width / 8 = Max_Char_Length
 
@@ -566,7 +559,7 @@ V			- Удалили старые
 V		- Починили удаление через контекстное меню
 
 V	- Посмотреть можно ли SUser_Input_Data std сделать wchar_t
-		- Пока оставим памяти не так много
+V		- Сделали поменяли на S_Extend
 
 V	- Поправить главное меню
 V	- Исправили баг с выводом тайтлом

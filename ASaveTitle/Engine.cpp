@@ -354,14 +354,14 @@ AsUI_Builder::~AsUI_Builder()
 	if (H_Bitmap != 0)
 		DeleteObject(H_Bitmap);
 
-	User_Map_Save("99.bin", *User_Map_Ptr);
-	User_Map_Save("98.bin", *User_Map_Library);
-	Erase_Data(*User_Map_Ptr);
-	Erase_Data(*User_Map_Library);
+	User_Map_Save("99.bin", *User_Map_Ptr);  // Thread 1
+	User_Map_Save("98.bin", *User_Map_Library);  // Thread 2
+	Erase_Data(*User_Map_Ptr);  // Thread 1
+	Erase_Data(*User_Map_Library);  // Thread 2
 
 	// 1.4. 
 	for (i = 0; i < (int)EPress::Exit; i++)
-		delete Borders_Rect[i];
+		delete[] Borders_Rect[i];
 
 	// 1.5 Free memory
 	delete[] Borders_Rect;
@@ -512,39 +512,27 @@ void AsUI_Builder::Handler_User_Input()
 void AsUI_Builder::User_Input_Value_Is_Changed(const bool is_increment)
 {
 	wchar_t *title_num;
-	int last_num_index;
+	int *ptr_title_num;
+	int title_num_last_index;
+	const wchar_t compare_to = is_increment ? L'9' : L'0';
+	const int decrease_to = is_increment ? -9 : 9;
+	const int increase_to = is_increment ? 1 : -1;
 
+	ptr_title_num = &It_User_Map_Active->second->Title_Num;
+	*ptr_title_num += increase_to;
 	title_num = It_User_Map_Active->second->Title_Name_Num;
-	last_num_index = (int)wcslen(title_num) - 1;
-	title_num += last_num_index;
+	title_num_last_index = (int)wcslen(title_num) - 1;
+	title_num += title_num_last_index;
 
-	while (*title_num != ' ')
+	do
 	{
-		if (*title_num != '9')
-		{
-			*title_num += 1;
+		if (*title_num == compare_to)  // if not 9 or 0
+			*title_num += decrease_to;  // from 9 to 0 or from 0 to 9
+		else
 			break;
-		}
-		else
-		{
-			*title_num -= 9;
-			*title_num--;
-		}
-	}
+	} while ( *(title_num -= 1) != ' ');
 
-	if (is_increment)
-		It_User_Map_Active->second->Title_Num++;
-	else
-	{
-		It_User_Map_Active->second->Title_Num--;
-		if (*title_num != '0')
-			*title_num -= 1;
-		else
-		{
-			*title_num += 9;
-			*(title_num - 1) -= 1;
-		}
-	}
+	*title_num += increase_to;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Set_From_Clipboard()
@@ -753,10 +741,10 @@ void AsUI_Builder::Draw_Button_Request()
 	// 1.1 Draw first Rectangle decrease
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Green_Dark);  // Select color
 	ui_rect_offset = &Borders_Rect[(int)EPress::Button_Reguest][0];
-	ui_rect_offset->left = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button].right + button_offset;
-	ui_rect_offset->top = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button].top;
-	ui_rect_offset->right = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button].right + button_offset + box_size;
-	ui_rect_offset->bottom = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button].top + box_size;
+	ui_rect_offset->left = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button - Button_User_Offset].right + button_offset;
+	ui_rect_offset->top = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button - Button_User_Offset].top;
+	ui_rect_offset->right = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button - Button_User_Offset].right + button_offset + box_size;
+	ui_rect_offset->bottom = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button - Button_User_Offset].top + box_size;
 
 	Rectangle(Ptr_Hdc, ui_rect_offset->left, ui_rect_offset->top, ui_rect_offset->right, ui_rect_offset->bottom);
 	MoveToEx(Ptr_Hdc, ui_rect_offset->left + scale, ui_rect_offset->top + half_box, 0);
@@ -866,15 +854,15 @@ void AsUI_Builder::Draw_Active_Button_Advenced()
 	if (Prev_Button == 99)
 		Prev_Button = (int)Active_Button;
 
-	It_User_Map_Active = map->begin();  // Prev_Button
+	It_User_Map_Active = map->begin();  // Prev_Button || Clear button
 	std::advance(It_User_Map_Active, (int)Prev_Button);
-	Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button], It_User_Map_Active->second->Title_Name_Num);
+	Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button - Button_User_Offset], It_User_Map_Active->second->Title_Name_Num);
 		
-	It_User_Map_Active = map->begin();  // Active Button
+	It_User_Map_Active = map->begin();  // Active Button  || Draw Button
 	std::advance(It_User_Map_Active, (int)Active_Button);
 
 	if (Active_Page != EPage::Update)  // if from update button change color
-		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, Borders_Rect[(int)EPress::Buttons_User_Input][(int)Active_Button], It_User_Map_Active->second->Title_Name_Num);
+		Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, Borders_Rect[(int)EPress::Buttons_User_Input][(int)Active_Button - Button_User_Offset], It_User_Map_Active->second->Title_Name_Num);
 	else
 	{
 		Active_Page = EPage::None;
@@ -1128,8 +1116,7 @@ void AsUI_Builder::Erase_Data(std::map<wchar_t *, S_Extend *, cmp_wchar> &map)
 
 		it = map.erase(it);
 	}
-
-	delete &map;
+	map.clear();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Map_Save(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map)
@@ -1211,21 +1198,17 @@ void AsUI_Builder::Draw_Menu_Sub()
 
 	}
 
-	// 2.1. Set iterator to start and check sub menu
+	// 1.3. Handle Page setting if more that we can have do nothing
 	it = map->begin();
-	if (map->size() < Sub_Menu_Max_Line)
-		Sub_Menu_Curr_Page = 0;
-	
-	// 2.2. If in next page move iterator to needed page
-	curr_page_max_line = Sub_Menu_Max_Line * (Sub_Menu_Curr_Page + 1);
-	curr_line = Sub_Menu_Curr_Page * Sub_Menu_Max_Line;
-	std::advance(it, curr_line);
+	if (Button_User_Offset > map->size() )
+		Button_User_Offset -= Sub_Menu_Max_Line;
+	std::advance(it, Button_User_Offset);
 	Draw_Button_Pages();
-
-	// 2.3. Draw needed buttons to submenu
-	for (; it != map->end(); ++it)
+	
+	// 1.4. Draw All buttons
+	for (curr_line = 0; it != map->end(); ++it)
 	{
-		if (curr_line < curr_page_max_line)
+		if (curr_line < Sub_Menu_Max_Line)
 			Draw_Button(border_rect, Borders_Rect[(int)EPress::Buttons_User_Input][curr_line], it->first);
 		else
 			return;
@@ -1384,6 +1367,7 @@ void AsUI_Builder::Handle_Menu_Main()
 	Draw_Active_Button_Advenced();  // Redraw pressed button
 
 	Active_Menu = (EActive_Menu)i;
+	Sub_Menu_Curr_Page = 0;  // if pressed on main set curr page to 0 page
 	Draw_Menu_Sub();
 }
 //------------------------------------------------------------------------------------------------------------
@@ -1468,13 +1452,13 @@ void AsUI_Builder::Handle_Menu_Sub()
 	if (i != (int)EPage::Last)
 	{
 		if (i == EPage::Prev)
-			if (Sub_Menu_Curr_Page < 1)
+			if (Button_User_Offset < 0)
 				return;
 			else
-				Sub_Menu_Curr_Page--;
+				Button_User_Offset -= Sub_Menu_Max_Line;
 
 		if (i == EPage::Next)
-			Sub_Menu_Curr_Page++;
+			Button_User_Offset += Sub_Menu_Max_Line;
 
 		Active_Button = EActive_Button::EAB_Main_Menu;
 		Draw_Menu_Sub();
@@ -1483,11 +1467,11 @@ void AsUI_Builder::Handle_Menu_Sub()
 	}
 
 	// 1.3. Title Buttons
-	for (i = Sub_Menu_Curr_Page * Sub_Menu_Max_Line; i < i + Sub_Menu_Max_Line; i++)
+	for (i = 0; i < i + Sub_Menu_Max_Line; i++)
 		if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[(int)EPress::Buttons_User_Input][i] ) )
 			break;
 
-	Active_Button = (EActive_Button)i;
+	Active_Button = (EActive_Button)(i + Button_User_Offset);
 	Draw_Active_Button_Advenced();
 }
 //------------------------------------------------------------------------------------------------------------

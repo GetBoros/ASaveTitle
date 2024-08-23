@@ -34,9 +34,11 @@ AsExamples::AsExamples(const EShow_Preview show_preview)
 	case EShow_Preview::EP_Show_Cast_Exam:
 		Display_Cast_Exam();
 		break;
-
-	case EShow_Preview::STD_Map_Pair_Ptrs:
+	case EShow_Preview::EP_Show_Std_Map_Pair_Ptrs:
 		Display_Map_Pair_Ptr();
+		break;
+	case EShow_Preview::EP_Show_FFmpeg_Ex:
+		Display_Ffmpeg_Examples();
 		break;
 	}
 }
@@ -181,5 +183,38 @@ void AsExamples::Display_Map_Pair_Ptr()
 		it = Base_Array->erase(it); // Удаляем элемент и перемещаем итератор на следующий
 	}
 	delete Base_Array;
+}
+void AsExamples::Display_Ffmpeg_Examples()
+{//  ffmpeg -i inFile.mp3 outfile.mp3
+
+	// Command Line Examples
+	/*
+	- Video:
+		- ffmpeg -i temp.avi temp.mp4  // Convert from avi to mp4
+		- ffmpeg -i temp.avi -q 23 quality_23.avi  // or if mp4 use -crf || -q(quality) 23 value quality low better?!?
+
+	- Audio:
+		- ffmpeg -i inFile.mp3 -b:a 320k outfile.mp3  // -b:a maybe bitrate for audo can change 320k to 1000k need write k
+
+	- Video / Audio:
+		- ffmpeg -i temp.avi -b:v 1000k -b:a 128k outFile.mp4  // change byterate video to 1000k and audio to 128k
+
+	- Filters:
+		- Volume:
+			- ffmpeg -i inFile.mp4 -filter:a "volume=2" outfile.mp4  // -filter:a (use on audio channel) if =2 double volume
+		- Mapping
+			- ffmpeg -i inFile.mp4 -filter:a "channelmap=0-0|0-1" outfile.mp4  // from left 0 to right 0 and from l 0 to r 1
+		- Cropping Video
+			- ffmpeg -i inFile.mp4 -filter:v "crop=w=640:h=480:x=100:y=200" outfile.mp4
+			- ffmpeg -i inFile.mp4 -filter:v "crop=w=2/3*in_w:h=2/3*in_h" outfile.mp4  // crpo the video to 2/3 of its origin
+		- Scalling Video
+			- ffmpeg -i inFile.mp4 -filter:v "scale=w=640:h=480" outfile.mp4  // Scale video to
+			- ffmpeg -i inFile.mp4 -filter:v "scale=w=2/3*in_w:h=2/3*in_h" outfile.mp4  // Scale video to 2/3
+			- ffmpeg -i inFile.mp4 -filter:v "scale=w=852:h=-1" outfile.mp4  // Scale video to
+		- Rotation Video
+			- ffmpeg -i inFile.mp4 -filter:v "rotate=45*PI/180" outfile.mp4  // Result rotate to 45 degreases
+			- ffmpeg -i inFile.mp4  -vf "hflip,transpose=2,transpose=2" outfile.mp4  // Result from left to right
+			- ffmpeg -i inFile.mp4  -vf "hflip" outfile.mp4  // Result from left to right
+	*/
 }
 //------------------------------------------------------------------------------------------------------------

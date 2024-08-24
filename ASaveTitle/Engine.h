@@ -27,12 +27,15 @@ enum class EProgram
 //------------------------------------------------------------------------------------------------------------
 enum class EUI_Builder_Handler : int
 {
+	EBH_LM_Button,
+	EBH_RM_Button,
+	EBH_UI_Button,
+	//TEMP
 	Draw_Full_Window,
 	Draw_Menu_Main,
 	Draw_Menu_Sub,
-	Draw_User_Input_Button,
-	Handle_Mouse_LButton,
-	Handle_Mouse_RButton
+	//TEMP END
+	Last
 };
 //------------------------------------------------------------------------------------------------------------
 enum class EActive_Button : int
@@ -143,7 +146,7 @@ public:
 private:
 	void Init();  // Do just once
 
-	// !!! User Inputs
+	// !!! User Inputs Modify
 	void User_Input_Value_Is_Changed(const bool is_increment);  // Change active title num
 	void User_Input_Set_From_Clipboard();
 
@@ -155,6 +158,7 @@ private:
 	
 	// Draw UI Parts
 	void Draw_Menu_Main();
+	void Draw_Menu_Sub();  // Sub Menu draw arrays from curr active button
 	void User_Input_Draw() const;  // Show user_input in sub menu
 	void User_Input_Update(const wchar_t &text);  // Add and show input to User_Input Buttons
 	
@@ -162,10 +166,6 @@ private:
 	void Draw_Active_Button_Advenced();  // Draw and Redraw Active Buttons in nice color
 	void Draw_Button_Request();  // Draw Request raise or decrease series
 	void Draw_User_Title_Image() const;  // Draw Image reacting on Active Button
-	
-	// Draw Context Menu
-	void Context_Menu_Draw(const int &x, const int &y);  // Draw context menu and store data rect
-	void Context_Image_Restore(RECT &rect);  // redraw image
 
 	// Converters
 	unsigned short User_Map_Save_Convert(unsigned short ch);  // Convert title, need to save to file
@@ -174,12 +174,16 @@ private:
 	// Handler Input Last
 	void Handle_Button_Bordered(const EUI_Builder_Handler &builder_handlerconst, const LPARAM &lParam);
 	void Handle_Menu_Main();
+	void Handle_Menu_Sub();
 	void Handle_Menu_Context();
 	void Handle_Non_Bordered();
-	void Handle_Menu_Sub();
 	void Cycle_Finder(const RECT& mouse_cord, const int border_index, const int count, int& result);
+	// Draw Context Menu
+	void Context_Menu_Draw(const int &x, const int &y);  // Draw context menu and store data rect
+	void Context_Image_Restore(RECT &rect);  // redraw image
 
 	wchar_t **Data_From_File;
+	wchar_t *User_Input_Advenced;
 	int Button_User_Offset;
 	int Prev_Main_Menu_Button;
 	int Prev_Button;
@@ -213,7 +217,6 @@ private:
 	void User_Map_Load(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map);  //Load from file || !!! Can be refactored
 	void User_Map_Save(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map);  // Save to file User_Map_Ptr
 	
-	void Draw_Menu_Sub();  // Sub Menu draw arrays from curr active button
 	void Handler_User_Input();  // Handle User input if press Enter or twice at button
 
 	wchar_t User_Input[AsConfig::User_Input_Buffer];  // User Input Buffer | or border_width / 8 = Max_Char_Length
@@ -247,7 +250,6 @@ public:
 
 	void Draw_Frame_ASaver(HWND hwnd);
 	void Redraw_Frame(const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
-	void Get_Clipboard_From_Else();
 
 	bool Is_After_Maximazied;
 	AsUI_Builder *UI_Builder;

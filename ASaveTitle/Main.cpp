@@ -144,17 +144,17 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 	case WM_CHAR:
-		AsMain::Main_Window->Engine.Redraw_Frame(wParam == 13 ? EUI_Builder_Handler::Draw_Menu_Sub : EUI_Builder_Handler::Draw_User_Input_Button, wParam, lParam);  // if Enter
+		AsMain::Main_Window->Engine.Redraw_Frame(wParam == 13 ? EUI_Builder_Handler::Draw_Menu_Sub : EUI_Builder_Handler::EBH_UI_Button, wParam, lParam);  // if Enter
 		break;
 
 
 	case WM_LBUTTONDOWN:
-		AsMain::Main_Window->Engine.Redraw_Frame(EUI_Builder_Handler::Handle_Mouse_LButton, wParam, lParam);
+		AsMain::Main_Window->Engine.Redraw_Frame(EUI_Builder_Handler::EBH_LM_Button, wParam, lParam);
 		break;
 
 
 	case WM_RBUTTONDOWN:
-		AsMain::Main_Window->Engine.Redraw_Frame(EUI_Builder_Handler::Handle_Mouse_RButton, wParam, lParam);
+		AsMain::Main_Window->Engine.Redraw_Frame(EUI_Builder_Handler::EBH_RM_Button, wParam, lParam);
 		break;
 
 

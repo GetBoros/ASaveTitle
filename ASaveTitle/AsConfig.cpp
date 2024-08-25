@@ -28,6 +28,7 @@ const wchar_t *AsConfig::Protocols[] = { L"https://", L"http://" };
 const wchar_t AsConfig::Seasons[] = { 'I', 'V', 'X' };
 
 const int AsConfig::Settings_Size = sizeof(AsConfig::Settings) / sizeof(AsConfig::Settings[0]);
+const int AsConfig::Max_Line = 31;
 RECT AsConfig::Window_Rect {};
 
 const COLORREF AsConfig::Color_White = RGB(255, 255, 255);

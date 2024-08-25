@@ -72,6 +72,14 @@ struct S_Extend
 	int Title_Season = 0;
 };
 //------------------------------------------------------------------------------------------------------------
+struct SCmp_Char
+{
+	bool operator()(const wchar_t *a, const wchar_t *b) const
+	{
+		return std::wcscmp(a, b) < 0;
+	}
+};
+//------------------------------------------------------------------------------------------------------------
 enum class EPress : int
 {// Press at border
 
@@ -145,32 +153,26 @@ public:
 
 private:
 	void Init();  // Do just once
-
 	// !!! User Inputs Modify
 	void User_Input_Value_Is_Changed(const bool is_increment);  // Change active title num
 	void User_Input_Set_From_Clipboard();
-
 	// !!! UI Draw
 	void Draw_Border(RECT &border_rect) const;  // Draw border and return inner rect
 	void Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const;  // Draw Button and return free border rect space 
 	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
 	void Draw_Button_Pages();
-	
 	// Draw UI Parts
 	void Draw_Menu_Main();
 	void Draw_Menu_Sub();  // Sub Menu draw arrays from curr active button
 	void User_Input_Draw() const;  // Show user_input in sub menu
 	void User_Input_Update(const wchar_t &text);  // Add and show input to User_Input Buttons
-	
 	// Change Button Color and Draw Image
 	void Draw_Active_Button_Advenced();  // Draw and Redraw Active Buttons in nice color
 	void Draw_Button_Request();  // Draw Request raise or decrease series
 	void Draw_User_Title_Image() const;  // Draw Image reacting on Active Button
-
 	// Converters
 	unsigned short User_Map_Save_Convert(unsigned short ch);  // Convert title, need to save to file
 	unsigned long long User_Map_Load_Convert(unsigned long long &ch);  // Convert back and get Title
-
 	// Handler Input Last
 	void Handle_Button_Bordered(const EUI_Builder_Handler &builder_handlerconst, const LPARAM &lParam);
 	void Handle_Menu_Main();
@@ -181,46 +183,37 @@ private:
 	// Draw Context Menu
 	void Context_Menu_Draw(const int &x, const int &y);  // Draw context menu and store data rect
 	void Context_Image_Restore(RECT &rect);  // redraw image
-
-	wchar_t **Data_From_File;
-	wchar_t *User_Input_Advenced;
-	int Button_User_Offset;
-	int Prev_Main_Menu_Button;
-	int Prev_Button;
-	int Sub_Menu_Curr_Page;  // Show curr page
-	const int Sub_Menu_Max_Line = 31;  // Нужен алгоритм что бы понять сколько влезет в пользувательский экран, или настроить через config
+	// Map Manipulations
+	void Convert_Data(wchar_t *user_input, S_Extend *&data);  // !!! Refactoring some day || Get Info from User Input
+	void Erase_Data(std::map<wchar_t *, S_Extend *, SCmp_Char> &map);  // Free All memory
+	void User_Map_Load(const char *file_path, std::map<wchar_t *, S_Extend *, SCmp_Char> &map);  //Load from file || !!! Can be refactored
+	void User_Map_Save(const char *file_path, std::map<wchar_t *, S_Extend *, SCmp_Char> &map);  // Save to file User_Map_Ptr
+	void Handler_User_Input();  // Handle User input if press Enter or twice at button
 
 	AsConfig Config;
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
 	EPage Active_Page;
 	EPress Border_Pressed;
-
+	wchar_t *User_Input_Advenced;
+	int Button_User_Offset;
+	int Prev_Main_Menu_Button;
+	int Prev_Button;
+	int Sub_Menu_Curr_Page;  // Show curr page
 	RECT **Borders_Rect;  // Storage for all border rects
 	RECT *Mouse_Cord_Destination;
 	RECT *Mouse_Cord;
-
 	HDC Hdc_Memory;
 	HBITMAP H_Bitmap;
 	HGDIOBJ Saved_Object;
 
-	// TEMP
-	struct cmp_wchar { bool operator()(const wchar_t *a, const wchar_t *b) const { return std::wcscmp(a, b) < 0; } };
-
-	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Ptr;
-	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Library;
-	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Paused;
-	std::map<wchar_t *, S_Extend *, cmp_wchar> *User_Map_Wishlist;
+	std::map<wchar_t *, S_Extend *, SCmp_Char> *User_Map_Active;  // Get ptr to current active menu choosed while pressed on main menu
+	// To Array?
+	std::map<wchar_t *, S_Extend *, SCmp_Char> *User_Map_Ptr;
+	std::map<wchar_t *, S_Extend *, SCmp_Char> *User_Map_Library;
+	std::map<wchar_t *, S_Extend *, SCmp_Char> *User_Map_Paused;
+	std::map<wchar_t *, S_Extend *, SCmp_Char> *User_Map_Wishlist;
 	std::map<wchar_t *, S_Extend *>::iterator It_User_Map_Active;
 	
-	void Convert_Data(wchar_t *user_input, S_Extend *&data);  // !!! Refactoring some day
-	void Erase_Data(std::map<wchar_t *, S_Extend *, cmp_wchar> &map);  // Free All memory
-	void User_Map_Load(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map);  //Load from file || !!! Can be refactored
-	void User_Map_Save(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map);  // Save to file User_Map_Ptr
-	
-	void Handler_User_Input();  // Handle User input if press Enter or twice at button
-
-	wchar_t User_Input[AsConfig::User_Input_Buffer];  // User Input Buffer | or border_width / 8 = Max_Char_Length
-
 	static int User_Input_Len;  // count user input after press enter set to zero
 };
 //------------------------------------------------------------------------------------------------------------

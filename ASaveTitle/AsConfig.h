@@ -39,6 +39,7 @@ public:
 	static const wchar_t Seasons[Invalid_Chars_Len];
 
 	static const int Settings_Size;
+	static const int Max_Line;
 	static const int Max_Loadstring = 100;
 	static const int Global_Scale = 3;
 	static const int Ch_W = 8;

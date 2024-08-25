@@ -57,7 +57,7 @@ AsMain::AsMain(HINSTANCE handle_instance)
 		return;
 }
 //------------------------------------------------------------------------------------------------------------
-int AsMain::Get_WParam()
+int AsMain::Get_WParam() const
 {
 	MSG msg;
 	HACCEL handl_accel;
@@ -83,7 +83,7 @@ AsMain *AsMain::Set_Instance(HINSTANCE handle_instance)
 		return Main_Window = new AsMain(handle_instance);
 }
 //------------------------------------------------------------------------------------------------------------
-bool AsMain::Init_Instance()
+bool AsMain::Init_Instance() const
 {
 	RECT window_size{};
 	HWND hWnd;
@@ -106,7 +106,7 @@ bool AsMain::Init_Instance()
 	return true;
 }
 //------------------------------------------------------------------------------------------------------------
-ATOM AsMain::Register_Class()
+ATOM AsMain::Register_Class() const
 {
 	WNDCLASSEXW wcex {};
 
@@ -144,7 +144,7 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 	case WM_CHAR:
-		AsMain::Main_Window->Engine.Redraw_Frame(wParam == 13 ? EUI_Builder_Handler::Draw_Menu_Sub : EUI_Builder_Handler::EBH_UI_Button, wParam, lParam);  // if Enter
+		AsMain::Main_Window->Engine.Redraw_Frame(wParam == 13 ? EUI_Builder_Handler::EBH_UI_Button : EUI_Builder_Handler::EBH_UI_Button, wParam, lParam);  // if Enter
 		break;
 
 

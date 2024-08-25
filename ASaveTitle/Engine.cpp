@@ -365,20 +365,21 @@ AsUI_Builder::~AsUI_Builder()
 
 	// 1.5 Free memory
 	delete[] Borders_Rect;
+	delete[] User_Input_Advenced;
 
 	delete Mouse_Cord_Destination;
 	delete Mouse_Cord;
 }
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::AsUI_Builder(HDC hdc)
-: Active_Menu(EAM_Main), Ptr_Hdc(hdc), Borders_Rect(0), Mouse_Cord_Destination(0), Mouse_Cord(0), User_Input{}, Data_From_File {}, Prev_Main_Menu_Button(0),
-  Prev_Button(99), Sub_Menu_Curr_Page(0), Sub_Menu_Max_Line(31), Active_Button(EActive_Button::EAB_Main_Menu),
+: Active_Menu(EAM_Main), Ptr_Hdc(hdc), Borders_Rect {}, Mouse_Cord_Destination(0), Mouse_Cord(0), Prev_Main_Menu_Button(0),
+  Prev_Button(99), Sub_Menu_Curr_Page(0), Active_Button(EActive_Button::EAB_Main_Menu),
   Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0),
-  User_Map_Ptr(0), User_Map_Library(0), User_Map_Paused(0), User_Map_Wishlist(0), User_Input_Advenced(0)
+  User_Map_Active(0), User_Map_Ptr(0), User_Map_Library(0), User_Map_Paused(0), User_Map_Wishlist(0), User_Input_Advenced(0)
 {
 	auto user_map_loaders = [&]()
 		{
-			User_Map_Ptr = new std::map<wchar_t *, S_Extend *, cmp_wchar>;
+			User_Map_Ptr = new std::map<wchar_t *, S_Extend *, SCmp_Char>;
 			User_Map_Load("99.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
 			//User_Map_Load("Data/Watching.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
 			for (auto &it : *User_Map_Ptr)  // Convert to User_Map_Ptr
@@ -387,7 +388,7 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 
 	auto user_map_library = [&]()
 		{
-			User_Map_Library = new std::map<wchar_t *, S_Extend *, cmp_wchar>;
+			User_Map_Library = new std::map<wchar_t *, S_Extend *, SCmp_Char>;
 			User_Map_Load("98.bin", *User_Map_Library);  // Load from file and add to User_Map_Library
 			//User_Map_Load("Data/Library.bin", *User_Map_Library);  // Load from file and add to User_Map_Library
 			for (auto &it : *User_Map_Library)  // Convert to User_Map_Library
@@ -443,7 +444,7 @@ void AsUI_Builder::Init()
 	Borders_Rect[(int)EPress::User_Input_Handler] = new RECT {};
 	Borders_Rect[(int)EPress::Button_Reguest] = new RECT[2] {};  // Increase or Decrease Buttons
 	Borders_Rect[(int)EPress::Button_Pages] = new RECT[3] {};
-	Borders_Rect[(int)EPress::Buttons_User_Input] = new RECT[Sub_Menu_Max_Line] {};
+	Borders_Rect[(int)EPress::Buttons_User_Input] = new RECT[AsConfig::Max_Line] {};
 	Borders_Rect[(int)EPress::Button_Menu_Main] = new RECT[AsConfig::Menu_Main_Button_Count] {};
 	Borders_Rect[(int)EPress::Button_Context] = new RECT[AsConfig::Context_Button_Count] {};
 	Borders_Rect[(int)EPress::Menu_Context] = new RECT {};
@@ -452,29 +453,30 @@ void AsUI_Builder::Init()
 	Borders_Rect[(int)EPress::Button_Pages][EPage::Prev] = { 1231, 12, 1303, 30 };
 	Borders_Rect[(int)EPress::Button_Pages][EPage::Next] = { 1305, 12, 1375, 30 };
 
+	User_Input_Advenced = new wchar_t[64] {};
 	Mouse_Cord = new RECT {};
 	Mouse_Cord_Destination = new RECT {};
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handler_User_Input()
 {
-	wchar_t *url_content;
-	int length;
+	wchar_t *url_content = 0;
+	int length = 0;
 
-	// 1.0. If it`s url use ACurl_Client to Get ID_Content, Get Title + Num + Season
-	if (wcsstr(User_Input, AsConfig::Protocols[0]) != 0 || wcsstr(User_Input, AsConfig::Protocols[1]) != 0)
-	{
-		// If not threaded uselles sections except curl
-		length = (int)wcslen(User_Input) + 1;
-		url_content = new wchar_t[length]{};
-		wcsncpy_s(url_content, length, User_Input, static_cast<rsize_t>(length) - 1);
+	//// 1.0. If it`s url use ACurl_Client to Get ID_Content, Get Title + Num + Season
+	//if (wcsstr(User_Input, AsConfig::Protocols[0]) != 0 || wcsstr(User_Input, AsConfig::Protocols[1]) != 0)
+	//{
+	//	// If not threaded uselles sections except curl
+	//	length = (int)wcslen(User_Input) + 1;
+	//	url_content = new wchar_t[length]{};
+	//	wcsncpy_s(url_content, length, User_Input, static_cast<rsize_t>(length) - 1);
 
-		ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
+	//	ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
 
-		length = (int)wcslen(url_content) + 1;
-		wcsncpy_s(User_Input, length, url_content, static_cast<rsize_t>(length) - 1);
-		delete[] url_content;
-	}
+	//	length = (int)wcslen(url_content) + 1;
+	//	wcsncpy_s(User_Input, length, url_content, static_cast<rsize_t>(length) - 1);
+	//	delete[] url_content;
+	//}
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Value_Is_Changed(const bool is_increment)
@@ -522,7 +524,7 @@ void AsUI_Builder::User_Input_Set_From_Clipboard()
 		EmptyClipboard();
 	else
 		if (psz_text != 0)
-			wcsncpy_s(User_Input, wcslen(psz_text) + 1, psz_text, wcslen(psz_text) );
+			wcsncpy_s(User_Input_Advenced, wcslen(psz_text) + 1, psz_text, wcslen(psz_text) );
 
 	GlobalUnlock(handle_data);
 	CloseClipboard();
@@ -661,13 +663,11 @@ void AsUI_Builder::Draw_Menu_Sub()
 {
 	int curr_line;
 	int curr_page_max_line;
-	std::map<wchar_t *, S_Extend *, cmp_wchar> *map;
-	std::map<wchar_t *, S_Extend *, cmp_wchar>::iterator it;
+	std::map<wchar_t *, S_Extend *, SCmp_Char>::iterator it;
 	RECT border_rect;
 
 	curr_line = 0;
 	curr_page_max_line = 0;
-	map = 0;
 	border_rect = {};
 	Prev_Button = 99;  // Need to switch between arrays
 
@@ -682,35 +682,17 @@ void AsUI_Builder::Draw_Menu_Sub()
 	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_Title);  // Write Sub menu title
 	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
 
-	switch (Active_Menu)
-	{
-	case EAM_Watching:
-		map = User_Map_Ptr;
-		break;
-	case EAM_Library_Menu:
-		map = User_Map_Library;
-		break;
-	case EAM_Paused_Menu:
-		map = User_Map_Paused;
-		break;
-	case EAM_Wishlist:
-		map = User_Map_Wishlist;
-		break;
-	default:
-		return;
-	}
-
 	// 1.3. Handle Page setting if more that we can have do nothing
-	it = map->begin();
-	if (Button_User_Offset > map->size())  // if next page don`t have buttons to draw stay at current page
-		Button_User_Offset -= Sub_Menu_Max_Line;
+	it = User_Map_Active->begin();
+	if (Button_User_Offset > User_Map_Active->size())  // if next page don`t have buttons to draw stay at current page
+		Button_User_Offset -= AsConfig::Max_Line;
 	std::advance(it, Button_User_Offset);
 	Draw_Button_Pages();
 	
 	// 1.4. Draw All buttons
-	for (curr_line = 0; it != map->end(); ++it)
+	for (curr_line = 0; it != User_Map_Active->end(); ++it)
 	{
-		if (curr_line < Sub_Menu_Max_Line)
+		if (curr_line < AsConfig::Max_Line)
 			Draw_Button(border_rect, Borders_Rect[(int)EPress::Buttons_User_Input][curr_line], it->first);
 		else
 			return;
@@ -731,21 +713,27 @@ void AsUI_Builder::User_Input_Draw() const
 	const int offset_x = user_input->left + AsConfig::Global_Scale;  // ofset from left
 	const int offset_y = user_input->top + AsConfig::Global_Scale;
 
-	if (User_Input[0] != 0)
-		TextOutW(Ptr_Hdc, offset_x, offset_y, User_Input, (int)wcslen(User_Input) );  // write text in rect
+	if (User_Input_Advenced[0] != 0)
+		TextOutW(Ptr_Hdc, offset_x, offset_y, User_Input_Advenced, (int)wcslen(User_Input_Advenced) );  // write text in rect
 	else
 		TextOutW(Ptr_Hdc, offset_x, offset_y, AsConfig::Sub_Menu_User_Input_Title, (int)wcslen(AsConfig::Sub_Menu_User_Input_Title) );
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Input_Update(const wchar_t &user_text)
 {
+	if (user_text == '\r')  // if press enter
+	{
+		// TASK Add to map User Input at curr Active Menu
+		int yy = 0;
+	}
+
 	if (Active_Menu == EActive_Menu::EAM_Main)  // main menu
 		return;
 
 	if (user_text != '\b' && User_Input_Len < AsConfig::User_Input_Buffer)
-		User_Input[User_Input_Len++] = user_text;
+		User_Input_Advenced[User_Input_Len++] = user_text;
 	else if (User_Input_Len > 0)
-		User_Input[--User_Input_Len] = 0;  // delete prev user_text
+		User_Input_Advenced[--User_Input_Len] = 0;  // delete prev user_text
 
 	User_Input_Draw();
 }
@@ -844,13 +832,11 @@ void AsUI_Builder::Draw_User_Title_Image() const
 void AsUI_Builder::Draw_Active_Button_Advenced()
 {
 	int title_name_length;
-	std::map<wchar_t *, S_Extend *, cmp_wchar> *map;
 	const RECT &prev_button = Borders_Rect[(int)EPress::Button_Menu_Main][Prev_Main_Menu_Button];
 	const RECT &curr_button = Borders_Rect[(int)EPress::Button_Menu_Main][(int)Active_Button];
 
 	title_name_length = 0;
-	map = 0;
-	if ( !(Active_Button != EActive_Button::EAB_Main_Menu) )
+	if ( !(Active_Button != EActive_Button::EAB_Main_Menu || !User_Map_Active != 0) )
 		return;  // !!! Is this really need?
 
 	if (Active_Menu == EActive_Menu::EAM_Main)
@@ -862,33 +848,13 @@ void AsUI_Builder::Draw_Active_Button_Advenced()
 		return;
 	}
 
-	switch (Active_Menu)
-	{
-	case EAM_Watching:
-		map = User_Map_Ptr;
-		break;
-	case EAM_Library_Menu:
-		map = User_Map_Library;
-		break;
-	case EAM_Paused_Menu:
-		map = User_Map_Paused;
-		break;
-	case EAM_Wishlist:
-		map = User_Map_Wishlist;
-		break;
-	case EAM_Exit:
-		return PostQuitMessage(0);
-	}
-	if (!map != 0)
-		return;
-
 	if (Prev_Button == 99)
 		Prev_Button = (int)Active_Button;
 
-	It_User_Map_Active = map->begin();  // Prev_Button || Clear button
+	It_User_Map_Active = User_Map_Active->begin();  // Prev_Button || Clear button
 	std::advance(It_User_Map_Active, (int)Prev_Button);
 	Draw_Button_Text(AsConfig::Brush_Background_Dark, AsConfig::Color_Dark, AsConfig::Color_Text_Green, Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button - Button_User_Offset], It_User_Map_Active->second->Title_Name_Num);
-	It_User_Map_Active = map->begin();  // Active Button  || Draw Button
+	It_User_Map_Active = User_Map_Active->begin();  // Active Button  || Draw Button
 	std::advance(It_User_Map_Active, (int)Active_Button);
 	Draw_Button_Text(AsConfig::Brush_Green_Dark, AsConfig::Color_Text_Green, AsConfig::Color_Dark, Borders_Rect[(int)EPress::Buttons_User_Input][(int)Active_Button - Button_User_Offset], It_User_Map_Active->second->Title_Name_Num);
 	Prev_Button = (int)Active_Button;  // Save Prev Button to redraw it
@@ -897,7 +863,7 @@ void AsUI_Builder::Draw_Active_Button_Advenced()
 	Draw_User_Title_Image();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map)
+void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, S_Extend *, SCmp_Char> &map)
 {
 	bool is_add_to_user_array = false;
 	wchar_t *to_map = 0;
@@ -1057,7 +1023,7 @@ void AsUI_Builder::Convert_Data(wchar_t *user_input, S_Extend *&data)
 	wcsncpy_s(data->Title_Name_Num, wcslen(user_input) + 1, user_input, wcslen(user_input) );
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Erase_Data(std::map<wchar_t *, S_Extend *, cmp_wchar> &map)
+void AsUI_Builder::Erase_Data(std::map<wchar_t *, S_Extend *, SCmp_Char> &map)
 {
 	for (std::map<wchar_t *, S_Extend *>::iterator it = map.begin(); it != map.end(); )
 	{// Free Memorry from all pointers in map
@@ -1072,7 +1038,7 @@ void AsUI_Builder::Erase_Data(std::map<wchar_t *, S_Extend *, cmp_wchar> &map)
 	map.clear();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Save(const char *file_path, std::map<wchar_t *, S_Extend *, cmp_wchar> &map)
+void AsUI_Builder::User_Map_Save(const char *file_path, std::map<wchar_t *, S_Extend *, SCmp_Char> &map)
 {
 	int title_index = 0, title_index_length = 0;
 	int number_index = 0;
@@ -1259,11 +1225,24 @@ void AsUI_Builder::Handle_Menu_Main()
 
 	Active_Menu = EAM_Main;
 	Active_Button = (EActive_Button)i;
-
 	Draw_Button_Request();  // Clean reguest
 	Draw_Active_Button_Advenced();  // Redraw pressed button
 
-	Active_Menu = (EActive_Menu)i;
+	switch (Active_Menu = (EActive_Menu)i )
+	{
+	case EAM_Watching:
+		User_Map_Active = User_Map_Ptr;
+		break;
+	case EAM_Library_Menu:
+		User_Map_Active = User_Map_Library;
+		break;
+	case EAM_Paused_Menu:
+		User_Map_Active = User_Map_Paused;
+		break;
+	case EAM_Wishlist:
+		User_Map_Active = User_Map_Wishlist;
+		break;
+	}
 	Sub_Menu_Curr_Page = 0;  // if pressed on main set curr page to 0 page
 	Draw_Menu_Sub();
 }
@@ -1274,7 +1253,7 @@ void AsUI_Builder::Handle_Menu_Sub()
 
 	// 1.1. User Input Button Handler
 	if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[(int)EPress::User_Input_Handler][0] ) )
-		if (User_Input[0] != 0)
+		if (User_Input_Advenced[0] != 0)
 			return Handler_User_Input();
 		else
 			return User_Input_Set_From_Clipboard();
@@ -1287,10 +1266,10 @@ void AsUI_Builder::Handle_Menu_Sub()
 			if (Button_User_Offset < 0)
 				return;
 			else
-				Button_User_Offset -= Sub_Menu_Max_Line;
+				Button_User_Offset -= AsConfig::Max_Line;
 
 		if (i == EPage::Next)
-			Button_User_Offset += Sub_Menu_Max_Line;
+			Button_User_Offset += AsConfig::Max_Line;
 
 		Active_Button = EActive_Button::EAB_Main_Menu;
 		Draw_Menu_Sub();
@@ -1299,11 +1278,11 @@ void AsUI_Builder::Handle_Menu_Sub()
 	}
 
 	// 1.3. Buttons  Title
-	for (i = 0; i < i + Sub_Menu_Max_Line; i++)
+	for (i = 0; i < AsConfig::Max_Line + 1; i++)
 		if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[(int)EPress::Buttons_User_Input][i] ) )
 			break;
 
-	if (i > Sub_Menu_Max_Line)  // if out of border, miss hit on button
+	if (i > AsConfig::Max_Line)  // if out of border, miss hit on button
 		return;
 	Active_Button = (EActive_Button)(i + Button_User_Offset);
 	Draw_Active_Button_Advenced();
@@ -1311,14 +1290,10 @@ void AsUI_Builder::Handle_Menu_Sub()
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Context()
 {
-	int i;
-	std::map<wchar_t *, S_Extend *, cmp_wchar> *map;
+	int i = 0;
+	std::map<wchar_t *, S_Extend *, SCmp_Char> *map = 0;
 
-	i = 0;
-	map = 0;
-	Cycle_Finder(*Mouse_Cord, (int)EPress::Button_Context, AsConfig::Context_Button_Count, i);
-
-	// 1.0. Add to Array
+	Cycle_Finder(*Mouse_Cord, (int)EPress::Button_Context, AsConfig::Context_Button_Count, i);  // which array
 	switch ( (EActive_Menu)i)  // If pressed first button context menu choose action
 	{
 	case EAM_Watching:
@@ -1334,25 +1309,11 @@ void AsUI_Builder::Handle_Menu_Context()
 		map = User_Map_Wishlist;
 		break;
 	}
-	map->insert(std::make_pair(It_User_Map_Active->first, std::move(It_User_Map_Active->second) ) );
 
-	// 1.1. Erase from array
-	switch (Active_Menu)
-	{
-	case EAM_Watching:
-		map = User_Map_Ptr;
-		break;
-	case EAM_Library_Menu:
-		map = User_Map_Library;
-		break;
-	case EAM_Paused_Menu:
-		map = User_Map_Paused;
-		break;
-	case EAM_Wishlist:
-		map = User_Map_Wishlist;
-		break;
-	}
-	map->erase(It_User_Map_Active->first);
+	if (!map != 0)
+		return;
+	map->insert(std::make_pair(It_User_Map_Active->first, std::move(It_User_Map_Active->second) ) );
+	User_Map_Active->erase(It_User_Map_Active->first);  // Errase from map
 
 	Active_Button = EActive_Button::EAB_Main_Menu;
 	Prev_Button = 99;  // set to no prev_button
@@ -1443,7 +1404,7 @@ void AsUI_Builder::Context_Image_Restore(RECT &rect)
 	}
 	rect = {};  // обнуляем
 }
-//------------------------------------------------------------------------------------------------------------  1850 - 1446
+//------------------------------------------------------------------------------------------------------------  1850 - 1404
 
 
 

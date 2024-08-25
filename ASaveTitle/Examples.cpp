@@ -184,14 +184,25 @@ void AsExamples::Display_Map_Pair_Ptr()
 	}
 	delete Base_Array;
 }
+//------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_Ffmpeg_Examples()
 {//  ffmpeg -i inFile.mp3 outfile.mp3
 
-	// Command Line Examples
+	// Command Line Examples ffmpeg
 	/*
+	- Screen_Shots
+		- ffmpeg -i inFile.mp4 -ss 00:01 -vframes 1 -q:v 1 -vf "scale=1920:1080" outfile.png  // Get Screen
+	
 	- Video:
-		- ffmpeg -i temp.avi temp.mp4  // Convert from avi to mp4
-		- ffmpeg -i temp.avi -q 23 quality_23.avi  // or if mp4 use -crf || -q(quality) 23 value quality low better?!?
+		- ffmpeg -i inFile.mp4 temp.mp4  // Convert from avi to mp4
+		- ffmpeg -i inFile.mp4 -q 23 quality_23.avi  // or if mp4 use -crf || -q(quality) 23 value quality low better?!?
+		- ffmpeg -i inFile.mp4 -ss 00:00:30 -to 00:01:00 out.mp4 -c copy output_clip.mp4  // Cut video from ss to...
+		- ffmpeg -ss 00:00:30 -to 00:01:00 -i inFile.mp4 -c copy output_clip.mp4  // Cut video from ss to...
+		- ffmpeg -ss 14 -i inFile.mp4 -t 4 temp.mp4  //  -ss 14 skip 14 second | -t time duration 4 seconds
+		- ffmpeg -i inFile.mp4 -ss 14 -to 18 temp.mp4
+
+	- Video Concatenation :
+		- ffmpeg -f concat -safe 0 -i file_list.txt -c copy output.mp4  // Create .txt and set all files to concatenate 'Test_00.mp4'
 
 	- Audio:
 		- ffmpeg -i inFile.mp3 -b:a 320k outfile.mp3  // -b:a maybe bitrate for audo can change 320k to 1000k need write k
@@ -199,7 +210,7 @@ void AsExamples::Display_Ffmpeg_Examples()
 	- Video / Audio:
 		- ffmpeg -i temp.avi -b:v 1000k -b:a 128k outFile.mp4  // change byterate video to 1000k and audio to 128k
 
-	- Filters:
+	- Filters: (-filter || -vf )
 		- Volume:
 			- ffmpeg -i inFile.mp4 -filter:a "volume=2" outfile.mp4  // -filter:a (use on audio channel) if =2 double volume
 		- Mapping
@@ -215,6 +226,33 @@ void AsExamples::Display_Ffmpeg_Examples()
 			- ffmpeg -i inFile.mp4 -filter:v "rotate=45*PI/180" outfile.mp4  // Result rotate to 45 degreases
 			- ffmpeg -i inFile.mp4  -vf "hflip,transpose=2,transpose=2" outfile.mp4  // Result from left to right
 			- ffmpeg -i inFile.mp4  -vf "hflip" outfile.mp4  // Result from left to right
+		- Equalization :
+			- ffmpeg -i inFile.mp4 -filter "colorbalance=rs=-0.3:bs=0.3:rh=0.1:bh=-0.1" outfile.mp4  // r,g,b and (shadow, midtones, highlights)
+			- ffmpeg -i inFile.mp4 -vf "eq=contrast=1.3" outfile.mp4  // 1.3 Darger and more 0.8 and less brighter
+			- ffmpeg -i inFile.mp4 -vf "eq=brightness=0.3" outfile.mp4  // 0.3 to mush light or -0.3 too much dark
+			- ffmpeg -i inFile.mp4 -vf "eq=saturation=1.5, unsharp" outfile.mp4
+			- ffmpeg -i inFile.mp4 -vf "eq=gamma_r=1.5" outfile.mp4  // _r red channel _g green _b blue
+		- Filter Audio:
+			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]showwaves=s=1280x720:mode=cline:colors=#00FF00|#FF00FF,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy output_waves.mp4
+			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]showcqt=s=1280x720,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy output_waves.mp4
+			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]showfreqs=s=1280x720,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy output_waves.mp4
+			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]avectorscope=s=1280x720,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy output_waves.mp4
+			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]avectorscope=s=1280x720:draw=line,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy output_waves.mp4
+			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]showwaves=s=1920x1080:mode=cline:colors=cyan|magenta:scale=sqrt,eq=gamma=2.0[v]" -map "[v]" -map 0:a -c:a copy output_waves.mp4
+
+		- OBS | STREAM | WRITE DESKTOP
+			- ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -crf 0 -threads 0 -y output.mp4
+
+
+	*/
+
+	// Command Line Examples yt-dlp
+	/*
+		- yt-dlp -g https://youtu.be/yMMYkONKCjs  // Get real & to video stream 
+		- yt-dlp https://youtu.be/yMMYkONKCjs -o "output.mp4"
+		- yt-dlp -o - https://youtu.be/yMMYkONKCjs | ffmpeg -i - -c copy -f mpegts udp://localhost:1234  // 
+
+
 	*/
 }
 //------------------------------------------------------------------------------------------------------------

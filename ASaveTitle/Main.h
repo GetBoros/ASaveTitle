@@ -12,15 +12,15 @@ public:
 	AsMain(AsMain &main_window) = delete;
 	void operator=(const AsMain &) = delete;
 	
-	int Get_WParam();
+	int Get_WParam() const;
 
 	static AsMain *Set_Instance(HINSTANCE handle_instance);
 	static AsMain *Main_Window;
 
 private:
 
-	bool Init_Instance();
-	ATOM Register_Class();
+	bool Init_Instance() const;
+	ATOM Register_Class() const;
 	
 	// TEMP
 	RECT *Rect_Programs;

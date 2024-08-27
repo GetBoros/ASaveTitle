@@ -480,31 +480,37 @@ void AsUI_Builder::Init()
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handler_User_Input()
 {
-	wchar_t *url_content = 0;
 	int length = 0;
+	wchar_t *url_content = 0;
+	wchar_t *to_map = 0;
+	S_Extend *to_map_data = 0;
 
 	// 1.0. If it`s url use ACurl_Client to Get ID_Content, Get Title + Num + Season
 	if (wcsstr(User_Input, AsConfig::Protocols[0]) != 0 || wcsstr(User_Input, AsConfig::Protocols[1]) != 0)
 	{
-		// If not threaded uselles sections except curl
+		// 1.1. Try to get url content from ACurl
 		length = (int)wcslen(User_Input) + 1;
 		url_content = new wchar_t[length]{};
 		wcsncpy_s(url_content, length, User_Input, static_cast<rsize_t>(length) - 1);
-
 		ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
 
-		length = (int)wcslen(url_content) + 1;
-		wcsncpy_s(User_Input, length, url_content, static_cast<rsize_t>(length) - 1);
-		delete[] url_content;
-	}
+		// 1.2. Covert data and title
+		to_map_data = new S_Extend();
+		Convert_Data_Extented(url_content, to_map_data);
+		length = (int)(wcslen(url_content) + 1);
+		to_map = new wchar_t[length] {};  // Recreate to resize
+		wcsncpy_s(to_map, length, url_content, (rsize_t)(length - 1) );
 
-	// TASKS
-	/*
-		- Convert
-		- Add To Map Active
-		- Show User if need maybe not in this func
-	*/
+		// 1.3. Add to Active Map and cpy to User Input button
+		It_User_Map_Active = User_Map_Active->emplace(to_map, to_map_data).first;
+		Draw_Menu_Sub();  // Redraw submenu
+		Draw_Sub_Menu_Button();
+		length = (int)wcslen(to_map) + 1;
+		wcsncpy_s(User_Input, length, to_map, (rsize_t)(length - 1) );
+	}
 	User_Input_Draw();
+
+	delete[] url_content;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Border(RECT &border_rect) const
@@ -923,6 +929,55 @@ void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, S_Ex
 	infile.close();
 }
 //------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Convert_Data_Extented(wchar_t* user_input, S_Extend*& data)
+{
+	char *buffer_ptr = 0;
+	char buffer_num[5] {};  // buffer for title nums 4 buffers for nums and last for '\0'
+	unsigned short current_ch;
+	int user_input_length;
+	int season_counter;
+
+	buffer_ptr = buffer_num + 5 - 1;  // set ptr to last index in buffer
+	user_input_length = (int)wcslen(user_input) - 1;  // length without 0
+	current_ch = (unsigned short)user_input[user_input_length];  // get last index char
+	season_counter = 0;
+
+	while (current_ch == L' ' || current_ch >= 48 && current_ch <= 57)
+	{
+		if (current_ch == L' ')
+			if (data->Title_Num == 0)
+				data->Title_Num = std::stoi(user_input + user_input_length + 1);  // Get NUM Title
+			else
+				data->Title_Season = std::stoi(user_input + user_input_length + 1);  // Get Season Title
+
+		if (data->Title_Num == 0)
+			*(--buffer_ptr) = (char)user_input[user_input_length];  // set to buffer curr index char
+		current_ch = (unsigned short)user_input[--user_input_length];  // go to prev index and get ch
+	}
+	
+	user_input_length += 1;  // Set to next index | 
+	data->Title_Name_Key = new wchar_t[user_input_length + 1] {};  // + 1 '\0'
+	wcsncpy_s(data->Title_Name_Key, user_input_length + 1, user_input, user_input_length);  // Get Title Name Key
+
+	if (data->Title_Season != 0)
+	{
+		const wchar_t *season_char = AsConfig::Season_Case_Up[data->Title_Season - 1];  // How must look Seasons
+		season_counter = (int)wcslen(season_char);
+
+		do { user_input[user_input_length + season_counter] = season_char[season_counter - 1]; }
+		while (--season_counter != 0);  // Changle Seasons to upper case
+
+		user_input_length = (int)wcslen(user_input);
+		user_input[user_input_length - 1] = L' ';
+		while (*(buffer_ptr) != '\0')
+			user_input[user_input_length++] = (wchar_t)*(buffer_ptr++);
+		user_input[user_input_length] = L'\0';
+	}
+
+	data->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
+	wcsncpy_s(data->Title_Name_Num, wcslen(user_input) + 1, user_input, wcslen(user_input) );
+}
+//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Convert_Data(wchar_t *user_input, S_Extend *&data)
 {
 	unsigned short current_ch;
@@ -942,9 +997,9 @@ void AsUI_Builder::Convert_Data(wchar_t *user_input, S_Extend *&data)
 		{// If space str to int
 
 			if (data->Title_Num == 0)
-				data->Title_Num = std::stoi(user_input + user_input_length + 1);  // if first ' ' get num
+				data->Title_Num = std::stoi(user_input + user_input_length + 1);  // Get NUM Title
 			else
-				data->Title_Season = std::stoi(user_input + user_input_length + 1);  // if second ' ' get seasons
+				data->Title_Season = std::stoi(user_input + user_input_length + 1);  // Get Season Title
 
 			user_input[user_input_length] = L'\0';  // Hide nums
 		}
@@ -989,8 +1044,9 @@ void AsUI_Builder::Convert_Data(wchar_t *user_input, S_Extend *&data)
 
 	if (data->Title_Season != 0)
 	{
-		const wchar_t *season_char = AsConfig::Season_Case_Up[data->Title_Season - 1];
+		const wchar_t *season_char = AsConfig::Season_Case_Up[data->Title_Season - 1];  // How must look Seasons
 		season_counter = (int)wcslen(season_char);
+		user_input_length = (int)wcslen(user_input);
 
 		user_input[user_input_length] = L' ';
 		user_input[user_input_length + season_counter + 1] = ' ';

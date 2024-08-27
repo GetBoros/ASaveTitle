@@ -139,7 +139,7 @@ private:
 
 
 // AsUI_Builder
-class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. | 520 : 22.08.2024
+class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. | 520 : 22.08.2024 | 168 : 25.08.2024
 {// !!! Build UI, Handle User Inputs, Load Save Content, 
 
 public:
@@ -148,26 +148,24 @@ public:
 
 	void Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 
+	AsConfig Config;
 	EActive_Menu Active_Menu;
 	HDC Ptr_Hdc;
 
 private:
 	void Init();  // Do just once
-	// !!! User Inputs Modify
-	void User_Input_Value_Is_Changed(const bool is_increment);  // Change active title num
-	void User_Input_Set_From_Clipboard();
 	// !!! UI Draw
 	void Draw_Border(RECT &border_rect) const;  // Draw border and return inner rect
 	void Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const;  // Draw Button and return free border rect space 
-	void Draw_Button_Text(const HBRUSH &background, const COLORREF &color_bk, const COLORREF &color_tx, const RECT &rect, const wchar_t *str) const;
-	void Draw_Button_Pages();
+	void Draw_Button_Text(const bool is_dark, const RECT &rect, const wchar_t *str);
 	// Draw UI Parts
 	void Draw_Menu_Main();
 	void Draw_Menu_Sub();  // Sub Menu draw arrays from curr active button
 	void User_Input_Draw() const;  // Show user_input in sub menu
 	void User_Input_Update(const wchar_t &text);  // Add and show input to User_Input Buttons
-	// Change Button Color and Draw Image
-	void Draw_Active_Button_Advenced();  // Draw and Redraw Active Buttons in nice color
+	
+	void Draw_Menu_Main_Button();  // Draw and Redraw Active Buttons in nice color
+	void Draw_Sub_Menu_Button();  // Draw and Redraw Active Buttons in nice color
 	void Draw_Button_Request();  // Draw Request raise or decrease series
 	void Draw_User_Title_Image() const;  // Draw Image reacting on Active Button
 	// Converters
@@ -177,8 +175,10 @@ private:
 	void Handle_Button_Bordered(const EUI_Builder_Handler &builder_handlerconst, const LPARAM &lParam);
 	void Handle_Menu_Main();
 	void Handle_Menu_Sub();
-	void Handle_Menu_Context();
+	void Handle_Clipboard();
+	void Handle_Menu_Context();  // Send content betwen map
 	void Handle_Non_Bordered();
+	void User_Input_Value_Is_Changed(const bool is_increment);  // Change active title num
 	void Cycle_Finder(const RECT& mouse_cord, const int border_index, const int count, int& result);
 	// Draw Context Menu
 	void Context_Menu_Draw(const int &x, const int &y);  // Draw context menu and store data rect
@@ -190,15 +190,14 @@ private:
 	void User_Map_Save(const char *file_path, std::map<wchar_t *, S_Extend *, SCmp_Char> &map);  // Save to file User_Map_Ptr
 	void Handler_User_Input();  // Handle User input if press Enter or twice at button
 
-	AsConfig Config;
-	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
-	EPage Active_Page;
-	EPress Border_Pressed;
-	wchar_t *User_Input_Advenced;
+	wchar_t *User_Input;
 	int Button_User_Offset;
 	int Prev_Main_Menu_Button;
 	int Prev_Button;
 	int Sub_Menu_Curr_Page;  // Show curr page
+	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
+	EPage Active_Page;
+	EPress Border_Pressed;
 	RECT **Borders_Rect;  // Storage for all border rects
 	RECT *Mouse_Cord_Destination;
 	RECT *Mouse_Cord;
@@ -213,8 +212,6 @@ private:
 	std::map<wchar_t *, S_Extend *, SCmp_Char> *User_Map_Paused;
 	std::map<wchar_t *, S_Extend *, SCmp_Char> *User_Map_Wishlist;
 	std::map<wchar_t *, S_Extend *>::iterator It_User_Map_Active;
-	
-	static int User_Input_Len;  // count user input after press enter set to zero
 };
 //------------------------------------------------------------------------------------------------------------
 

@@ -190,25 +190,27 @@ void AsExamples::Display_Ffmpeg_Examples()
 
 	// Command Line Examples ffmpeg
 	/*
+	- Temp
+	
 	- Screen_Shots
 		- ffmpeg -i inFile.mp4 -ss 00:01 -vframes 1 -q:v 1 -vf "scale=1920:1080" outfile.png  // Get Screen
 	
 	- Video:
-		- ffmpeg -i inFile.mp4 temp.mp4  // Convert from avi to mp4
+		- ffmpeg -i inFile.mp4 outfile.mp4  // Convert from avi to mp4
 		- ffmpeg -i inFile.mp4 -q 23 quality_23.avi  // or if mp4 use -crf || -q(quality) 23 value quality low better?!?
-		- ffmpeg -i inFile.mp4 -ss 00:00:30 -to 00:01:00 out.mp4 -c copy output_clip.mp4  // Cut video from ss to...
-		- ffmpeg -ss 00:00:30 -to 00:01:00 -i inFile.mp4 -c copy output_clip.mp4  // Cut video from ss to...
-		- ffmpeg -ss 14 -i inFile.mp4 -t 4 temp.mp4  //  -ss 14 skip 14 second | -t time duration 4 seconds
-		- ffmpeg -i inFile.mp4 -ss 14 -to 18 temp.mp4
+		- ffmpeg -i inFile.mp4 -ss 00:00:30 -to 00:01:00 out.mp4 -c copy outfile.mp4  // Cut video from ss to...
+		- ffmpeg -ss 00:00:30 -to 00:01:00 -i inFile.mp4 -c copy outfile.mp4  // Cut video from ss to...
+		- ffmpeg -ss 14 -i inFile.mp4 -t 4 outfile.mp4  //  -ss 14 skip 14 second | -t time duration 4 seconds
+		- ffmpeg -i inFile.mp4 -ss 14 -to 18 outfile.mp4
 
 	- Video Concatenation :
-		- ffmpeg -f concat -safe 0 -i file_list.txt -c copy output.mp4  // Create .txt and set all files to concatenate 'Test_00.mp4'
+		- ffmpeg -f concat -safe 0 -i file_list.txt -c copy outfile.mp4  // Create .txt and set all files to concatenate 'Test_00.mp4'
 
 	- Audio:
 		- ffmpeg -i inFile.mp3 -b:a 320k outfile.mp3  // -b:a maybe bitrate for audo can change 320k to 1000k need write k
 
 	- Video / Audio:
-		- ffmpeg -i temp.avi -b:v 1000k -b:a 128k outFile.mp4  // change byterate video to 1000k and audio to 128k
+		- ffmpeg -i input.avi -b:v 1000k -b:a 128k outfile.mp4  // change byterate video to 1000k and audio to 128k
 
 	- Filters: (-filter || -vf )
 		- Volume:
@@ -233,15 +235,16 @@ void AsExamples::Display_Ffmpeg_Examples()
 			- ffmpeg -i inFile.mp4 -vf "eq=saturation=1.5, unsharp" outfile.mp4
 			- ffmpeg -i inFile.mp4 -vf "eq=gamma_r=1.5" outfile.mp4  // _r red channel _g green _b blue
 		- Filter Audio:
-			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]showwaves=s=1280x720:mode=cline:colors=#00FF00|#FF00FF,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy output_waves.mp4
-			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]showcqt=s=1280x720,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy output_waves.mp4
-			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]showfreqs=s=1280x720,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy output_waves.mp4
-			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]avectorscope=s=1280x720,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy output_waves.mp4
-			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]avectorscope=s=1280x720:draw=line,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy output_waves.mp4
-			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]showwaves=s=1920x1080:mode=cline:colors=cyan|magenta:scale=sqrt,eq=gamma=2.0[v]" -map "[v]" -map 0:a -c:a copy output_waves.mp4
+			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]showwaves=s=1280x720:mode=cline:colors=#00FF00|#FF00FF,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy outfile.mp4
+			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]showcqt=s=1280x720,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy outfile.mp4
+			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]showfreqs=s=1280x720,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy outfile.mp4
+			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]avectorscope=s=1280x720,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy outfile.mp4
+			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]avectorscope=s=1280x720:draw=line,format=yuv420p[v]" -map "[v]" -map 0:a -c:a copy outfile.mp4
+			- ffmpeg -i inFile.mp4 -filter_complex "[0:a]showwaves=s=1920x1080:mode=cline:colors=cyan|magenta:scale=sqrt,eq=gamma=2.0[v]" -map "[v]" -map 0:a -c:a copy outfile.mp4
 
 		- OBS | STREAM | WRITE DESKTOP
 			- ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -crf 0 -threads 0 -y output.mp4
+			- ffmpeg -f gdigrab -framerate 60 -video_size 1440x900 -i desktop -vcodec libx264 -preset medium -crf 0 -threads 0 -y output_1.mp4
 
 
 	*/

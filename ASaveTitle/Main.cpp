@@ -144,7 +144,7 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 	case WM_CHAR:
-		AsMain::Main_Window->Engine.Redraw_Frame(wParam == 13 ? EUI_Builder_Handler::EBH_UI_Button : EUI_Builder_Handler::EBH_UI_Button, wParam, lParam);  // if Enter
+		AsMain::Main_Window->Engine.Redraw_Frame(EUI_Builder_Handler::EBH_UI_Button, wParam, lParam);  // if Enter
 		break;
 
 

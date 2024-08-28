@@ -38,7 +38,10 @@ AsExamples::AsExamples(const EShow_Preview show_preview)
 		Display_Map_Pair_Ptr();
 		break;
 	case EShow_Preview::EP_Show_FFmpeg_Ex:
-		Display_Ffmpeg_Examples();
+		Display_FFmpeg_Commands();
+		break;
+	case EShow_Preview::EP_Show_FFMpeg_Example:
+		Display_FFmpeg_Examples();
 		break;
 	}
 }
@@ -185,7 +188,7 @@ void AsExamples::Display_Map_Pair_Ptr()
 	delete Base_Array;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsExamples::Display_Ffmpeg_Examples()
+void AsExamples::Display_FFmpeg_Commands()
 {//  ffmpeg -i inFile.mp3 outfile.mp3
 
 	// Command Line Examples ffmpeg
@@ -257,5 +260,39 @@ void AsExamples::Display_Ffmpeg_Examples()
 
 
 	*/
+}
+//------------------------------------------------------------------------------------------------------------
+void AsExamples::Display_FFmpeg_Examples()
+{
+	const char *file_name = "Temp.mp4";
+	unsigned int i = 0;
+	unsigned int stream_num = 0;
+	AVCodecID codec_type = AV_CODEC_ID_NONE;
+	AVFormatContext *format_context;
+	AVStream *stream = 0;
+
+	if (!(format_context = avformat_alloc_context() ) )
+		return;
+	
+	if (avformat_open_input(&format_context, file_name, 0, 0) != 0)
+		return;
+
+	stream_num = format_context->nb_streams;
+	for (i = 0; i < stream_num; i++)
+	{
+		stream = format_context->streams[i];  // check all streams
+		codec_type = stream->codecpar->codec_id;  // Get Codec id(name, type) ENUM
+
+		const AVCodec *curr_codec = avcodec_find_decoder(codec_type);  //
+		if (!curr_codec)
+			return;
+		
+		if (curr_codec->type == AVMEDIA_TYPE_VIDEO)  // If type Vide do what we want || Can do the same with audio
+			return;
+
+		int yy = 0;
+	}
+
+
 }
 //------------------------------------------------------------------------------------------------------------

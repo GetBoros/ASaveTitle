@@ -14,6 +14,7 @@ enum class EShow_Preview : int
 	EP_Show_String_Replace,  // Example how to handle string, replace, find texts
 	EP_Show_Std_Map_Pair_Ptrs,  // Example how tu use ptr Maps and pairs
 	EP_Show_FFmpeg_Ex,  // Example, commands and how to use ffmpeg
+	EP_Show_FFMpeg_Example,
 	Last
 };
 
@@ -35,6 +36,7 @@ private:
 	void Display_Cast_Exam();
 	void Display_Replace_S();  // Example how replace std::string
 	void Display_Map_Pair_Ptr();
-	void Display_Ffmpeg_Examples();
+	void Display_FFmpeg_Commands();
+	void Display_FFmpeg_Examples();
 };
 //------------------------------------------------------------------------------------------------------------

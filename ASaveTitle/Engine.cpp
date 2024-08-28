@@ -377,52 +377,58 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
   Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0),
   User_Map_Active(0), User_Map_Ptr(0), User_Map_Library(0), User_Map_Paused(0), User_Map_Wishlist(0), User_Input(0)
 {
-	auto user_map_loaders = [&]()
-		{
-			User_Map_Ptr = new std::map<wchar_t *, S_Extend *, SCmp_Char>;
-			User_Map_Load("Data/Watching.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
-			for (auto &it : *User_Map_Ptr)  // Convert to User_Map_Ptr
-				Convert_Data(it.first, it.second);
-		};
-
-	auto user_map_library = [&]()
-		{
-			User_Map_Library = new std::map<wchar_t *, S_Extend *, SCmp_Char>;
-			User_Map_Load("Data/Library.bin", *User_Map_Library);  // Load from file and add to User_Map_Library
-			for (auto &it : *User_Map_Library)  // Convert to User_Map_Library
-				Convert_Data(it.first, it.second);
-		};
-
-	auto user_map_paused = [&]()
-		{
-			User_Map_Paused = new std::map<wchar_t*, S_Extend*, SCmp_Char>;
-			User_Map_Load("Data/Paused.bin", *User_Map_Paused);  // Load from file and add to User_Map_Paused
-			for (auto& it : *User_Map_Paused)  // Convert to User_Map_Paused
-				Convert_Data(it.first, it.second);
-		};
-
-	auto user_map_wishlist = [&]()
-		{
-			User_Map_Wishlist = new std::map<wchar_t*, S_Extend*, SCmp_Char>;
-			User_Map_Load("Data/Wishlist.bin", *User_Map_Wishlist);  // Load from file and add to User_Map_Wishlist
-			for (auto& it : *User_Map_Wishlist)  // Convert to User_Map_Wishlist
-				Convert_Data(it.first, it.second);
-		};
+	User_Map_Ptr = new std::map<wchar_t *, S_Extend *, SCmp_Char>;
+	User_Map_Load("Data/Watching.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
+	for (auto &it : *User_Map_Ptr)  // Convert to User_Map_Ptr
+		Convert_Data(it.first, it.second);
 
 
-	// THREAD FIRST
-	std::thread thread_wch(user_map_loaders);
-	std::thread thread_lib(user_map_library);
-	std::thread thread_psd(user_map_paused);
-	std::thread thread_wsh(user_map_wishlist);
+	//auto user_map_loaders = [&]()
+	//	{
+	//		User_Map_Ptr = new std::map<wchar_t *, S_Extend *, SCmp_Char>;
+	//		User_Map_Load("Data/Watching.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
+	//		for (auto &it : *User_Map_Ptr)  // Convert to User_Map_Ptr
+	//			Convert_Data(it.first, it.second);
+	//	};
+
+	//auto user_map_library = [&]()
+	//	{
+	//		User_Map_Library = new std::map<wchar_t *, S_Extend *, SCmp_Char>;
+	//		User_Map_Load("Data/Library.bin", *User_Map_Library);  // Load from file and add to User_Map_Library
+	//		for (auto &it : *User_Map_Library)  // Convert to User_Map_Library
+	//			Convert_Data(it.first, it.second);
+	//	};
+
+	//auto user_map_paused = [&]()
+	//	{
+	//		User_Map_Paused = new std::map<wchar_t*, S_Extend*, SCmp_Char>;
+	//		User_Map_Load("Data/Paused.bin", *User_Map_Paused);  // Load from file and add to User_Map_Paused
+	//		for (auto& it : *User_Map_Paused)  // Convert to User_Map_Paused
+	//			Convert_Data(it.first, it.second);
+	//	};
+
+	//auto user_map_wishlist = [&]()
+	//	{
+	//		User_Map_Wishlist = new std::map<wchar_t*, S_Extend*, SCmp_Char>;
+	//		User_Map_Load("Data/Wishlist.bin", *User_Map_Wishlist);  // Load from file and add to User_Map_Wishlist
+	//		for (auto& it : *User_Map_Wishlist)  // Convert to User_Map_Wishlist
+	//			Convert_Data(it.first, it.second);
+	//	};
+
+
+	//// THREAD FIRST
+	//std::thread thread_wch(user_map_loaders);
+	//std::thread thread_lib(user_map_library);
+	//std::thread thread_psd(user_map_paused);
+	//std::thread thread_wsh(user_map_wishlist);
 
 	Init();
 	Draw_Menu_Main();
 
-	thread_wch.detach();
-	thread_lib.detach();
-	thread_psd.detach();
-	thread_wsh.detach();
+	//thread_wch.detach();
+	//thread_lib.detach();
+	//thread_psd.detach();
+	//thread_wsh.detach();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam)
@@ -863,7 +869,8 @@ void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, S_Ex
 	unsigned long long ull_char = 0;
 	unsigned long long ull_index = 0;
 	unsigned long long ull_number = 0;
-	
+	S_Extend *buffer = {};
+
 	std::ifstream infile(file_path, std::ios::binary);
 	if (!infile)
 		return;
@@ -903,9 +910,11 @@ void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, S_Ex
 				user_input[str] = L'\0';  // Title end here
 				user_input[0] = user_input[0] - 32;  // Upper Case first char
 
-				to_map = new wchar_t[wcslen(user_input) + 1] {};
+				buffer = new S_Extend{};
+				buffer->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
+				to_map = buffer->Title_Name_Num;
 				wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-				map.emplace(to_map, new S_Extend{} );
+				map.emplace(to_map, buffer);
 
 				
 				is_add_to_user_array = false;  // look next numbers

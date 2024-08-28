@@ -1,11 +1,4 @@
 ﻿#include "Main.h"
-//extern "C"
-//{
-//#include <libavformat/avformat.h>
-//#include <libavcodec/avcodec.h>
-//#include <libswscale/swscale.h>
-//#include <libavutil/imgutils.h>
-//}
 
 // Singlton
 AsMain *AsMain::Main_Window = 0;
@@ -19,21 +12,8 @@ AsMain *AsMain::Main_Window = 0;
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
 	// Tutorial
-	/*
-		AsExamples *examples = new AsExamples(EShow_Preview::STD_Map_Pair_Ptrs);
+	/*AsExamples *examples = new AsExamples(EShow_Preview::EP_Show_FFMpeg_Example);*/
 
-			const char* url = "99.mp4";
-	const AVInputFormat *fmt = 0;
-	AVDictionary** options = 0;
-	AVFormatContext **FormatContext = 0;
-
-	if (avformat_open_input(FormatContext, url, fmt, options) )
-		return 0;
-
-	return 0;
-
-	*/
-	
 	return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not
 }
 //------------------------------------------------------------------------------------------------------------

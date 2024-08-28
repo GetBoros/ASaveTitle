@@ -5,7 +5,15 @@
 #define WIN32_LEAN_AND_MEAN
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
-// My Include
+// My Includes
+extern "C"
+{// FFMPEG
+#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libswscale/swscale.h>
+#include <libavutil/imgutils.h>
+}
+
 #include "resource.h"
 #include "fstream"  // SAVE || LOAD
 #include "map"  // STL || 
@@ -20,6 +28,7 @@
 #include <cwchar>  // wcstombs_s
 #include <mutex>
 #include <bitset>  // std::bitset || std::byte
+
 
 // TEMP
 /*

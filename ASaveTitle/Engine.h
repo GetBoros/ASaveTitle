@@ -185,6 +185,8 @@ private:
 	void Context_Image_Restore(RECT &rect);  // redraw image
 	// Map Manipulations
 	void Convert_Data_Extented(wchar_t *user_input, S_Extend *&data);  // !!! Refactoring some day || Get Info from User Input
+	void Handle_Season(wchar_t *ptr, int &result, int &season_length);
+	void Convert_Data_Pro(wchar_t *user_input, S_Extend *&data);  // !!! Refactoring some day || Get Info from User Input
 	void Convert_Data(wchar_t *user_input, S_Extend *&data);  // !!! Refactoring some day || Get Info from User Input
 	void Erase_Data(std::map<wchar_t *, S_Extend *, SCmp_Char> &map);  // Free All memory
 	void User_Map_Load(const char *file_path, std::map<wchar_t *, S_Extend *, SCmp_Char> &map);  //Load from file || !!! Can be refactored

@@ -350,14 +350,18 @@ AsUI_Builder::~AsUI_Builder()
 	if (H_Bitmap != 0)
 		DeleteObject(H_Bitmap);
 
-	User_Map_Save("Data/Watching.bin", *User_Map_Ptr);  // Thread 1
-	User_Map_Save("Data/Library.bin", *User_Map_Library);  // Thread 2
-	User_Map_Save("Data/Paused.bin", *User_Map_Paused);  // Thread 3
-	User_Map_Save("Data/Wishlist.bin", *User_Map_Wishlist);  // Thread 4
+	User_Map_Save("99.bin", *User_Map_Ptr);  // Thread 1
 	Erase_Data(*User_Map_Ptr);  // Thread 1
-	Erase_Data(*User_Map_Library);  // Thread 2
-	Erase_Data(*User_Map_Paused);  // Thread 3
-	Erase_Data(*User_Map_Wishlist);  // Thread 4
+
+
+	//User_Map_Save("Data/Watching.bin", *User_Map_Ptr);  // Thread 1
+	//User_Map_Save("Data/Library.bin", *User_Map_Library);  // Thread 2
+	//User_Map_Save("Data/Paused.bin", *User_Map_Paused);  // Thread 3
+	//User_Map_Save("Data/Wishlist.bin", *User_Map_Wishlist);  // Thread 4
+	//Erase_Data(*User_Map_Ptr);  // Thread 1
+	//Erase_Data(*User_Map_Library);  // Thread 2
+	//Erase_Data(*User_Map_Paused);  // Thread 3
+	//Erase_Data(*User_Map_Wishlist);  // Thread 4
 
 	// 1.4. 
 	for (i = 0; i < (int)EPress::Exit; i++)
@@ -378,9 +382,7 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
   User_Map_Active(0), User_Map_Ptr(0), User_Map_Library(0), User_Map_Paused(0), User_Map_Wishlist(0), User_Input(0)
 {
 	User_Map_Ptr = new std::map<wchar_t *, S_Extend *, SCmp_Char>;
-	User_Map_Load("Data/Watching.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
-	for (auto &it : *User_Map_Ptr)  // Convert to User_Map_Ptr
-		Convert_Data(it.first, it.second);
+	User_Map_Load("99.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
 
 
 	//auto user_map_loaders = [&]()
@@ -914,9 +916,10 @@ void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, S_Ex
 				buffer->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
 				to_map = buffer->Title_Name_Num;
 				wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-				map.emplace(to_map, buffer);
-
 				
+				Convert_Data_Pro(to_map, buffer);// Convert Data
+				map.emplace(buffer->Title_Name_Key, buffer);  // Add to map
+
 				is_add_to_user_array = false;  // look next numbers
 				str = 0;
 			}
@@ -930,9 +933,13 @@ void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, S_Ex
 			user_input[str] = L'\0';  // say it`s end
 			user_input[0] = user_input[0] - 32;  // Set Upper Case first symbol
 
-			to_map = new wchar_t[wcslen(user_input) + 1] {};
+			buffer = new S_Extend{};
+			buffer->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
+			to_map = buffer->Title_Name_Num;
 			wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-			map.emplace(to_map, new S_Extend{});
+				
+			Convert_Data_Pro(to_map, buffer);// Convert Data
+			map.emplace(buffer->Title_Name_Key, buffer);  // Add to map
 		}
 	}
 	infile.close();
@@ -985,6 +992,65 @@ void AsUI_Builder::Convert_Data_Extented(wchar_t* user_input, S_Extend*& data)
 
 	data->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
 	wcsncpy_s(data->Title_Name_Num, wcslen(user_input) + 1, user_input, wcslen(user_input) );
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Season(wchar_t *ptr, int &result, int &season_length)
+{
+	int i = 0;
+
+	season_length = 0;
+
+	if (*ptr != L'i' && *ptr != L'x' && *ptr != L'v')
+		return;
+
+	while (*ptr != ' ')
+	{
+		*(ptr--) = std::toupper(*ptr);
+		season_length++;
+	}
+	*ptr = L'\0';
+	ptr += 1;
+	*(ptr + season_length) = L'\0';
+
+	for (i = 0; i < 10; i++)
+		if (wcscmp(ptr, AsConfig::Season_Case_Up[i]) == 0)
+		{
+			result = i + 1;
+			break;
+		}
+
+	*(ptr + season_length) = L' ';
+	*(ptr - 1) = L' ';
+	season_length++;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Convert_Data_Pro(wchar_t *user_input, S_Extend *&data)
+{
+	unsigned short current_ch;
+	int user_input_length;
+	int temp = 0;
+
+	user_input_length = (int)wcslen(user_input) - 1;  // length without 0
+	current_ch = (unsigned short)user_input[user_input_length];  // get last index char
+
+	while (current_ch == L' ' || current_ch >= 48 && current_ch <= 57)
+	{// Get NUM and Seasons Data
+
+		if (current_ch == L' ')
+			if (data->Title_Num == 0)
+				data->Title_Num = std::stoi(user_input + user_input_length + 1);  // Get NUM Title
+			else
+				data->Title_Season = std::stoi(user_input + user_input_length + 1);  // Get Season Title
+
+		current_ch = (unsigned short)user_input[--user_input_length];  // go to prev index and get ch
+		if (data->Title_Num != 0)
+			Handle_Season(user_input + user_input_length, data->Title_Season, temp);
+	}
+	
+	user_input_length -= temp;  // 1 for space
+	user_input_length += 1;  // Set to next index |
+	data->Title_Name_Key = new wchar_t[user_input_length + 1] {};  // + 1 '\0'
+	wcsncpy_s(data->Title_Name_Key, user_input_length + 1, user_input, user_input_length);  // Get Title Name Key
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Convert_Data(wchar_t *user_input, S_Extend *&data)
@@ -1078,7 +1144,6 @@ void AsUI_Builder::Erase_Data(std::map<wchar_t *, S_Extend *, SCmp_Char> &map)
 		delete it->second->Title_Name_Key;
 		delete it->second->Title_Name_Num;
 		delete it->second;
-		delete it->first;
 
 		it = map.erase(it);
 	}

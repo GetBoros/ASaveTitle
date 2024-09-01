@@ -15,6 +15,7 @@ public:
 	static const char Pattern_Default[];
 	static const char *Settings[];
 	static const char *Folders_Save[];
+	static const char *Saved_Path[];
 	static const char *Temporary_File_Name[];
 
 	static const int Invalid_Chars_Len = 3;

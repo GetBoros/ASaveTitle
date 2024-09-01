@@ -5,15 +5,6 @@
 //------------------------------------------------------------------------------------------------------------
 const int Timer_ID = WM_USER + 1;
 //------------------------------------------------------------------------------------------------------------
-enum class EUser_Arrays : byte
-{
-	EUA_Watching,
-	EUA_Library,
-	EUA_Paused,
-	EUA_Wishlist,
-	EUA_Arrays_Count
-};
-//------------------------------------------------------------------------------------------------------------
 enum EActive_Menu
 {
 	EAM_Main = -1,
@@ -64,10 +55,19 @@ enum class EUI_Builder_Handler : int
 	EBH_UI_Last
 };
 //------------------------------------------------------------------------------------------------------------
-enum class EActive_Button : int
+enum class EUser_Arrays : byte
 {
-	EAB_Main_Menu = -1,
-	EAB_Sub_Menu = 0
+	EUA_Watching,
+	EUA_Library,
+	EUA_Paused,
+	EUA_Wishlist,
+	EUA_Arrays_Count
+};
+//------------------------------------------------------------------------------------------------------------
+enum class EActive_Button : byte
+{
+	EAB_Main_Menu,
+	EAB_Sub_Menu
 };
 //------------------------------------------------------------------------------------------------------------
 enum class EPress : int
@@ -145,7 +145,7 @@ private:
 
 
 // AsUI_Builder
-class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. | 520 : 22.08.2024 | 168 : 25.08.2024 | 160 : 01.09.2024 |
+class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. | 520 : 22.08.2024 | 168 : 25.08.2024 | 128 : 01.09.2024 |
 {// !!! Draw UI, Handle User Inputs, Load Save Data, 
 
 public:
@@ -155,7 +155,7 @@ public:
 	void Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 
 	EActive_Menu Active_Menu;
-	EUser_Arrays User_Map;
+	EUser_Arrays Active_Map;
 	HDC Ptr_Hdc;
 
 private:
@@ -170,7 +170,7 @@ private:
 	void Draw_Button_User_Input() const;  // Show user_input in sub menu
 	
 	void Redraw_Buttons_Menu_Main();  // Draw and Redraw Active Buttons in nice color
-	void Redraw_Buttons_Menu_Sub();  // Draw and Redraw Active Buttons in nice color
+	void Redraw_Buttons_Menu_Sub();  // Draw and Redraw Active And Prev Buttons 
 	void Redraw_Buttons_Menu_Context(RECT &rect);  // restore image
 	void Redraw_Buttons_Request();  // Draw Request raise or decrease series
 	void Redraw_Button_User_Input(const wchar_t &text);  // Add and show input to User_Input Buttons
@@ -201,9 +201,12 @@ private:
 	int Button_User_Offset;  // Help Draw Buttons Menu Sub draw currect buttons while in next or prev page
 	int Button_Menu_Main_Prev;  // Need to redraw prev menu main button, store value
 	int Button_Menu_Sub_Prev;  // Need to redraw prev menu sub button, store value
+	
+	// !!! Refactoring to byte and add Active_Map
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
 	EPage_Button Active_Page;
 	EPress Border_Pressed;
+
 	RECT **Borders_Rect;  // Storage for all border rects
 	RECT *Mouse_Cord_Destination;
 	RECT *Mouse_Cord;
@@ -212,7 +215,6 @@ private:
 	HGDIOBJ Saved_Object;
 
 	std::map<wchar_t *, STitle_Info *, SCmp_Char> **User_Maps;
-	std::map<wchar_t *, STitle_Info *, SCmp_Char> *User_Map_Active;  // Get ptr to current active menu choosed while pressed on main menu
 	std::map<wchar_t *, STitle_Info *>::iterator It_User_Map_Active;
 };
 //------------------------------------------------------------------------------------------------------------

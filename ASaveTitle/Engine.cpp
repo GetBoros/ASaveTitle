@@ -344,74 +344,62 @@ size_t ACurl_Client::Write_To_File(void *ptr, size_t size, size_t nmemb, FILE *s
 AsUI_Builder::~AsUI_Builder()
 {
 	int i = 0;
+	std::vector<std::thread> threads_temp;
+	
 	// 1.2 Save covered image sys
 	if (Hdc_Memory != 0)
 		DeleteDC(Hdc_Memory);
 	if (H_Bitmap != 0)
 		DeleteObject(H_Bitmap);
 
-	// !!!
-	const char* fileNames[] = { "Data/Watching.bin", "Data/Library.bin", "Data/Paused.bin", "Data/Wishlist.bin" };
-	std::vector<std::thread> threads_temp;
-
-	// Save and Exit
+	// 1.3. Save and free memmory
 	for (i = 0; i < (int)EUser_Arrays::EUA_Arrays_Count; ++i)
 	{
 		threads_temp.emplace_back([&, i]()
-			{
-				User_Map_Save(fileNames[i], *User_Maps[i]);
+			{ 
+				User_Map_Save(AsConfig::Saved_Path[i], *User_Maps[i]);
 				User_Map_Free(*User_Maps[i]);  // Thread 1
-
 			});
 	}
 
-	for (std::thread& thread : threads_temp)
-		thread.join();
-
-	It_User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Watching]->begin();
-	It_User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Library]->begin();
-	It_User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Paused]->begin();
-	It_User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Wishlist]->begin();
-
-	// 1.4. 
+	// 1.4. Free memory
 	for (i = 0; i < (int)EPress::Button_Not_Handled; i++)
 		delete[] Borders_Rect[i];
 
-	// 1.5 Free memory
 	delete[] Borders_Rect;
 	delete[] User_Input;
 
 	delete Mouse_Cord_Destination;
 	delete Mouse_Cord;
+
+	for (std::thread& thread : threads_temp)
+		thread.join();
 }
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::AsUI_Builder(HDC hdc)
-: Active_Menu(EAM_Main), User_Map(EUser_Arrays::EUA_Arrays_Count), Ptr_Hdc(hdc), User_Input(0), Button_User_Offset(0), Button_Menu_Main_Prev(0), Button_Menu_Sub_Prev(99),
+: Active_Menu(EAM_Main), Active_Map(EUser_Arrays::EUA_Arrays_Count), Ptr_Hdc(hdc), User_Input(0), Button_User_Offset(0), Button_Menu_Main_Prev(0), Button_Menu_Sub_Prev(99),
   Active_Button(EActive_Button::EAB_Main_Menu), Active_Page(EPage_Button::EPB_None),
   Border_Pressed(EPress::Border_None), Borders_Rect{}, Mouse_Cord_Destination(0), Mouse_Cord(0),
-  Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}, User_Map_Active(0)
+  Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}
 {
-	const char *fileNames[] = { "Data/Watching.bin", "Data/Library.bin", "Data/Paused.bin", "Data/Wishlist.bin" };
 	int i;
 	std::vector<std::thread> threads;
 
 	User_Maps = new std::map<wchar_t *, STitle_Info *, SCmp_Char> *[(int)EUser_Arrays::EUA_Arrays_Count] {};
 
-	// Load Init
 	for (i = 0; i < (int)EUser_Arrays::EUA_Arrays_Count; ++i)
 	{
 		threads.emplace_back([&, i]()
 			{
 				User_Maps[i] = new std::map<wchar_t *, STitle_Info *, SCmp_Char> {};
-				User_Map_Load(fileNames[i], *User_Maps[i]);
+				User_Map_Load(AsConfig::Saved_Path[i], *User_Maps[i]);
 			});
 	}
 
-	for (std::thread &thread : threads)
-		thread.join();
-
 	Init();
 	Draw_Buttons_Menu_Main();
+	for (std::thread& thread : threads)
+		thread.detach();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam)
@@ -492,7 +480,7 @@ void AsUI_Builder::Handle_User_Input()
 	}
 
 	// 2.0. Find Title index
-	it_distance = (int)std::distance(User_Map_Active->begin(), It_User_Map_Active);
+	it_distance = (int)std::distance(User_Maps[(int)Active_Map]->begin(), It_User_Map_Active);
 	if (it_distance > AsConfig::Max_Line)
 		Button_User_Offset += AsConfig::Max_Line;
 
@@ -539,8 +527,8 @@ void AsUI_Builder::Handle_Title_Info(wchar_t *ptr)
 	// 1.2. Get Name Num And Name Key
 	while (*(++ptr) != L'\0')
 		*ptr = std::towlower(*ptr);
-	It_User_Map_Active = User_Map_Active->find(title_name_num);
-	if (!(It_User_Map_Active != User_Map_Active->end() ) )
+	It_User_Map_Active = User_Maps[(int)Active_Map]->find(title_name_num);
+	if (!(It_User_Map_Active != User_Maps[(int)Active_Map]->end() ) )
 	{// If doesn`t exist create and add to active map
 		data = new STitle_Info();
 
@@ -566,7 +554,7 @@ void AsUI_Builder::Handle_Title_Info(wchar_t *ptr)
 		// 1.2.c. Title_Num && Title_Season
 		data->Title_Num = title_num;
 		data->Title_Season = title_season;  // If season need something to do
-		It_User_Map_Active = User_Map_Active->emplace(data->Title_Name_Key, data).first;
+		It_User_Map_Active = User_Maps[(int)Active_Map]->emplace(data->Title_Name_Key, data).first;
 	}
 	else
 	{
@@ -774,8 +762,8 @@ void AsUI_Builder::Draw_Buttons_Menu_Sub()
 	Draw_Button(border_rect, Borders_Rect[(int)EPress::Button_User_Input][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
 
 	// 1.3. Handle Page setting if more that we can have do nothing
-	it = User_Map_Active->begin();
-	if (Button_User_Offset > User_Map_Active->size() )  // if next page don`t have buttons to draw stay at current page
+	it = User_Maps[(int)Active_Map]->begin();
+	if (Button_User_Offset > User_Maps[(int)Active_Map]->size() )  // if next page don`t have buttons to draw stay at current page
 		Button_User_Offset -= AsConfig::Max_Line;
 	std::advance(it, Button_User_Offset);
 
@@ -788,7 +776,7 @@ void AsUI_Builder::Draw_Buttons_Menu_Sub()
 	}
 
 	// 1.4. Draw All buttons
-	for (curr_line = 0; it != User_Map_Active->end(); ++it)
+	for (curr_line = 0; it != User_Maps[(int)Active_Map]->end(); ++it)
 	{
 		if (curr_line < AsConfig::Max_Line)
 			Draw_Button(border_rect, Borders_Rect[(int)EPress::Buttons_User_Input][curr_line], it->second->Title_Name_Num);
@@ -912,7 +900,7 @@ void AsUI_Builder::Redraw_Buttons_Menu_Sub()
 
 	while (index < 2)
 	{
-		It_User_Map_Active = User_Map_Active->begin();  // Button_Menu_Sub_Prev || Clear button
+		It_User_Map_Active = User_Maps[(int)Active_Map]->begin();  // Button_Menu_Sub_Prev || Clear button
 		std::advance(It_User_Map_Active, index == 0 ? (int)Button_Menu_Sub_Prev : (int)Active_Button);
 		text = It_User_Map_Active->second->Title_Name_Num;
 		Draw_Button_Text(index == 0 ? true : false, index == 0 ? prev_button : curr_button, text);
@@ -1281,16 +1269,16 @@ void AsUI_Builder::Handle_Menu_Main()
 	switch (Active_Menu = (EActive_Menu)i )
 	{
 	case EAM_Watching:
-		User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Watching];
+		Active_Map = EUser_Arrays::EUA_Watching;
 		break;
 	case EAM_Library_Menu:
-		User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Library];
+		Active_Map = EUser_Arrays::EUA_Library;
 		break;
 	case EAM_Paused_Menu:
-		User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Paused];
+		Active_Map = EUser_Arrays::EUA_Paused;
 		break;
 	case EAM_Wishlist:
-		User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Wishlist];
+		Active_Map = EUser_Arrays::EUA_Wishlist;
 		break;
 	}
 
@@ -1396,14 +1384,14 @@ void AsUI_Builder::Handle_Menu_Context()
 		delete It_User_Map_Active->second->Title_Name_Key;
 		delete It_User_Map_Active->second->Title_Name_Num;
 		delete It_User_Map_Active->second;
-		User_Map_Active->erase(It_User_Map_Active);
+		User_Maps[(int)Active_Map]->erase(It_User_Map_Active);
 		break;
 	}
 
 	if (map != 0)
 	{
 		map->insert(std::make_pair(It_User_Map_Active->first, std::move(It_User_Map_Active->second) ) );
-		User_Map_Active->erase(It_User_Map_Active->first);  // Errase from map
+		User_Maps[(int)Active_Map]->erase(It_User_Map_Active->first);  // Errase from map
 	}
 
 	Active_Button = EActive_Button::EAB_Main_Menu;

@@ -15,7 +15,7 @@ enum class EShow_Preview : int
 	EP_Show_Std_Map_Pair_Ptrs,  // Example how tu use ptr Maps and pairs
 	EP_Show_FFmpeg_Ex,  // Example, commands and how to use ffmpeg
 	EP_Show_FFMpeg_Example,
-	Last
+	EP_Show_Last
 };
 
 // AsExamples

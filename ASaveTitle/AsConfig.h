@@ -21,10 +21,12 @@ public:
 	static const int Patterns_Length = 7;
 	static constexpr int Menu_Main_Button_Count = 6;
 	static constexpr int Context_Button_Count = Menu_Main_Button_Count - 1;
+
 	static const wchar_t Pattern_Default_Bin[];
 	static const wchar_t Pattern_Default_TXT[];
 	static const wchar_t Main_Image_Folder[];
 	static const wchar_t Image_Folder[];
+	static const wchar_t Image_Format[];
 	static const wchar_t Main_Menu_Title_Name[];
 	static const wchar_t Sub_Menu_Title[];
 	static const wchar_t Sub_Menu_User_Input_Title[];

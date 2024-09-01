@@ -5,6 +5,35 @@
 //------------------------------------------------------------------------------------------------------------
 const int Timer_ID = WM_USER + 1;
 //------------------------------------------------------------------------------------------------------------
+enum class EUser_Arrays : byte
+{
+	EUA_Watching,
+	EUA_Library,
+	EUA_Paused,
+	EUA_Wishlist,
+	EUA_Arrays_Count
+};
+//------------------------------------------------------------------------------------------------------------
+enum EActive_Menu
+{
+	EAM_Main = -1,
+	EAM_Watching = 0,
+	EAM_Library_Menu,
+	EAM_Paused_Menu,
+	EAM_Wishlist,
+	EAM_Erase,
+	EAM_Exit
+};
+//------------------------------------------------------------------------------------------------------------
+enum EPage_Button
+{
+	EPB_None = -1,
+	EPB_Update = 0,
+	EPB_Prev,
+	EPB_Next,
+	EPB_Last
+};
+//------------------------------------------------------------------------------------------------------------
 enum class EPatterns_Site : byte
 {
 	Title_Bgn = 0,
@@ -30,12 +59,9 @@ enum class EUI_Builder_Handler : int
 	EBH_LM_Button,
 	EBH_RM_Button,
 	EBH_UI_Button,
-	//TEMP
-	Draw_Full_Window,
-	Draw_Menu_Main,
-	Draw_Menu_Sub,
-	//TEMP END
-	Last
+	EBH_UI_Menu_Main,
+	EBH_UI_Menu_Sub,
+	EBH_UI_Last
 };
 //------------------------------------------------------------------------------------------------------------
 enum class EActive_Button : int
@@ -44,27 +70,24 @@ enum class EActive_Button : int
 	EAB_Sub_Menu = 0
 };
 //------------------------------------------------------------------------------------------------------------
-enum EActive_Menu
-{
-	EAM_Main = -1,
-	EAM_Watching = 0,
-	EAM_Library_Menu,
-	EAM_Paused_Menu,
-	EAM_Wishlist,
-	EAM_Erase,
-	EAM_Exit
+enum class EPress : int
+{// Press at border
+
+	Border_None = -1,
+	Border_Menu_Main = 0,  // V Border Main Menu
+	Border_Menu_Context,  // V Border Context Menu
+	Border_Menu_Sub,  // V Border Sub Menu
+	Non_Bordered,
+	Button_User_Input,  // V Button to input text
+	Button_Reguest,  // V Buttons - or + series
+	Button_Pages,  // V Buttons Choose Page
+	Buttons_User_Input,  // V Buttons Titles
+	Button_Context,  // V Buttons Contexts
+	Button_Menu_Main,  // V Buttons Main Menu
+	Button_Not_Handled
 };
 //------------------------------------------------------------------------------------------------------------
-enum EPage
-{
-	None = -1,
-	Update = 0,
-	Prev,
-	Next,
-	Last
-};
-//------------------------------------------------------------------------------------------------------------
-struct S_Extend
+struct STitle_Info
 {
 	wchar_t *Title_Name_Key = 0;  // Title without season and num
 	wchar_t *Title_Name_Num = 0;  // Title with season and num
@@ -78,23 +101,6 @@ struct SCmp_Char
 	{
 		return std::wcscmp(a, b) < 0;
 	}
-};
-//------------------------------------------------------------------------------------------------------------
-enum class EPress : int
-{// Press at border
-
-	None = -1,
-	Menu_Main = 0,  // V Border Main Menu
-	Menu_Context,  // V Border Context Menu
-	Menu_Sub,  // V Border Sub Menu
-	Non_Bordered,
-	User_Input_Handler,  // V Button to input text
-	Button_Reguest,  // V Buttons - or + series
-	Button_Pages,  // V Buttons Choose Page
-	Buttons_User_Input,  // V Buttons Titles
-	Button_Context,  // V Buttons Contexts
-	Button_Menu_Main,  // V Buttons Main Menu
-	Exit
 };
 //------------------------------------------------------------------------------------------------------------
 
@@ -114,7 +120,7 @@ public:
 private:
 	void Init();
 	void CURL_Handler();  // !!! Need Refactoring
-
+	
 	// Done | Parsing Site, Get Title Name(num, season) and Download Image
 	void Add_Pattern_File();  // Create File for user`s can set prefered patterns to curl || 164
 	void Get_ID();  // Handle ID_Content_Array | Save / Load Array | Resize Array | Tested only Anime-bit
@@ -139,8 +145,8 @@ private:
 
 
 // AsUI_Builder
-class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. | 520 : 22.08.2024 | 168 : 25.08.2024
-{// !!! Build UI, Handle User Inputs, Load Save Content, 
+class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. | 520 : 22.08.2024 | 168 : 25.08.2024 | 160 : 01.09.2024 |
+{// !!! Draw UI, Handle User Inputs, Load Save Data, 
 
 public:
 	~AsUI_Builder();
@@ -148,58 +154,55 @@ public:
 
 	void Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 
-	AsConfig Config;
 	EActive_Menu Active_Menu;
+	EUser_Arrays User_Arrays;
 	HDC Ptr_Hdc;
 
 private:
 	void Init();  // Do just once
-	// !!! UI Draw
+
 	void Draw_Border(RECT &border_rect) const;  // Draw border and return inner rect
 	void Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const;  // Draw Button and return free border rect space 
-	void Draw_Button_Text(const bool is_dark, const RECT &rect, const wchar_t *str);
-	// Draw UI Parts
-	void Draw_Menu_Main();
-	void Draw_Menu_Sub();  // Sub Menu draw arrays from curr active button
-	void User_Input_Draw() const;  // Show user_input in sub menu
-	void User_Input_Update(const wchar_t &text);  // Add and show input to User_Input Buttons
+	void Draw_Button_Text(const bool is_dark, const RECT &rect, const wchar_t *str) const;
+	void Draw_Buttons_Menu_Main();
+	void Draw_Buttons_Menu_Sub();  // Sub Menu draw arrays from curr active button
+	void Draw_Buttons_Menu_Context(const int &x, const int &y);  // Draw context menu and store data rect
+	void Draw_Button_User_Input() const;  // Show user_input in sub menu
 	
-	void Draw_Menu_Main_Button();  // Draw and Redraw Active Buttons in nice color
-	void Draw_Sub_Menu_Button();  // Draw and Redraw Active Buttons in nice color
-	void Draw_Button_Request();  // Draw Request raise or decrease series
-	void Draw_User_Title_Image() const;  // Draw Image reacting on Active Button
-	// Converters
-	unsigned short User_Map_Save_Convert(unsigned short ch);  // Convert title, need to save to file
-	unsigned long long User_Map_Load_Convert(unsigned long long &ch);  // Convert back and get Title
-	// Handler Input Last
+	void Redraw_Buttons_Menu_Main();  // Draw and Redraw Active Buttons in nice color
+	void Redraw_Buttons_Menu_Sub();  // Draw and Redraw Active Buttons in nice color
+	void Redraw_Buttons_Menu_Context(RECT &rect);  // restore image
+	void Redraw_Buttons_Request();  // Draw Request raise or decrease series
+	void Redraw_Button_User_Input(const wchar_t &text);  // Add and show input to User_Input Buttons
+	void Redraw_Image() const;  // Draw Image reacting on Active Button
+
 	void Handle_Button_Bordered(const EUI_Builder_Handler &builder_handlerconst, const LPARAM &lParam);
+	void Handle_Button_Request(const bool is_increment);  // Change active title num
+	void Handle_Button_Press(const RECT &mouse_cord, const int border_index, const int count, int &result);
 	void Handle_Menu_Main();
 	void Handle_Menu_Sub();
 	void Handle_Clipboard();
 	void Handle_Menu_Context();  // Send content betwen map
 	void Handle_Non_Bordered();
-	void User_Input_Value_Is_Changed(const bool is_increment);  // Change active title num
-	void Cycle_Finder(const RECT& mouse_cord, const int border_index, const int count, int& result);
-	// Draw Context Menu
-	void Context_Menu_Draw(const int &x, const int &y);  // Draw context menu and store data rect
-	void Context_Image_Restore(RECT &rect);  // redraw image
-	// Map Manipulations
-	void Convert_Data_Extented(wchar_t *user_input, S_Extend *&data);  // !!! Refactoring some day || Get Info from User Input
-	void Handle_Season(wchar_t *ptr, int &result, int &season_length);
-	void Convert_Data_Pro(wchar_t *user_input, S_Extend *&data);  // !!! Refactoring some day || Get Info from User Input
-	void Convert_Data(wchar_t *user_input, S_Extend *&data);  // !!! Refactoring some day || Get Info from User Input
-	void Erase_Data(std::map<wchar_t *, S_Extend *, SCmp_Char> &map);  // Free All memory
-	void User_Map_Load(const char *file_path, std::map<wchar_t *, S_Extend *, SCmp_Char> &map);  //Load from file || !!! Can be refactored
-	void User_Map_Save(const char *file_path, std::map<wchar_t *, S_Extend *, SCmp_Char> &map);  // Save to file User_Map_Ptr
-	void Handler_User_Input();  // Handle User input if press Enter or twice at button
+	
+	void Handle_User_Input();  // Handle User input if press Enter or twice at button
+	void Handle_Title_Info(wchar_t *ptr);
+	void Handle_Title_Info_Beta(wchar_t *user_input, STitle_Info *&data);  // !!! Refactoring some day || Do just one universal
+	void Handle_Title_Season(wchar_t *ptr, int &result, int &season_length);
+	void Handle_Title_Name_Num(const wchar_t *key, wchar_t *num, const wchar_t *season, wchar_t *result);
 
-	wchar_t *User_Input;
-	int Button_User_Offset;
-	int Prev_Main_Menu_Button;
-	int Prev_Button;
-	int Sub_Menu_Curr_Page;  // Show curr page
+	void User_Map_Load(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  //Load from file || !!! Can be refactored
+	void User_Map_Save(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  // Save to file User_Map_Ptr
+	void User_Map_Free(std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  // Free All memory
+	unsigned short User_Map_Convert_In(unsigned short ch);  // Convert title, need to save to file
+	unsigned long long User_Map_Convert_Out(unsigned long long &ch);  // Convert back and get Title
+
+	wchar_t *User_Input;  // whant std::wstring || really hard
+	int Button_User_Offset;  // Help Draw Buttons Menu Sub draw currect buttons while in next or prev page
+	int Button_Menu_Main_Prev;  // Need to redraw prev menu main button, store value
+	int Button_Menu_Sub_Prev;  // Need to redraw prev menu sub button, store value
 	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
-	EPage Active_Page;
+	EPage_Button Active_Page;
 	EPress Border_Pressed;
 	RECT **Borders_Rect;  // Storage for all border rects
 	RECT *Mouse_Cord_Destination;
@@ -208,13 +211,14 @@ private:
 	HBITMAP H_Bitmap;
 	HGDIOBJ Saved_Object;
 
-	std::map<wchar_t *, S_Extend *, SCmp_Char> *User_Map_Active;  // Get ptr to current active menu choosed while pressed on main menu
+	std::map<wchar_t *, STitle_Info *, SCmp_Char> **User_Maps;
+	std::map<wchar_t *, STitle_Info *, SCmp_Char> *User_Map_Active;  // Get ptr to current active menu choosed while pressed on main menu
 	// To Array?
-	std::map<wchar_t *, S_Extend *, SCmp_Char> *User_Map_Ptr;
-	std::map<wchar_t *, S_Extend *, SCmp_Char> *User_Map_Library;
-	std::map<wchar_t *, S_Extend *, SCmp_Char> *User_Map_Paused;
-	std::map<wchar_t *, S_Extend *, SCmp_Char> *User_Map_Wishlist;
-	std::map<wchar_t *, S_Extend *>::iterator It_User_Map_Active;
+	std::map<wchar_t *, STitle_Info *, SCmp_Char> *User_Map_Ptr;
+	std::map<wchar_t *, STitle_Info *, SCmp_Char> *User_Map_Library;
+	std::map<wchar_t *, STitle_Info *, SCmp_Char> *User_Map_Paused;
+	std::map<wchar_t *, STitle_Info *, SCmp_Char> *User_Map_Wishlist;
+	std::map<wchar_t *, STitle_Info *>::iterator It_User_Map_Active;
 };
 //------------------------------------------------------------------------------------------------------------
 
@@ -554,7 +558,7 @@ V			- Удалили старые
 V		- Починили удаление через контекстное меню
 
 V	- Посмотреть можно ли SUser_Input_Data std сделать wchar_t
-V		- Сделали поменяли на S_Extend
+V		- Сделали поменяли на STitle_Info
 
 V	- Поправить главное меню
 V	- Исправили баг с выводом тайтлом
@@ -963,9 +967,12 @@ V	- Threads load files, 4m Tacts
 	- Refactoring
 
 */
-// TASKS --- 06.08.2024 --- Current ---
+// TASKS --- 06.08.2024 - 30.08.2024 --- Current ---
 /*
-
+V	- После добавления перенести картинку в главную папку и переименувать
+V		- Need save image TemporaryName.png rename and save to Pictures/Аватар Короля
+	- Иногда багует draw page потестить, розобраться
+	- Сделать рефакторинг
 */
 
 // MAIN TASKS

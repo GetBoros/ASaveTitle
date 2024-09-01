@@ -350,21 +350,40 @@ AsUI_Builder::~AsUI_Builder()
 	if (H_Bitmap != 0)
 		DeleteObject(H_Bitmap);
 
-	User_Map_Save("99.bin", *User_Map_Ptr);  // Thread 1
-	Erase_Data(*User_Map_Ptr);  // Thread 1
+	auto user_map_loaders = [&]()  // !!! to many cpy
+		{
+			User_Map_Save("Data/Watching.bin", *User_Map_Ptr);  // Thread 1
+			User_Map_Free(*User_Map_Ptr);  // Thread 1
+		};
+
+	auto user_map_library = [&]()
+		{
+			User_Map_Save("Data/Library.bin", *User_Map_Library);  // Thread 2
+			User_Map_Free(*User_Map_Library);  // Thread 2
+		};
+
+	auto user_map_paused = [&]()
+		{
+			User_Map_Save("Data/Paused.bin", *User_Map_Paused);  // Thread 3
+			User_Map_Free(*User_Map_Paused);  // Thread 3
+		};
+
+	auto user_map_wishlist = [&]()
+		{
+			User_Map_Save("Data/Wishlist.bin", *User_Map_Wishlist);  // Thread 4
+			User_Map_Free(*User_Map_Wishlist);  // Thread 4
+		};
+
+	// THREAD FIRST
+	std::thread thread_wch(user_map_loaders);
+	std::thread thread_lib(user_map_library);
+	std::thread thread_psd(user_map_paused);
+	std::thread thread_wsh(user_map_wishlist);
 
 
-	//User_Map_Save("Data/Watching.bin", *User_Map_Ptr);  // Thread 1
-	//User_Map_Save("Data/Library.bin", *User_Map_Library);  // Thread 2
-	//User_Map_Save("Data/Paused.bin", *User_Map_Paused);  // Thread 3
-	//User_Map_Save("Data/Wishlist.bin", *User_Map_Wishlist);  // Thread 4
-	//Erase_Data(*User_Map_Ptr);  // Thread 1
-	//Erase_Data(*User_Map_Library);  // Thread 2
-	//Erase_Data(*User_Map_Paused);  // Thread 3
-	//Erase_Data(*User_Map_Wishlist);  // Thread 4
 
 	// 1.4. 
-	for (i = 0; i < (int)EPress::Exit; i++)
+	for (i = 0; i < (int)EPress::Button_Not_Handled; i++)
 		delete[] Borders_Rect[i];
 
 	// 1.5 Free memory
@@ -373,64 +392,82 @@ AsUI_Builder::~AsUI_Builder()
 
 	delete Mouse_Cord_Destination;
 	delete Mouse_Cord;
+
+	thread_wch.join();
+	thread_lib.join();
+	thread_psd.join();
+	thread_wsh.join();
+
 }
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::AsUI_Builder(HDC hdc)
-: Active_Menu(EAM_Main), Ptr_Hdc(hdc), Borders_Rect {}, Mouse_Cord_Destination(0), Mouse_Cord(0), Prev_Main_Menu_Button(0),
-  Prev_Button(99), Sub_Menu_Curr_Page(0), Active_Button(EActive_Button::EAB_Main_Menu),
-  Active_Page(EPage::None), Border_Pressed(EPress::None), Hdc_Memory(0), H_Bitmap(0), Saved_Object(0),
-  User_Map_Active(0), User_Map_Ptr(0), User_Map_Library(0), User_Map_Paused(0), User_Map_Wishlist(0), User_Input(0)
+: Active_Menu(EAM_Main), Ptr_Hdc(hdc), User_Input(0), Button_User_Offset(0), Button_Menu_Main_Prev(0), Button_Menu_Sub_Prev(99),
+  Active_Button(EActive_Button::EAB_Main_Menu), Active_Page(EPage_Button::EPB_None),
+  Border_Pressed(EPress::Border_None), Borders_Rect{}, Mouse_Cord_Destination(0), Mouse_Cord(0),
+  Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}, User_Map_Active(0),
+  User_Map_Ptr(0), User_Map_Library(0), User_Map_Paused(0), User_Map_Wishlist(0)
 {
-	User_Map_Ptr = new std::map<wchar_t *, S_Extend *, SCmp_Char>;
-	User_Map_Load("99.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
+	const char *fileNames[] = { "Data/Watching.bin", "Data/Library.bin", "Data/Paused.bin", "Data/Wishlist.bin" };
+	//std::vector<std::thread> threads;
+
+	//for (int i = 0; i < 4; ++i)
+	//{
+	//	threads.emplace_back([&, i]()
+	//		{
+	//			maps[i] = new std::map<wchar_t *, STitle_Info *, SCmp_Char>;
+	//			User_Map_Load(fileNames[i], *maps[i]);
+	//		});
+	//}
+
+	// Ожидаем завершения всех потоков
+	//for (auto& thread : threads)
+	//{
+	//	thread.join();
+	//}
+
+	User_Maps = new std::map<wchar_t *, STitle_Info *, SCmp_Char> *[(int)EUser_Arrays::EUA_Arrays_Count] {};
+	User_Maps[(int)EUser_Arrays::EUA_Watching] = new std::map<wchar_t *, STitle_Info *, SCmp_Char> {};
+	User_Map_Load("Data/Watching.bin", *User_Maps[(int)EUser_Arrays::EUA_Watching]);  // Load from file and add to User_Map_Ptr
 
 
-	//auto user_map_loaders = [&]()
-	//	{
-	//		User_Map_Ptr = new std::map<wchar_t *, S_Extend *, SCmp_Char>;
-	//		User_Map_Load("Data/Watching.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
-	//		for (auto &it : *User_Map_Ptr)  // Convert to User_Map_Ptr
-	//			Convert_Data(it.first, it.second);
-	//	};
 
-	//auto user_map_library = [&]()
-	//	{
-	//		User_Map_Library = new std::map<wchar_t *, S_Extend *, SCmp_Char>;
-	//		User_Map_Load("Data/Library.bin", *User_Map_Library);  // Load from file and add to User_Map_Library
-	//		for (auto &it : *User_Map_Library)  // Convert to User_Map_Library
-	//			Convert_Data(it.first, it.second);
-	//	};
+	auto user_map_loaders = [&]()  // too many cpy
+		{
+			User_Map_Ptr = new std::map<wchar_t *, STitle_Info *, SCmp_Char>;
+			User_Map_Load("Data/Watching.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
+		};
 
-	//auto user_map_paused = [&]()
-	//	{
-	//		User_Map_Paused = new std::map<wchar_t*, S_Extend*, SCmp_Char>;
-	//		User_Map_Load("Data/Paused.bin", *User_Map_Paused);  // Load from file and add to User_Map_Paused
-	//		for (auto& it : *User_Map_Paused)  // Convert to User_Map_Paused
-	//			Convert_Data(it.first, it.second);
-	//	};
+	auto user_map_library = [&]()
+		{
+			User_Map_Library = new std::map<wchar_t *, STitle_Info *, SCmp_Char>;
+			User_Map_Load("Data/Library.bin", *User_Map_Library);  // Load from file and add to User_Map_Library
+		};
 
-	//auto user_map_wishlist = [&]()
-	//	{
-	//		User_Map_Wishlist = new std::map<wchar_t*, S_Extend*, SCmp_Char>;
-	//		User_Map_Load("Data/Wishlist.bin", *User_Map_Wishlist);  // Load from file and add to User_Map_Wishlist
-	//		for (auto& it : *User_Map_Wishlist)  // Convert to User_Map_Wishlist
-	//			Convert_Data(it.first, it.second);
-	//	};
+	auto user_map_paused = [&]()
+		{
+			User_Map_Paused = new std::map<wchar_t*, STitle_Info*, SCmp_Char>;
+			User_Map_Load("Data/Paused.bin", *User_Map_Paused);  // Load from file and add to User_Map_Paused
+		};
 
+	auto user_map_wishlist = [&]()
+		{
+			User_Map_Wishlist = new std::map<wchar_t*, STitle_Info*, SCmp_Char>;
+			User_Map_Load("Data/Wishlist.bin", *User_Map_Wishlist);  // Load from file and add to User_Map_Wishlist
+		};
 
-	//// THREAD FIRST
-	//std::thread thread_wch(user_map_loaders);
-	//std::thread thread_lib(user_map_library);
-	//std::thread thread_psd(user_map_paused);
-	//std::thread thread_wsh(user_map_wishlist);
+	// THREAD FIRST
+	std::thread thread_wch(user_map_loaders);
+	std::thread thread_lib(user_map_library);
+	std::thread thread_psd(user_map_paused);
+	std::thread thread_wsh(user_map_wishlist);
 
 	Init();
-	Draw_Menu_Main();
+	Draw_Buttons_Menu_Main();
 
-	//thread_wch.detach();
-	//thread_lib.detach();
-	//thread_psd.detach();
-	//thread_wsh.detach();
+	thread_wch.detach();
+	thread_lib.detach();
+	thread_psd.detach();
+	thread_wsh.detach();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam)
@@ -444,20 +481,19 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 		Handle_Button_Bordered(builder_handler, lParam);  // lparam to glob param
 		break;
 	case EUI_Builder_Handler::EBH_UI_Button:
-		User_Input_Update(static_cast<wchar_t>(wParam) );
+		Redraw_Button_User_Input(static_cast<wchar_t>(wParam) );
 		break;
 
-	case EUI_Builder_Handler::Draw_Full_Window:
-	case EUI_Builder_Handler::Draw_Menu_Main:
+	case EUI_Builder_Handler::EBH_UI_Menu_Main:
 		Active_Menu = EActive_Menu::EAM_Main;
 		Active_Button = (EActive_Button)0;
-		Borders_Rect[(int)EPress::Menu_Main][0] = {};
-		Draw_Menu_Main();
-		Draw_Menu_Sub();
-		Draw_Menu_Main_Button();
+		Borders_Rect[(int)EPress::Border_Menu_Main][0] = {};
+		Draw_Buttons_Menu_Main();
+		Draw_Buttons_Menu_Sub();
+		Redraw_Buttons_Menu_Main();
 		break;
-	case EUI_Builder_Handler::Draw_Menu_Sub:
-		Handler_User_Input();
+	case EUI_Builder_Handler::EBH_UI_Menu_Sub:
+		Handle_User_Input();
 		break;
 	}
 }
@@ -467,31 +503,31 @@ void AsUI_Builder::Init()
 	if (!std::filesystem::exists(AsConfig::Image_Folder) )  // !!! Need Remove from here
 		std::filesystem::create_directories(AsConfig::Image_Folder);
 
-	Borders_Rect = new RECT *[(int)EPress::Exit] {};  // Exit 7 last border
-	Borders_Rect[(int)EPress::Menu_Main] = new RECT {};
-	Borders_Rect[(int)EPress::Menu_Sub] = new RECT {};
-	Borders_Rect[(int)EPress::User_Input_Handler] = new RECT {};
+	Borders_Rect = new RECT *[(int)EPress::Button_Not_Handled] {};  // Exit 7 last border
+	Borders_Rect[(int)EPress::Border_Menu_Main] = new RECT {};
+	Borders_Rect[(int)EPress::Border_Menu_Sub] = new RECT {};
+	Borders_Rect[(int)EPress::Button_User_Input] = new RECT {};
 	Borders_Rect[(int)EPress::Button_Reguest] = new RECT[2] {};  // Increase or Decrease Buttons
 	Borders_Rect[(int)EPress::Button_Pages] = new RECT[3] {};
 	Borders_Rect[(int)EPress::Buttons_User_Input] = new RECT[AsConfig::Max_Line] {};
 	Borders_Rect[(int)EPress::Button_Menu_Main] = new RECT[AsConfig::Menu_Main_Button_Count] {};
 	Borders_Rect[(int)EPress::Button_Context] = new RECT[AsConfig::Context_Button_Count] {};
-	Borders_Rect[(int)EPress::Menu_Context] = new RECT {};
-	Borders_Rect[(int)EPress::Button_Pages][EPage::Update] = { 1140, 12, 1228, 30 };
-	Borders_Rect[(int)EPress::Button_Pages][EPage::Prev] = { 1231, 12, 1303, 30 };
-	Borders_Rect[(int)EPress::Button_Pages][EPage::Next] = { 1305, 12, 1375, 30 };
+	Borders_Rect[(int)EPress::Border_Menu_Context] = new RECT {};
+	Borders_Rect[(int)EPress::Button_Pages][EPage_Button::EPB_Update] = { 1140, 12, 1228, 30 };
+	Borders_Rect[(int)EPress::Button_Pages][EPage_Button::EPB_Prev] = { 1231, 12, 1303, 30 };
+	Borders_Rect[(int)EPress::Button_Pages][EPage_Button::EPB_Next] = { 1305, 12, 1375, 30 };
 
 	User_Input = new wchar_t[64] {};
 	Mouse_Cord = new RECT {};
 	Mouse_Cord_Destination = new RECT {};
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handler_User_Input()
+void AsUI_Builder::Handle_User_Input()
 {
+	int it_distance = 0;
 	int length = 0;
 	wchar_t *url_content = 0;
-	wchar_t *to_map = 0;
-	S_Extend *to_map_data = 0;
+	wchar_t *image_name_format = 0;
 
 	// 1.0. If it`s url use ACurl_Client to Get ID_Content, Get Title + Num + Season
 	if (wcsstr(User_Input, AsConfig::Protocols[0]) != 0 || wcsstr(User_Input, AsConfig::Protocols[1]) != 0)
@@ -503,22 +539,166 @@ void AsUI_Builder::Handler_User_Input()
 		ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
 
 		// 1.2. Covert data and title
-		to_map_data = new S_Extend();
-		Convert_Data_Extented(url_content, to_map_data);
-		length = (int)(wcslen(url_content) + 1);
-		to_map = new wchar_t[length] {};  // Recreate to resize
-		wcsncpy_s(to_map, length, url_content, (rsize_t)(length - 1) );
+		Handle_Title_Info(url_content);
 
-		// 1.3. Add to Active Map and cpy to User Input button
-		It_User_Map_Active = User_Map_Active->emplace(to_map, to_map_data).first;
-		Draw_Menu_Sub();  // Redraw submenu
-		Draw_Sub_Menu_Button();
-		length = (int)wcslen(to_map) + 1;
-		wcsncpy_s(User_Input, length, to_map, (rsize_t)(length - 1) );
+		// 1.3. Save image
+		image_name_format = url_content;
+		wcsncpy_s(image_name_format + wcslen(url_content), wcslen(AsConfig::Image_Format) + 1, AsConfig::Image_Format, wcslen(AsConfig::Image_Format) );
+		std::filesystem::rename(AsConfig::Image_Name_File, std::filesystem::path(AsConfig::Image_Folder) / image_name_format);
 	}
-	User_Input_Draw();
+
+	// 2.0. Find Title index
+	it_distance = (int)std::distance(User_Map_Active->begin(), It_User_Map_Active);
+	if (it_distance > AsConfig::Max_Line)
+		Button_User_Offset += AsConfig::Max_Line;
+
+	// 2.1. Update Menu Sub, show info
+	User_Input[0] = L'\0';
+	Draw_Buttons_Menu_Sub();
+	Active_Button = (EActive_Button)it_distance;
+	if (Button_Menu_Sub_Prev == 99)
+		Button_Menu_Sub_Prev = (int)Active_Button;
+	Redraw_Buttons_Menu_Sub();  // Show new added title
+	Button_Menu_Sub_Prev = (int)Active_Button;  // Save Prev Button to redraw it
+	
+	Redraw_Image();
+	Redraw_Buttons_Request();
+	Draw_Button_User_Input();
 
 	delete[] url_content;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Title_Info(wchar_t *ptr)
+{
+	wchar_t *title_name_num = ptr;
+	wchar_t *title_num_space = 0;
+	wchar_t *title_season_space = 0;
+	wchar_t *title_buffer = 0;
+	int title_num = 0;
+	int title_season = 0;
+	STitle_Info *data = 0;
+
+	// 1.0. Get Num
+	title_num_space = wcsrchr(ptr, L' ');
+	title_num = std::wcstol(title_num_space + 1, 0, 10);
+	*title_num_space = L'\0';
+
+	// 1.1. Get Season
+	title_season_space = wcsrchr(ptr, L' ');
+	if (title_season_space)
+	{
+		title_season = std::wcstol(title_season_space + 1, 0, 10);
+		if (title_season != 0)
+			*title_season_space = L'\0';
+	}
+
+	// 1.2. Get Name Num And Name Key
+	while (*(++ptr) != L'\0')
+		*ptr = std::towlower(*ptr);
+	It_User_Map_Active = User_Map_Active->find(title_name_num);
+	if (!(It_User_Map_Active != User_Map_Active->end() ) )
+	{// If doesn`t exist create and add to active map
+		data = new STitle_Info();
+
+		// 1.2.a. Title_Name_Key
+		data->Title_Name_Key = new wchar_t[wcslen(title_name_num) + 1] {};
+		wcsncpy_s(data->Title_Name_Key, wcslen(title_name_num) + 1, title_name_num, wcslen(title_name_num) );
+		*title_num_space = L' ';
+
+		if (title_season != 0)
+		{
+			const wchar_t *season_str = AsConfig::Season_Case_Up[title_season - 1];
+			Handle_Title_Name_Num(title_name_num, title_num_space, season_str, data->Title_Name_Num);
+		}
+		else
+		{
+			// 1.2.b. Title_Name_Num
+			if (title_season != 0 && title_season_space != 0)
+				*title_season_space = L' ';
+			data->Title_Name_Num = new wchar_t[wcslen(title_name_num) + 1] {};
+			wcsncpy_s(data->Title_Name_Num, wcslen(title_name_num) + 1, title_name_num, wcslen(title_name_num) );
+		}
+
+		// 1.2.c. Title_Num && Title_Season
+		data->Title_Num = title_num;
+		data->Title_Season = title_season;  // If season need something to do
+		It_User_Map_Active = User_Map_Active->emplace(data->Title_Name_Key, data).first;
+	}
+	else
+	{
+		It_User_Map_Active->second->Title_Num = title_num;
+		const wchar_t *season_str = AsConfig::Season_Case_Up[std::stoi(ptr + 1, 0, 10) - 1];
+		if (!season_str != 0)
+		{// Not work from 9 to 10 or 99 to 100 for now
+
+			title_buffer= It_User_Map_Active->second->Title_Name_Num;
+			title_buffer= title_buffer+ (title_num_space - title_name_num);
+			*(++title_buffer) = *(++title_num_space);
+			*(++title_buffer) = *(++title_num_space);
+		}
+		else
+			Handle_Title_Name_Num(title_name_num, title_num_space, season_str, It_User_Map_Active->second->Title_Name_Num);
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Redraw_Image() const
+{
+	int width = 0, height = 0, bpp = 0;
+	DXGI_FORMAT format {};
+	RECT img_cords {};
+	std::filesystem::path image_path {};
+	BITMAPINFO bmi = {};
+	DirectX::ScratchImage image_title {};
+
+	if (Active_Menu != EActive_Menu::EAM_Main)
+		image_path = AsConfig::Image_Folder + std::wstring(It_User_Map_Active->second->Title_Name_Key) + AsConfig::Image_Format;
+	else
+		if (std::filesystem::exists(AsConfig::Main_Image_Folder) )
+			image_path = AsConfig::Main_Image_Folder;
+
+	DirectX::LoadFromWICFile(image_path.c_str(), DirectX::WIC_FLAGS_NONE, 0, image_title);
+
+	const DirectX::Image *img = image_title.GetImage(0, 0, 0);
+	if (!img != 0)
+		return;
+
+	format = img->format;
+	bpp = (int)DirectX::BitsPerPixel(format);
+	width = (int)img->width;
+	height = (int)img->height;
+
+	bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+	bmi.bmiHeader.biWidth = width;
+	bmi.bmiHeader.biHeight = -height; // отрицательное значение для вертикального растеризации сверху вниз
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = bpp;
+	bmi.bmiHeader.biCompression = BI_RGB;
+
+	img_cords.left = 9;
+	img_cords.top = 182;
+	img_cords.right = AsConfig::Main_Image_Width;  // 415
+	img_cords.bottom = AsConfig::Main_Image_Height;  // 636
+	FillRect(Ptr_Hdc, &img_cords, AsConfig::Brush_Background_Dark);
+
+	img_cords.right = width;  // 415
+	img_cords.bottom = height;  // 636
+
+	StretchDIBits(Ptr_Hdc, img_cords.left, img_cords.top, img_cords.right, img_cords.bottom, 0, 0, width, height, img->pixels, &bmi, DIB_RGB_COLORS, SRCCOPY);
+
+	image_title.Release();
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Title_Name_Num(const wchar_t *key, wchar_t *num, const wchar_t *season, wchar_t *result)
+{
+	*num = L' ';
+	int title_length = (int)(wcslen(num) + wcslen(key) + 1 + wcslen(season) + 1);
+	result = new wchar_t[title_length + 1] {};
+
+	wcsncpy_s(result, wcslen(key) + 1, key, wcslen(key) );
+	*(result + wcslen(result) ) = L' ';
+	wcsncpy_s(result + wcslen(result), wcslen(season) + 1, season, wcslen(season) );
+	*(result + wcslen(result) ) = L' ';
+	wcsncpy_s(result + wcslen(result), wcslen(num) + 1, num, wcslen(num) );
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Border(RECT &border_rect) const
@@ -533,10 +713,10 @@ void AsUI_Builder::Draw_Border(RECT &border_rect) const
 	is_sub_menu = false;
 	scale = AsConfig::Global_Scale;
 
-	if (!IsRectEmpty(&Borders_Rect[(int)EPress::Menu_Main][0]) )  // if not main menu we must reset setting
+	if (!IsRectEmpty(&Borders_Rect[(int)EPress::Border_Menu_Main][0]) )  // if not main menu we must reset setting
 	{// Draw Sub Menu
 
-		x_cord = Borders_Rect[(int)EPress::Menu_Main][0].right + AsConfig::Global_Scale;
+		x_cord = Borders_Rect[(int)EPress::Border_Menu_Main][0].right + AsConfig::Global_Scale;
 		border_width = (AsConfig::Window_Width - x_cord) - 23 * 2 - 9;  // window_width - main menu width
 		border_height = AsConfig::Window_Height + 30 - scale;
 		is_sub_menu = true;
@@ -592,7 +772,7 @@ void AsUI_Builder::Draw_Button(RECT &border_rect, RECT &button, const wchar_t *t
 	border_rect.top = button.bottom + scale;  // cuting border for next button
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Menu_Main()
+void AsUI_Builder::Draw_Buttons_Menu_Main()
 {
 	int x, y;
 	int str_length;
@@ -611,8 +791,8 @@ void AsUI_Builder::Draw_Menu_Main()
 	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);  // Text Color
 
 	// 1.1. Draw Border and Text title
-	Draw_Border(Borders_Rect[(int)EPress::Menu_Main][0]);
-	border_rect = Borders_Rect[(int)EPress::Menu_Main][0];
+	Draw_Border(Borders_Rect[(int)EPress::Border_Menu_Main][0]);
+	border_rect = Borders_Rect[(int)EPress::Border_Menu_Main][0];
 	x = (border_rect.right - str_length) / 2;  // Get the center of first middle border and half of title
 	y = border_rect.top + AsConfig::Global_Scale;  // Get offset from border top
 	TextOutW(Ptr_Hdc, x, y, AsConfig::Main_Menu_Title_Name, titles_length);
@@ -623,40 +803,40 @@ void AsUI_Builder::Draw_Menu_Main()
 		Draw_Button(border_rect, Borders_Rect[(int)EPress::Button_Menu_Main][i], AsConfig::Menu_Main_Buttons_Text_Eng[i]);
 
 	// 1.3. Draw Image
-	Draw_User_Title_Image();
+	Redraw_Image();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Menu_Sub()
+void AsUI_Builder::Draw_Buttons_Menu_Sub()
 {
 	int curr_line;
 	int curr_page_max_line;
-	std::map<wchar_t *, S_Extend *, SCmp_Char>::iterator it;
+	std::map<wchar_t *, STitle_Info *, SCmp_Char>::iterator it;
 	RECT border_rect;
 
 	curr_line = 0;
 	curr_page_max_line = 0;
 	border_rect = {};
-	Prev_Button = 99;  // Need to switch between arrays
+	Button_Menu_Sub_Prev = 99;  // Need to switch between arrays
 
 	// 1.1.Draw Border, Set colors, Draw Titles and user input handler
-	Draw_Border(Borders_Rect[(int)EPress::Menu_Sub][0]);  // draw border
-	border_rect = Borders_Rect[(int)EPress::Menu_Sub][0];
+	Draw_Border(Borders_Rect[(int)EPress::Border_Menu_Sub][0]);  // draw border
+	border_rect = Borders_Rect[(int)EPress::Border_Menu_Sub][0];
 	border_rect.top += AsConfig::Global_Scale;  // without title? i can fix but it`s look good enough
 	
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
 	SetBkColor(Ptr_Hdc, AsConfig::Color_Dark);
 	SetTextColor(Ptr_Hdc, AsConfig::Color_Text_Green);
-	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_Title);  // Write Sub menu title
-	Draw_Button(border_rect, Borders_Rect[(int)EPress::User_Input_Handler][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
+	Draw_Button(border_rect, Borders_Rect[(int)EPress::Button_User_Input][0], AsConfig::Sub_Menu_Title);  // Write Sub menu title
+	Draw_Button(border_rect, Borders_Rect[(int)EPress::Button_User_Input][0], AsConfig::Sub_Menu_User_Input_Title);  // Write User Input Handler
 
 	// 1.3. Handle Page setting if more that we can have do nothing
 	it = User_Map_Active->begin();
-	if (Button_User_Offset > User_Map_Active->size())  // if next page don`t have buttons to draw stay at current page
+	if (Button_User_Offset > User_Map_Active->size() )  // if next page don`t have buttons to draw stay at current page
 		Button_User_Offset -= AsConfig::Max_Line;
 	std::advance(it, Button_User_Offset);
 
 	// 1.4 Draw Button Pages
-	for (int i = 0; i < EPage::Last; i++)
+	for (int i = 0; i < EPage_Button::EPB_Last; i++)
 	{
 		const RECT* button = &Borders_Rect[(int)EPress::Button_Pages][i];
 		Rectangle(Ptr_Hdc, button->left, button->top, button->right, button->bottom);
@@ -667,7 +847,7 @@ void AsUI_Builder::Draw_Menu_Sub()
 	for (curr_line = 0; it != User_Map_Active->end(); ++it)
 	{
 		if (curr_line < AsConfig::Max_Line)
-			Draw_Button(border_rect, Borders_Rect[(int)EPress::Buttons_User_Input][curr_line], it->first);
+			Draw_Button(border_rect, Borders_Rect[(int)EPress::Buttons_User_Input][curr_line], it->second->Title_Name_Num);
 		else
 			return;
 		
@@ -675,9 +855,9 @@ void AsUI_Builder::Draw_Menu_Sub()
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Draw() const
+void AsUI_Builder::Draw_Button_User_Input() const
 {
-	RECT *user_input = &Borders_Rect[(int)EPress::User_Input_Handler][0];
+	RECT *user_input = &Borders_Rect[(int)EPress::Button_User_Input][0];
 
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Background_Dark);
 	Rectangle(Ptr_Hdc, user_input->left, user_input->top, user_input->right, user_input->bottom);
@@ -694,20 +874,18 @@ void AsUI_Builder::User_Input_Draw() const
 		TextOutW(Ptr_Hdc, offset_x, offset_y, AsConfig::Sub_Menu_User_Input_Title, (int)wcslen(AsConfig::Sub_Menu_User_Input_Title) );
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Update(const wchar_t &user_text)
+void AsUI_Builder::Redraw_Button_User_Input(const wchar_t &user_text)
 {
 	wchar_t *to_map;
-	S_Extend *extend;
 	const int user_input_lenght = (int)wcslen(User_Input);
 
 	if (user_text == '\r')  // if press enter
 	{
-		extend = new S_Extend{};
 		to_map = new wchar_t[wcslen(User_Input) + 1] {};
 		wcsncpy_s(to_map, wcslen(User_Input) + 1, User_Input, wcslen(User_Input) );
-		Convert_Data(to_map, extend);
-		User_Map_Active->emplace(to_map, extend);
-		Draw_Menu_Sub();
+
+		Handle_Title_Info(to_map);
+		Draw_Buttons_Menu_Sub();
 
 		do *(User_Input++) = '\0';   // Clear User Input to \0
 		while (*User_Input != '\0');
@@ -724,10 +902,10 @@ void AsUI_Builder::User_Input_Update(const wchar_t &user_text)
 	else if (user_input_lenght > 0)
 		User_Input[user_input_lenght - 1] = '\0';  // delete prev user_text
 
-	User_Input_Draw();
+	Draw_Button_User_Input();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Button_Request()
+void AsUI_Builder::Redraw_Buttons_Request()
 {
 	int button_offset;
 	int box_size;
@@ -746,10 +924,10 @@ void AsUI_Builder::Draw_Button_Request()
 	// 1.1 Draw first Rectangle decrease
 	SelectObject(Ptr_Hdc, AsConfig::Brush_Green_Dark);  // Select color
 	ui_rect_offset = &Borders_Rect[(int)EPress::Button_Reguest][0];
-	ui_rect_offset->left = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button - Button_User_Offset].right + button_offset;
-	ui_rect_offset->top = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button - Button_User_Offset].top;
-	ui_rect_offset->right = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button - Button_User_Offset].right + button_offset + box_size;
-	ui_rect_offset->bottom = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button - Button_User_Offset].top + box_size;
+	ui_rect_offset->left = Borders_Rect[(int)EPress::Buttons_User_Input][Button_Menu_Sub_Prev - Button_User_Offset].right + button_offset;
+	ui_rect_offset->top = Borders_Rect[(int)EPress::Buttons_User_Input][Button_Menu_Sub_Prev - Button_User_Offset].top;
+	ui_rect_offset->right = Borders_Rect[(int)EPress::Buttons_User_Input][Button_Menu_Sub_Prev - Button_User_Offset].right + button_offset + box_size;
+	ui_rect_offset->bottom = Borders_Rect[(int)EPress::Buttons_User_Input][Button_Menu_Sub_Prev - Button_User_Offset].top + box_size;
 
 	Rectangle(Ptr_Hdc, ui_rect_offset->left, ui_rect_offset->top, ui_rect_offset->right, ui_rect_offset->bottom);
 	MoveToEx(Ptr_Hdc, ui_rect_offset->left + scale, ui_rect_offset->top + half_box, 0);
@@ -769,83 +947,36 @@ void AsUI_Builder::Draw_Button_Request()
 	LineTo(Ptr_Hdc, ui_rect_offset->left + half_box, ui_rect_offset->bottom - scale);
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_User_Title_Image() const
+void AsUI_Builder::Redraw_Buttons_Menu_Main()
 {
-	int width = 0, height = 0, bpp = 0;
-	DXGI_FORMAT format {};
-	RECT img_cords {};
-	std::filesystem::path image_path {};
-	BITMAPINFO bmi = {};
-	DirectX::ScratchImage image_title {};
-
-	if (Active_Menu != EActive_Menu::EAM_Main)
-		image_path = AsConfig::Image_Folder + std::wstring(It_User_Map_Active->second->Title_Name_Key) + L".png";
-	else
-		if (std::filesystem::exists(AsConfig::Main_Image_Folder) )
-			image_path = AsConfig::Main_Image_Folder;
-
-	DirectX::LoadFromWICFile(image_path.c_str(), DirectX::WIC_FLAGS_NONE, 0, image_title);
-
-	const DirectX::Image *img = image_title.GetImage(0, 0, 0);
-	if (!img != 0)
-		return;
-
-	format = img->format;
-	bpp = (int)DirectX::BitsPerPixel(format);
-	width = (int)img->width;
-	height = (int)img->height;
-
-	bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-	bmi.bmiHeader.biWidth = width;
-	bmi.bmiHeader.biHeight = -height; // отрицательное значение для вертикального растеризации сверху вниз
-	bmi.bmiHeader.biPlanes = 1;
-	bmi.bmiHeader.biBitCount = bpp;
-	bmi.bmiHeader.biCompression = BI_RGB;
-
-	img_cords.left = 9;
-	img_cords.top = 182;
-	img_cords.right = AsConfig::Main_Image_Width;  // 415
-	img_cords.bottom = AsConfig::Main_Image_Height;  // 636
-	FillRect(Ptr_Hdc, &img_cords, AsConfig::Brush_Background_Dark);
-
-	img_cords.right = width;  // 415
-	img_cords.bottom = height;  // 636
-
-	StretchDIBits(Ptr_Hdc, img_cords.left, img_cords.top, img_cords.right, img_cords.bottom, 0, 0, width, height, img->pixels, &bmi, DIB_RGB_COLORS, SRCCOPY);
-
-	image_title.Release();
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Menu_Main_Button()
-{
-	const RECT &prev_button = Borders_Rect[(int)EPress::Button_Menu_Main][Prev_Main_Menu_Button];
+	const RECT &prev_button = Borders_Rect[(int)EPress::Button_Menu_Main][Button_Menu_Main_Prev];
 	const RECT &curr_button = Borders_Rect[(int)EPress::Button_Menu_Main][(int)Active_Button];
 
 	FillRect(Ptr_Hdc, &Borders_Rect[(int)EPress::Button_Reguest][0], AsConfig::Brush_Background_Dark);  // hide reguest
 	FillRect(Ptr_Hdc, &Borders_Rect[(int)EPress::Button_Reguest][1], AsConfig::Brush_Background_Dark);
 
-	Draw_Button_Text(true, prev_button, AsConfig::Menu_Main_Buttons_Text_Eng[Prev_Main_Menu_Button]);
+	Draw_Button_Text(true, prev_button, AsConfig::Menu_Main_Buttons_Text_Eng[Button_Menu_Main_Prev]);
 	Draw_Button_Text(false, curr_button, AsConfig::Menu_Main_Buttons_Text_Eng[(int)Active_Button]);
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Sub_Menu_Button()
+void AsUI_Builder::Redraw_Buttons_Menu_Sub()
 {
 	wchar_t *text;
-	const RECT &prev_button = Borders_Rect[(int)EPress::Buttons_User_Input][Prev_Button - Button_User_Offset];
+	const RECT &prev_button = Borders_Rect[(int)EPress::Buttons_User_Input][Button_Menu_Sub_Prev - Button_User_Offset];
 	const RECT &curr_button = Borders_Rect[(int)EPress::Buttons_User_Input][(int)Active_Button - Button_User_Offset];
 	int index = 0;
 
 	while (index < 2)
 	{
-		It_User_Map_Active = User_Map_Active->begin();  // Prev_Button || Clear button
-		std::advance(It_User_Map_Active, index == 0 ? (int)Prev_Button : (int)Active_Button);
+		It_User_Map_Active = User_Map_Active->begin();  // Button_Menu_Sub_Prev || Clear button
+		std::advance(It_User_Map_Active, index == 0 ? (int)Button_Menu_Sub_Prev : (int)Active_Button);
 		text = It_User_Map_Active->second->Title_Name_Num;
 		Draw_Button_Text(index == 0 ? true : false, index == 0 ? prev_button : curr_button, text);
 		index++;
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Button_Text(const bool is_dark, const RECT &rect, const wchar_t *str)
+void AsUI_Builder::Draw_Button_Text(const bool is_dark, const RECT &rect, const wchar_t *str) const
 {
 	HBRUSH test = is_dark ? AsConfig::Brush_Background_Dark : AsConfig::Brush_Green_Dark;
 	COLORREF bk_color = is_dark ? AsConfig::Color_Dark : AsConfig::Color_Text_Green;
@@ -859,7 +990,7 @@ void AsUI_Builder::Draw_Button_Text(const bool is_dark, const RECT &rect, const 
 	TextOutW(Ptr_Hdc, rect.left + AsConfig::Global_Scale, rect.top + AsConfig::Global_Scale, str, (int)wcslen(str));  // button_prev text ( x its text out in middle
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, S_Extend *, SCmp_Char> &map)
+void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map)
 {
 	bool is_add_to_user_array = false;
 	wchar_t *to_map = 0;
@@ -871,7 +1002,7 @@ void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, S_Ex
 	unsigned long long ull_char = 0;
 	unsigned long long ull_index = 0;
 	unsigned long long ull_number = 0;
-	S_Extend *buffer = {};
+	STitle_Info *buffer = {};
 
 	std::ifstream infile(file_path, std::ios::binary);
 	if (!infile)
@@ -912,18 +1043,18 @@ void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, S_Ex
 				user_input[str] = L'\0';  // Title end here
 				user_input[0] = user_input[0] - 32;  // Upper Case first char
 
-				buffer = new S_Extend{};
+				buffer = new STitle_Info{};
 				buffer->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
 				to_map = buffer->Title_Name_Num;
 				wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
 				
-				Convert_Data_Pro(to_map, buffer);// Convert Data
+				Handle_Title_Info_Beta(buffer->Title_Name_Num, buffer);// Convert Data
 				map.emplace(buffer->Title_Name_Key, buffer);  // Add to map
 
 				is_add_to_user_array = false;  // look next numbers
 				str = 0;
 			}
-			user_input[str++] = (wchar_t)User_Map_Load_Convert(ull_char);  // Convert to norm wchar_t and add to user_input
+			user_input[str++] = (wchar_t)User_Map_Convert_Out(ull_char);  // Convert to norm wchar_t and add to user_input
 		}
 		
 		block_sum_index++;  // go to next index
@@ -933,68 +1064,19 @@ void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, S_Ex
 			user_input[str] = L'\0';  // say it`s end
 			user_input[0] = user_input[0] - 32;  // Set Upper Case first symbol
 
-			buffer = new S_Extend{};
+			buffer = new STitle_Info{};
 			buffer->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
 			to_map = buffer->Title_Name_Num;
 			wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
 				
-			Convert_Data_Pro(to_map, buffer);// Convert Data
+			Handle_Title_Info_Beta(buffer->Title_Name_Num, buffer);// Convert Data
 			map.emplace(buffer->Title_Name_Key, buffer);  // Add to map
 		}
 	}
 	infile.close();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Convert_Data_Extented(wchar_t* user_input, S_Extend*& data)
-{
-	char *buffer_ptr = 0;
-	char buffer_num[5] {};  // buffer for title nums 4 buffers for nums and last for '\0'
-	unsigned short current_ch;
-	int user_input_length;
-	int season_counter;
-
-	buffer_ptr = buffer_num + 5 - 1;  // set ptr to last index in buffer
-	user_input_length = (int)wcslen(user_input) - 1;  // length without 0
-	current_ch = (unsigned short)user_input[user_input_length];  // get last index char
-	season_counter = 0;
-
-	while (current_ch == L' ' || current_ch >= 48 && current_ch <= 57)
-	{
-		if (current_ch == L' ')
-			if (data->Title_Num == 0)
-				data->Title_Num = std::stoi(user_input + user_input_length + 1);  // Get NUM Title
-			else
-				data->Title_Season = std::stoi(user_input + user_input_length + 1);  // Get Season Title
-
-		if (data->Title_Num == 0)
-			*(--buffer_ptr) = (char)user_input[user_input_length];  // set to buffer curr index char
-		current_ch = (unsigned short)user_input[--user_input_length];  // go to prev index and get ch
-	}
-	
-	user_input_length += 1;  // Set to next index | 
-	data->Title_Name_Key = new wchar_t[user_input_length + 1] {};  // + 1 '\0'
-	wcsncpy_s(data->Title_Name_Key, user_input_length + 1, user_input, user_input_length);  // Get Title Name Key
-
-	if (data->Title_Season != 0)
-	{
-		const wchar_t *season_char = AsConfig::Season_Case_Up[data->Title_Season - 1];  // How must look Seasons
-		season_counter = (int)wcslen(season_char);
-
-		do { user_input[user_input_length + season_counter] = season_char[season_counter - 1]; }
-		while (--season_counter != 0);  // Changle Seasons to upper case
-
-		user_input_length = (int)wcslen(user_input);
-		user_input[user_input_length - 1] = L' ';
-		while (*(buffer_ptr) != '\0')
-			user_input[user_input_length++] = (wchar_t)*(buffer_ptr++);
-		user_input[user_input_length] = L'\0';
-	}
-
-	data->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
-	wcsncpy_s(data->Title_Name_Num, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Season(wchar_t *ptr, int &result, int &season_length)
+void AsUI_Builder::Handle_Title_Season(wchar_t *ptr, int &result, int &season_length)
 {
 	int i = 0;
 
@@ -1024,7 +1106,7 @@ void AsUI_Builder::Handle_Season(wchar_t *ptr, int &result, int &season_length)
 	season_length++;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Convert_Data_Pro(wchar_t *user_input, S_Extend *&data)
+void AsUI_Builder::Handle_Title_Info_Beta(wchar_t *user_input, STitle_Info *&data)
 {
 	unsigned short current_ch;
 	int user_input_length;
@@ -1044,101 +1126,18 @@ void AsUI_Builder::Convert_Data_Pro(wchar_t *user_input, S_Extend *&data)
 
 		current_ch = (unsigned short)user_input[--user_input_length];  // go to prev index and get ch
 		if (data->Title_Num != 0)
-			Handle_Season(user_input + user_input_length, data->Title_Season, temp);
+			Handle_Title_Season(user_input + user_input_length, data->Title_Season, temp);
 	}
 	
 	user_input_length -= temp;  // 1 for space
 	user_input_length += 1;  // Set to next index |
 	data->Title_Name_Key = new wchar_t[user_input_length + 1] {};  // + 1 '\0'
-	wcsncpy_s(data->Title_Name_Key, user_input_length + 1, user_input, user_input_length);  // Get Title Name Key
+	wcsncpy_s(data->Title_Name_Key, static_cast<rsize_t>(user_input_length + 1), user_input, user_input_length);  // Get Title Name Key
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Convert_Data(wchar_t *user_input, S_Extend *&data)
+void AsUI_Builder::User_Map_Free(std::map<wchar_t *, STitle_Info *, SCmp_Char> &map)
 {
-	unsigned short current_ch;
-	wchar_t *pattern_season;
-	int user_input_length;
-	int season_counter;
-
-	pattern_season = 0;
-	user_input_length = (int)wcslen(user_input) - 1;
-	current_ch = (unsigned short)user_input[user_input_length];
-	season_counter = 0;
-
-	while (current_ch == L' ' || current_ch >= 48 && current_ch <= 57)
-	{//Find spaces if current ch numeric
-
-		if (current_ch == L' ')
-		{// If space str to int
-
-			if (data->Title_Num == 0)
-				data->Title_Num = std::stoi(user_input + user_input_length + 1);  // Get NUM Title
-			else
-				data->Title_Season = std::stoi(user_input + user_input_length + 1);  // Get Season Title
-
-			user_input[user_input_length] = L'\0';  // Hide nums
-		}
-		current_ch = (unsigned short)user_input[--user_input_length];
-		
-		while (user_input[user_input_length] == L'X' || user_input[user_input_length] == L'I' || user_input[user_input_length] == L'V')
-		{
-			season_counter++;
-			user_input[user_input_length--] += L' ';
-		}
-		user_input_length += season_counter;
-		
-		while (user_input[user_input_length] == L'x' || user_input[user_input_length] == L'i' || user_input[user_input_length] == L'v')  // Find Seasons =) 
-		{// Find next season character
-
-			user_input_length--;
-			if (user_input[user_input_length] == L' ')
-			{// Find next space
-
-				pattern_season = user_input + user_input_length + 1;
-				for (int i = 0; i < 10; i++)
-				{// Find Pattern in Config and set to data
-
-					if (wcscmp(pattern_season, AsConfig::Season_Case_Low[i]) == 0)
-					{
-						data->Title_Season = i + 1;
-						break;
-					}
-				}
-				user_input[user_input_length] = L'\0';  // erase season from user_input
-			}
-		}
-	}
-	
-	// Title_Name_Key
-	data->Title_Name_Key = new wchar_t[wcslen(user_input) + 1] {};
-	wcsncpy_s(data->Title_Name_Key, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-
-	// TITLE_NAME_NUM
-	if (data->Title_Num == 0)
-		data->Title_Num = 1;
-
-	if (data->Title_Season != 0)
-	{
-		const wchar_t *season_char = AsConfig::Season_Case_Up[data->Title_Season - 1];  // How must look Seasons
-		season_counter = (int)wcslen(season_char);
-		user_input_length = (int)wcslen(user_input);
-
-		user_input[user_input_length] = L' ';
-		user_input[user_input_length + season_counter + 1] = ' ';
-
-		do { user_input[user_input_length + season_counter] = season_char[season_counter - 1]; }
-		while (--season_counter != 0);  // Changle Seasons to upper case
-	}
-	else
-		user_input[user_input_length + 1] = L' ';
-
-	data->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
-	wcsncpy_s(data->Title_Name_Num, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Erase_Data(std::map<wchar_t *, S_Extend *, SCmp_Char> &map)
-{
-	for (std::map<wchar_t *, S_Extend *>::iterator it = map.begin(); it != map.end(); )
+	for (std::map<wchar_t *, STitle_Info *>::iterator it = map.begin(); it != map.end(); )
 	{// Free Memorry from all pointers in map
 
 		delete it->second->Title_Name_Key;
@@ -1150,7 +1149,7 @@ void AsUI_Builder::Erase_Data(std::map<wchar_t *, S_Extend *, SCmp_Char> &map)
 	map.clear();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Save(const char *file_path, std::map<wchar_t *, S_Extend *, SCmp_Char> &map)
+void AsUI_Builder::User_Map_Save(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map)
 {
 	int title_index = 0, title_index_length = 0;
 	int number_index = 0;
@@ -1161,12 +1160,12 @@ void AsUI_Builder::User_Map_Save(const char *file_path, std::map<wchar_t *, S_Ex
 	if (!outfile)
 		return;
 
-	for (std::pair<wchar_t *, S_Extend *> it : map)
+	for (std::pair<wchar_t *, STitle_Info *> it : map)
 	{
 		while (it.second->Title_Name_Num[title_index_length] != L'\0')
 		{// Title length
 
-			ch_i = User_Map_Save_Convert( (unsigned short)it.second->Title_Name_Num[title_index_length++]);
+			ch_i = User_Map_Convert_In( (unsigned short)it.second->Title_Name_Num[title_index_length++]);
 			if (++number_index % 9 == 0)
 			{
 				numbers += ch_i;
@@ -1185,7 +1184,7 @@ void AsUI_Builder::User_Map_Save(const char *file_path, std::map<wchar_t *, S_Ex
 		outfile.write(reinterpret_cast<const char *>( &numbers), sizeof(numbers) );
 }
 //------------------------------------------------------------------------------------------------------------
-unsigned short AsUI_Builder::User_Map_Save_Convert(unsigned short ch)
+unsigned short AsUI_Builder::User_Map_Convert_In(unsigned short ch)
 {
 	// 1.1 Russian || Other Languages
 	if (ch >= 1025 && ch <= 1105)
@@ -1234,7 +1233,7 @@ unsigned short AsUI_Builder::User_Map_Save_Convert(unsigned short ch)
 	return 0;  // Reserved 99
 }
 //------------------------------------------------------------------------------------------------------------
-unsigned long long  AsUI_Builder::User_Map_Load_Convert(unsigned long long &ch)
+unsigned long long  AsUI_Builder::User_Map_Convert_Out(unsigned long long &ch)
 {
 	// 1.1 Russian
 	if (ch >= 10 && ch <= 42)  // Rus Symb
@@ -1270,7 +1269,7 @@ unsigned long long  AsUI_Builder::User_Map_Load_Convert(unsigned long long &ch)
 	return 0LL;  // Bad Reserved 99
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Cycle_Finder(const RECT &mouse_cord, const int border_index, const int count, int &result)
+void AsUI_Builder::Handle_Button_Press(const RECT &mouse_cord, const int border_index, const int count, int &result)
 {
 	for (result = 0; result < count; result++)
 		if (IntersectRect(Mouse_Cord_Destination, &mouse_cord, &Borders_Rect[border_index][result] ) )
@@ -1294,8 +1293,8 @@ void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_han
 			break;
 
 	// 1.1. Context Menu if rect is not empty clear
-	if (Borders_Rect[(int)EPress::Menu_Context][0].left != 0)
-		Context_Image_Restore(Borders_Rect[ (int)EPress::Menu_Context][0] );
+	if (Borders_Rect[(int)EPress::Border_Menu_Context][0].left != 0)
+		Redraw_Buttons_Menu_Context(Borders_Rect[ (int)EPress::Border_Menu_Context][0] );
 
 	// 1.2. Borders Handler
 	switch (Border_Pressed = (EPress)index)
@@ -1304,31 +1303,31 @@ void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_han
 		Handle_Non_Bordered();
 		break;
 
-	case EPress::Menu_Main:
+	case EPress::Border_Menu_Main:
 		Border_Pressed = EPress::Button_Menu_Main;
 		Handle_Menu_Main();
 		break;
 
-	case EPress::Menu_Context:
+	case EPress::Border_Menu_Context:
 		Border_Pressed = EPress::Button_Context;
 		Handle_Menu_Context();
 		break;
 
-	case EPress::Menu_Sub:
-		Border_Pressed = EPress::User_Input_Handler;  // Find from user input
+	case EPress::Border_Menu_Sub:
+		Border_Pressed = EPress::Button_User_Input;  // Find from user input
 		Handle_Menu_Sub();
 		break;
 	}
 	
 	if (builder_handler == EUI_Builder_Handler::EBH_RM_Button)  // If RM Button
-		Context_Menu_Draw(Mouse_Cord->right, Mouse_Cord->top);
+		Draw_Buttons_Menu_Context(Mouse_Cord->right, Mouse_Cord->top);
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Main()
 {
 	int i = 0;
 
-	Cycle_Finder(*Mouse_Cord, (int)Border_Pressed, AsConfig::Menu_Main_Button_Count, i);
+	Handle_Button_Press(*Mouse_Cord, (int)Border_Pressed, AsConfig::Menu_Main_Button_Count, i);
 	if ( !(i != AsConfig::Menu_Main_Button_Count) )
 		return;
 
@@ -1352,10 +1351,9 @@ void AsUI_Builder::Handle_Menu_Main()
 	}
 
 	Active_Button = (EActive_Button)i;
-	Sub_Menu_Curr_Page = 0;  // if pressed on main set curr page to 0 page
-	Draw_Menu_Sub();
-	Draw_Menu_Main_Button();  // Redraw pressed button
-	Prev_Main_Menu_Button = (int)Active_Button;
+	Draw_Buttons_Menu_Sub();
+	Redraw_Buttons_Menu_Main();  // Redraw pressed button
+	Button_Menu_Main_Prev = (int)Active_Button;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Sub()
@@ -1363,28 +1361,28 @@ void AsUI_Builder::Handle_Menu_Sub()
 	int i = 0;
 
 	// 1.1. User Input Button Handler
-	if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[(int)EPress::User_Input_Handler][0] ) )
+	if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[(int)EPress::Button_User_Input][0] ) )
 		if (User_Input[0] != 0)
-			return Handler_User_Input();
+			return Handle_User_Input();
 		else
 			return Handle_Clipboard();
 
 	// 1.2. Next or Prev page Handler
-	Cycle_Finder(*Mouse_Cord, (int)EPress::Button_Pages, (int)EPage::Last, i);
-	if (i != (int)EPage::Last)
+	Handle_Button_Press(*Mouse_Cord, (int)EPress::Button_Pages, EPage_Button::EPB_Last, i);
+	if (i != EPage_Button::EPB_Last)
 	{
-		if (i == EPage::Prev)
+		if (i == EPage_Button::EPB_Prev)
 			if (Button_User_Offset < 0)
 				return;
 			else
 				Button_User_Offset -= AsConfig::Max_Line;
 
-		if (i == EPage::Next)
+		if (i == EPage_Button::EPB_Next)
 			Button_User_Offset += AsConfig::Max_Line;
 
 		Active_Button = EActive_Button::EAB_Main_Menu;
-		Draw_Menu_Sub();
-		Draw_Button_Request();
+		Draw_Buttons_Menu_Sub();
+		Redraw_Buttons_Request();
 		return;
 	}
 
@@ -1396,12 +1394,12 @@ void AsUI_Builder::Handle_Menu_Sub()
 	if (i > AsConfig::Max_Line)  // if out of border, miss hit on button
 		return;
 	Active_Button = (EActive_Button)(i + Button_User_Offset);
-	if (Prev_Button == 99)
-		Prev_Button = (int)Active_Button;
-	Draw_Sub_Menu_Button();
-	Prev_Button = (int)Active_Button;  // Save Prev Button to redraw it
-	Draw_Button_Request();
-	Draw_User_Title_Image();
+	if (Button_Menu_Sub_Prev == 99)
+		Button_Menu_Sub_Prev = (int)Active_Button;
+	Redraw_Buttons_Menu_Sub();
+	Button_Menu_Sub_Prev = (int)Active_Button;  // Save Prev Button to redraw it
+	Redraw_Buttons_Request();
+	Redraw_Image();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Clipboard()
@@ -1427,15 +1425,15 @@ void AsUI_Builder::Handle_Clipboard()
 
 	GlobalUnlock(handle_data);
 	CloseClipboard();
-	User_Input_Draw();
+	Draw_Button_User_Input();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Context()
 {
 	int i = 0;
-	std::map<wchar_t *, S_Extend *, SCmp_Char> *map = 0;
+	std::map<wchar_t *, STitle_Info *, SCmp_Char> *map = 0;
 
-	Cycle_Finder(*Mouse_Cord, (int)EPress::Button_Context, AsConfig::Context_Button_Count, i);  // which array
+	Handle_Button_Press(*Mouse_Cord, (int)EPress::Button_Context, AsConfig::Context_Button_Count, i);  // which array
 	switch ( (EActive_Menu)i)  // If pressed first button context menu choose action
 	{
 	case EAM_Watching:
@@ -1454,7 +1452,6 @@ void AsUI_Builder::Handle_Menu_Context()
 		delete It_User_Map_Active->second->Title_Name_Key;
 		delete It_User_Map_Active->second->Title_Name_Num;
 		delete It_User_Map_Active->second;
-		delete It_User_Map_Active->first;
 		User_Map_Active->erase(It_User_Map_Active);
 		break;
 	}
@@ -1466,9 +1463,9 @@ void AsUI_Builder::Handle_Menu_Context()
 	}
 
 	Active_Button = EActive_Button::EAB_Main_Menu;
-	Prev_Button = 99;  // set to no prev_button
-	Draw_Button_Request();
-	Draw_Menu_Sub();
+	Button_Menu_Sub_Prev = 99;  // set to no prev_button
+	Redraw_Buttons_Request();
+	Draw_Buttons_Menu_Sub();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Non_Bordered()
@@ -1476,16 +1473,16 @@ void AsUI_Builder::Handle_Non_Bordered()
 	int i = 0;
 	const int how_many_buttons = 2;
 
-	Cycle_Finder(*Mouse_Cord, (int)EPress::Button_Reguest, how_many_buttons, i);
+	Handle_Button_Press(*Mouse_Cord, (int)EPress::Button_Reguest, how_many_buttons, i);
 	if (i == how_many_buttons)  // if cant find any return
 		return;
 
-	Active_Button = (EActive_Button)Prev_Button;
-	User_Input_Value_Is_Changed(i);
-	Draw_Sub_Menu_Button();
+	Active_Button = (EActive_Button)Button_Menu_Sub_Prev;
+	Handle_Button_Request(i);
+	Redraw_Buttons_Menu_Sub();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Input_Value_Is_Changed(const bool is_increment)
+void AsUI_Builder::Handle_Button_Request(const bool is_increment)
 {
 	wchar_t *title_num;
 	int *ptr_title_num;
@@ -1511,7 +1508,7 @@ void AsUI_Builder::User_Input_Value_Is_Changed(const bool is_increment)
 	*title_num += increase_to;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Context_Menu_Draw(const int &x, const int &y)
+void AsUI_Builder::Draw_Buttons_Menu_Context(const int &x, const int &y)
 {
 	int button_text_len;
 	int scale;
@@ -1520,7 +1517,7 @@ void AsUI_Builder::Context_Menu_Draw(const int &x, const int &y)
 	int button_heigh;
 	RECT *context_rect;
 	
-	context_rect = &Borders_Rect[(int)EPress::Menu_Context][0];
+	context_rect = &Borders_Rect[(int)EPress::Border_Menu_Context][0];
 	button_text_len = (int)wcslen(AsConfig::Menu_Main_Buttons_Text_Eng[3]);
 	scale = AsConfig::Global_Scale;
 	context_offset = 6;
@@ -1566,7 +1563,7 @@ void AsUI_Builder::Context_Menu_Draw(const int &x, const int &y)
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Context_Image_Restore(RECT &rect)
+void AsUI_Builder::Redraw_Buttons_Menu_Context(RECT &rect)
 {
 	if (Hdc_Memory != 0 && H_Bitmap != 0 && Saved_Object != 0)
 	{
@@ -1580,7 +1577,7 @@ void AsUI_Builder::Context_Image_Restore(RECT &rect)
 	}
 	rect = {};  // обнуляем
 }
-//------------------------------------------------------------------------------------------------------------  1850 - 1403
+//------------------------------------------------------------------------------------------------------------  1850 - 1403 || 1640 - 1555 CURL
 
 
 
@@ -1647,7 +1644,7 @@ AsEngine::~AsEngine()
 //------------------------------------------------------------------------------------------------------------
 AsEngine::AsEngine()
  : Is_After_Maximazied(true), UI_Builder(0), UI_Book_Reader(0), W_Param(0), L_Param(0),
-	EBuilder_Handler(EUI_Builder_Handler::Draw_Menu_Main), Ptr_Hwnd(0), Ptr_Hdc(0), Paint_Struct{}
+	EBuilder_Handler(EUI_Builder_Handler::EBH_UI_Menu_Main), Ptr_Hwnd(0), Ptr_Hdc(0), Paint_Struct{}
 {
 }
 //------------------------------------------------------------------------------------------------------------
@@ -1664,7 +1661,7 @@ void AsEngine::Draw_Frame_ASaver(HWND hwnd)
 	if (!Is_After_Maximazied)
 	{
 		Is_After_Maximazied = !Is_After_Maximazied;
-		UI_Builder->Builder_Handler(Ptr_Hdc, EUI_Builder_Handler::Draw_Full_Window, W_Param, L_Param);
+		UI_Builder->Builder_Handler(Ptr_Hdc, EUI_Builder_Handler::EBH_UI_Menu_Main, W_Param, L_Param);
 
 		return;
 	}

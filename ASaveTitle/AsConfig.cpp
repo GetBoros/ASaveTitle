@@ -13,6 +13,7 @@ const wchar_t AsConfig::Pattern_Default_Bin[] = L"Url.bin";
 const wchar_t AsConfig::Pattern_Default_TXT[] = L"/PatternFindConfig.txt";
 const wchar_t AsConfig::Main_Image_Folder[] = L"Main_Image.png";
 const wchar_t AsConfig::Image_Folder[] = L"Pictures/";
+const wchar_t AsConfig::Image_Format[] = L".png";
 const wchar_t AsConfig::Main_Menu_Title_Name[] = L"Title Saver";
 const wchar_t AsConfig::Sub_Menu_Title[] = L"                                TITLE NAMES																								";
 const wchar_t AsConfig::Sub_Menu_User_Input_Title[] = L"Enter text here... or URL your site";

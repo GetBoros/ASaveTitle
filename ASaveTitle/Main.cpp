@@ -1,9 +1,7 @@
 ﻿#include "Main.h"
-
 // Singlton
 AsMain *AsMain::Main_Window = 0;
 //------------------------------------------------------------------------------------------------------------
-
 
 
 
@@ -30,6 +28,8 @@ WCHAR AsMain::SZ_Window[] = L"Book_Reader";
 AsMain::AsMain(HINSTANCE handle_instance)
 	:HInstance(handle_instance)
 {
+	setlocale(LC_ALL, "ru_RU.UTF-8");
+
 	LoadStringW(HInstance, IDC_ASAVETITLE, SZ_Window, AsConfig::Max_Loadstring);
 	LoadStringW(HInstance, IDS_APP_TITLE, SZ_Title, AsConfig::Max_Loadstring);  // from IDS_APP_TITLE get string and set to SZ_TITLE if < MAX_LOADSTRING
 	Register_Class();

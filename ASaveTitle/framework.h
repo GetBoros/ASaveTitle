@@ -25,7 +25,8 @@ extern "C"
 #include "WinSock2.h"  // NET
 #include "curl/curl.h"  // NET || BROWSE
 #include "array"
-#include <cwchar>  // wcstombs_s
+//#include <cwchar>  // wcstombs_s
+#include <cwctype>  // For std::towupper and std::towlower
 #include <mutex>
 #include <bitset>  // std::bitset || std::byte
 

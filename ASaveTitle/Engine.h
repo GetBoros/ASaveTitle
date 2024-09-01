@@ -192,7 +192,7 @@ private:
 	void Handle_Title_Name_Num(const wchar_t *key, wchar_t *num, const wchar_t *season, wchar_t *result);
 
 	void User_Map_Load(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  //Load from file || !!! Can be refactored
-	void User_Map_Save(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  // Save to file User_Map_Ptr
+	void User_Map_Save(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  // Save to file map
 	void User_Map_Free(std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  // Free All memory
 	unsigned short User_Map_Convert_In(unsigned short ch);  // Convert title, need to save to file
 	unsigned long long User_Map_Convert_Out(unsigned long long &ch);  // Convert back and get Title
@@ -213,11 +213,6 @@ private:
 
 	std::map<wchar_t *, STitle_Info *, SCmp_Char> **User_Maps;
 	std::map<wchar_t *, STitle_Info *, SCmp_Char> *User_Map_Active;  // Get ptr to current active menu choosed while pressed on main menu
-	// To Array?
-	std::map<wchar_t *, STitle_Info *, SCmp_Char> *User_Map_Ptr;
-	std::map<wchar_t *, STitle_Info *, SCmp_Char> *User_Map_Library;
-	std::map<wchar_t *, STitle_Info *, SCmp_Char> *User_Map_Paused;
-	std::map<wchar_t *, STitle_Info *, SCmp_Char> *User_Map_Wishlist;
 	std::map<wchar_t *, STitle_Info *>::iterator It_User_Map_Active;
 };
 //------------------------------------------------------------------------------------------------------------

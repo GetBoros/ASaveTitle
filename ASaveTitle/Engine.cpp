@@ -350,37 +350,28 @@ AsUI_Builder::~AsUI_Builder()
 	if (H_Bitmap != 0)
 		DeleteObject(H_Bitmap);
 
-	auto user_map_loaders = [&]()  // !!! to many cpy
-		{
-			User_Map_Save("Data/Watching.bin", *User_Map_Ptr);  // Thread 1
-			User_Map_Free(*User_Map_Ptr);  // Thread 1
-		};
+	// !!!
+	const char* fileNames[] = { "Data/Watching.bin", "Data/Library.bin", "Data/Paused.bin", "Data/Wishlist.bin" };
+	std::vector<std::thread> threads_temp;
 
-	auto user_map_library = [&]()
-		{
-			User_Map_Save("Data/Library.bin", *User_Map_Library);  // Thread 2
-			User_Map_Free(*User_Map_Library);  // Thread 2
-		};
+	// Save and Exit
+	for (i = 0; i < (int)EUser_Arrays::EUA_Arrays_Count; ++i)
+	{
+		threads_temp.emplace_back([&, i]()
+			{
+				User_Map_Save(fileNames[i], *User_Maps[i]);
+				User_Map_Free(*User_Maps[i]);  // Thread 1
 
-	auto user_map_paused = [&]()
-		{
-			User_Map_Save("Data/Paused.bin", *User_Map_Paused);  // Thread 3
-			User_Map_Free(*User_Map_Paused);  // Thread 3
-		};
+			});
+	}
 
-	auto user_map_wishlist = [&]()
-		{
-			User_Map_Save("Data/Wishlist.bin", *User_Map_Wishlist);  // Thread 4
-			User_Map_Free(*User_Map_Wishlist);  // Thread 4
-		};
+	for (std::thread& thread : threads_temp)
+		thread.join();
 
-	// THREAD FIRST
-	std::thread thread_wch(user_map_loaders);
-	std::thread thread_lib(user_map_library);
-	std::thread thread_psd(user_map_paused);
-	std::thread thread_wsh(user_map_wishlist);
-
-
+	It_User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Watching]->begin();
+	It_User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Library]->begin();
+	It_User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Paused]->begin();
+	It_User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Wishlist]->begin();
 
 	// 1.4. 
 	for (i = 0; i < (int)EPress::Button_Not_Handled; i++)
@@ -392,82 +383,35 @@ AsUI_Builder::~AsUI_Builder()
 
 	delete Mouse_Cord_Destination;
 	delete Mouse_Cord;
-
-	thread_wch.join();
-	thread_lib.join();
-	thread_psd.join();
-	thread_wsh.join();
-
 }
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::AsUI_Builder(HDC hdc)
 : Active_Menu(EAM_Main), Ptr_Hdc(hdc), User_Input(0), Button_User_Offset(0), Button_Menu_Main_Prev(0), Button_Menu_Sub_Prev(99),
   Active_Button(EActive_Button::EAB_Main_Menu), Active_Page(EPage_Button::EPB_None),
   Border_Pressed(EPress::Border_None), Borders_Rect{}, Mouse_Cord_Destination(0), Mouse_Cord(0),
-  Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}, User_Map_Active(0),
-  User_Map_Ptr(0), User_Map_Library(0), User_Map_Paused(0), User_Map_Wishlist(0)
+  Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}, User_Map_Active(0)
 {
 	const char *fileNames[] = { "Data/Watching.bin", "Data/Library.bin", "Data/Paused.bin", "Data/Wishlist.bin" };
-	//std::vector<std::thread> threads;
-
-	//for (int i = 0; i < 4; ++i)
-	//{
-	//	threads.emplace_back([&, i]()
-	//		{
-	//			maps[i] = new std::map<wchar_t *, STitle_Info *, SCmp_Char>;
-	//			User_Map_Load(fileNames[i], *maps[i]);
-	//		});
-	//}
-
-	// Ожидаем завершения всех потоков
-	//for (auto& thread : threads)
-	//{
-	//	thread.join();
-	//}
+	int i;
+	std::vector<std::thread> threads;
 
 	User_Maps = new std::map<wchar_t *, STitle_Info *, SCmp_Char> *[(int)EUser_Arrays::EUA_Arrays_Count] {};
-	User_Maps[(int)EUser_Arrays::EUA_Watching] = new std::map<wchar_t *, STitle_Info *, SCmp_Char> {};
-	User_Map_Load("Data/Watching.bin", *User_Maps[(int)EUser_Arrays::EUA_Watching]);  // Load from file and add to User_Map_Ptr
 
+	// Load Init
+	for (i = 0; i < (int)EUser_Arrays::EUA_Arrays_Count; ++i)
+	{
+		threads.emplace_back([&, i]()
+			{
+				User_Maps[i] = new std::map<wchar_t *, STitle_Info *, SCmp_Char> {};
+				User_Map_Load(fileNames[i], *User_Maps[i]);
+			});
+	}
 
-
-	auto user_map_loaders = [&]()  // too many cpy
-		{
-			User_Map_Ptr = new std::map<wchar_t *, STitle_Info *, SCmp_Char>;
-			User_Map_Load("Data/Watching.bin", *User_Map_Ptr);  // Load from file and add to User_Map_Ptr
-		};
-
-	auto user_map_library = [&]()
-		{
-			User_Map_Library = new std::map<wchar_t *, STitle_Info *, SCmp_Char>;
-			User_Map_Load("Data/Library.bin", *User_Map_Library);  // Load from file and add to User_Map_Library
-		};
-
-	auto user_map_paused = [&]()
-		{
-			User_Map_Paused = new std::map<wchar_t*, STitle_Info*, SCmp_Char>;
-			User_Map_Load("Data/Paused.bin", *User_Map_Paused);  // Load from file and add to User_Map_Paused
-		};
-
-	auto user_map_wishlist = [&]()
-		{
-			User_Map_Wishlist = new std::map<wchar_t*, STitle_Info*, SCmp_Char>;
-			User_Map_Load("Data/Wishlist.bin", *User_Map_Wishlist);  // Load from file and add to User_Map_Wishlist
-		};
-
-	// THREAD FIRST
-	std::thread thread_wch(user_map_loaders);
-	std::thread thread_lib(user_map_library);
-	std::thread thread_psd(user_map_paused);
-	std::thread thread_wsh(user_map_wishlist);
+	for (std::thread &thread : threads)
+		thread.join();
 
 	Init();
 	Draw_Buttons_Menu_Main();
-
-	thread_wch.detach();
-	thread_lib.detach();
-	thread_psd.detach();
-	thread_wsh.detach();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam)
@@ -1337,16 +1281,16 @@ void AsUI_Builder::Handle_Menu_Main()
 	switch (Active_Menu = (EActive_Menu)i )
 	{
 	case EAM_Watching:
-		User_Map_Active = User_Map_Ptr;
+		User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Watching];
 		break;
 	case EAM_Library_Menu:
-		User_Map_Active = User_Map_Library;
+		User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Library];
 		break;
 	case EAM_Paused_Menu:
-		User_Map_Active = User_Map_Paused;
+		User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Paused];
 		break;
 	case EAM_Wishlist:
-		User_Map_Active = User_Map_Wishlist;
+		User_Map_Active = User_Maps[(int)EUser_Arrays::EUA_Wishlist];
 		break;
 	}
 
@@ -1437,16 +1381,16 @@ void AsUI_Builder::Handle_Menu_Context()
 	switch ( (EActive_Menu)i)  // If pressed first button context menu choose action
 	{
 	case EAM_Watching:
-		map = User_Map_Ptr;
+		map = User_Maps[(int)EUser_Arrays::EUA_Watching];
 		break;
 	case EAM_Library_Menu:
-		map = User_Map_Library;
+		map = User_Maps[(int)EUser_Arrays::EUA_Library];
 		break;
 	case EAM_Paused_Menu:
-		map = User_Map_Paused;
+		map = User_Maps[(int)EUser_Arrays::EUA_Paused];
 		break;
 	case EAM_Wishlist:
-		map = User_Map_Wishlist;
+		map = User_Maps[(int)EUser_Arrays::EUA_Wishlist];
 		break;
 	case EAM_Erase:
 		delete It_User_Map_Active->second->Title_Name_Key;

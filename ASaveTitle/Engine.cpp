@@ -386,7 +386,7 @@ AsUI_Builder::~AsUI_Builder()
 }
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::AsUI_Builder(HDC hdc)
-: Active_Menu(EAM_Main), Ptr_Hdc(hdc), User_Input(0), Button_User_Offset(0), Button_Menu_Main_Prev(0), Button_Menu_Sub_Prev(99),
+: Active_Menu(EAM_Main), User_Map(EUser_Arrays::EUA_Arrays_Count), Ptr_Hdc(hdc), User_Input(0), Button_User_Offset(0), Button_Menu_Main_Prev(0), Button_Menu_Sub_Prev(99),
   Active_Button(EActive_Button::EAB_Main_Menu), Active_Page(EPage_Button::EPB_None),
   Border_Pressed(EPress::Border_None), Borders_Rect{}, Mouse_Cord_Destination(0), Mouse_Cord(0),
   Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}, User_Map_Active(0)

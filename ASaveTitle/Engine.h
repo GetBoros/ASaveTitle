@@ -155,7 +155,7 @@ public:
 	void Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 
 	EActive_Menu Active_Menu;
-	EUser_Arrays User_Arrays;
+	EUser_Arrays User_Map;
 	HDC Ptr_Hdc;
 
 private:

@@ -361,6 +361,8 @@ AsUI_Builder::~AsUI_Builder()
 				User_Map_Free(*User_Maps[i]);  // Thread 1
 			});
 	}
+	for (std::thread& thread : threads_temp)
+		thread.join();
 
 	// 1.4. Free memory
 	for (i = 0; i < (int)EPress::Button_Not_Handled; i++)
@@ -368,17 +370,16 @@ AsUI_Builder::~AsUI_Builder()
 
 	delete[] Borders_Rect;
 	delete[] User_Input;
+	delete[] User_Maps;
+	delete[] Buttons;
 
 	delete Mouse_Cord_Destination;
 	delete Mouse_Cord;
 
-	for (std::thread& thread : threads_temp)
-		thread.join();
 }
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::AsUI_Builder(HDC hdc)
-: Active_Menu(EAM_Main), Active_Map(EUser_Arrays::EUA_Arrays_Count), Ptr_Hdc(hdc), User_Input(0), Button_User_Offset(0), Button_Menu_Main_Prev(0), Button_Menu_Sub_Prev(99),
-  Active_Button(EActive_Button::EAB_Main_Menu), Active_Page(EPage_Button::EPB_None),
+: Active_Menu(EAM_Main), Active_Map(EUser_Arrays::EUA_Arrays_Count), Ptr_Hdc(hdc), Buttons {}, User_Input(0), Button_User_Offset(0),
   Border_Pressed(EPress::Border_None), Borders_Rect{}, Mouse_Cord_Destination(0), Mouse_Cord(0),
   Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}
 {
@@ -418,7 +419,6 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 
 	case EUI_Builder_Handler::EBH_UI_Menu_Main:
 		Active_Menu = EActive_Menu::EAM_Main;
-		Active_Button = (EActive_Button)0;
 		Borders_Rect[(int)EPress::Border_Menu_Main][0] = {};
 		Draw_Buttons_Menu_Main();
 		Draw_Buttons_Menu_Sub();
@@ -449,6 +449,7 @@ void AsUI_Builder::Init()
 	Borders_Rect[(int)EPress::Button_Pages][EPage_Button::EPB_Prev] = { 1231, 12, 1303, 30 };
 	Borders_Rect[(int)EPress::Button_Pages][EPage_Button::EPB_Next] = { 1305, 12, 1375, 30 };
 
+	Buttons = new byte[(int)EActive_Button::EAB_Handlers_Count] {};
 	User_Input = new wchar_t[64] {};
 	Mouse_Cord = new RECT {};
 	Mouse_Cord_Destination = new RECT {};
@@ -456,7 +457,6 @@ void AsUI_Builder::Init()
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_User_Input()
 {
-	int it_distance = 0;
 	int length = 0;
 	wchar_t *url_content = 0;
 	wchar_t *image_name_format = 0;
@@ -480,21 +480,17 @@ void AsUI_Builder::Handle_User_Input()
 	}
 
 	// 2.0. Find Title index
-	it_distance = (int)std::distance(User_Maps[(int)Active_Map]->begin(), It_User_Map_Active);
-	if (it_distance > AsConfig::Max_Line)
+	Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = (int)std::distance(User_Maps[(int)Active_Map]->begin(), It_User_Map_Active);
+	if (Buttons[(int)EActive_Button::EAB_Menu_Main_Curr] > AsConfig::Max_Line)
 		Button_User_Offset += AsConfig::Max_Line;
 
 	// 2.1. Update Menu Sub, show info
 	User_Input[0] = L'\0';
 	Draw_Buttons_Menu_Sub();
-	Active_Button = (EActive_Button)it_distance;
-	if (Button_Menu_Sub_Prev == 99)
-		Button_Menu_Sub_Prev = (int)Active_Button;
 	Redraw_Buttons_Menu_Sub();  // Show new added title
-	Button_Menu_Sub_Prev = (int)Active_Button;  // Save Prev Button to redraw it
 	
 	Redraw_Image();
-	Redraw_Buttons_Request();
+	Draw_Buttons_Request();
 	Draw_Button_User_Input();
 
 	delete[] url_content;
@@ -704,6 +700,61 @@ void AsUI_Builder::Draw_Button(RECT &border_rect, RECT &button, const wchar_t *t
 	border_rect.top = button.bottom + scale;  // cuting border for next button
 }
 //------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Draw_Button_Text(const bool is_dark, const RECT &rect, const wchar_t *str) const
+{
+	HBRUSH test = is_dark ? AsConfig::Brush_Background_Dark : AsConfig::Brush_Green_Dark;
+	COLORREF bk_color = is_dark ? AsConfig::Color_Dark : AsConfig::Color_Text_Green;
+	COLORREF text_color = is_dark ? AsConfig::Color_Text_Green : AsConfig::Color_Dark;
+
+	SelectObject(Ptr_Hdc, test);
+	SetBkColor(Ptr_Hdc, bk_color);
+	SetTextColor(Ptr_Hdc, text_color);
+
+	Rectangle(Ptr_Hdc, rect.left, rect.top, rect.right, rect.bottom);  // draw rect
+	TextOutW(Ptr_Hdc, rect.left + AsConfig::Global_Scale, rect.top + AsConfig::Global_Scale, str, (int)wcslen(str));  // button_prev text ( x its text out in middle
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Draw_Buttons_Request()
+{
+	int button_offset;
+	int box_size;
+	int scale;
+	int half_box;
+	int prev_button;
+	RECT *ui_rect_offset = 0;
+
+	button_offset = 9;
+	box_size = 21;
+	half_box = (int)( (float)box_size / 2.0f);
+	scale = AsConfig::Global_Scale;
+	prev_button = Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] - Button_User_Offset;
+	
+	// 1.1 Draw first Rectangle decrease
+	SelectObject(Ptr_Hdc, AsConfig::Brush_Green_Dark);  // Select color
+	ui_rect_offset = &Borders_Rect[(int)EPress::Button_Reguest][0];
+	ui_rect_offset->left = Borders_Rect[(int)EPress::Buttons_User_Input][prev_button].right + button_offset;
+	ui_rect_offset->top = Borders_Rect[(int)EPress::Buttons_User_Input][prev_button].top;
+	ui_rect_offset->right = Borders_Rect[(int)EPress::Buttons_User_Input][prev_button].right + button_offset + box_size;
+	ui_rect_offset->bottom = Borders_Rect[(int)EPress::Buttons_User_Input][prev_button].top + box_size;
+
+	Rectangle(Ptr_Hdc, ui_rect_offset->left, ui_rect_offset->top, ui_rect_offset->right, ui_rect_offset->bottom);
+	MoveToEx(Ptr_Hdc, ui_rect_offset->left + scale, ui_rect_offset->top + half_box, 0);
+	LineTo(Ptr_Hdc, ui_rect_offset->right - scale, ui_rect_offset->top + half_box);
+
+	// 1.2. Draw Second rect increase
+	Borders_Rect[(int)EPress::Button_Reguest][1].left = ui_rect_offset->left + box_size + scale;
+	Borders_Rect[(int)EPress::Button_Reguest][1].top = ui_rect_offset->top;
+	Borders_Rect[(int)EPress::Button_Reguest][1].right = ui_rect_offset->right + box_size + scale;
+	Borders_Rect[(int)EPress::Button_Reguest][1].bottom = ui_rect_offset->bottom;
+	ui_rect_offset = &Borders_Rect[(int)EPress::Button_Reguest][1];
+	
+	Rectangle(Ptr_Hdc, ui_rect_offset->left, ui_rect_offset->top, ui_rect_offset->right, ui_rect_offset->bottom);
+	MoveToEx(Ptr_Hdc, ui_rect_offset->left + scale, ui_rect_offset->top + half_box, 0);
+	LineTo(Ptr_Hdc, ui_rect_offset->right - scale, ui_rect_offset->top + half_box);
+	MoveToEx(Ptr_Hdc, ui_rect_offset->left + half_box, ui_rect_offset->top + scale,0);
+	LineTo(Ptr_Hdc, ui_rect_offset->left + half_box, ui_rect_offset->bottom - scale);
+}
+//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Buttons_Menu_Main()
 {
 	int x, y;
@@ -748,7 +799,6 @@ void AsUI_Builder::Draw_Buttons_Menu_Sub()
 	curr_line = 0;
 	curr_page_max_line = 0;
 	border_rect = {};
-	Button_Menu_Sub_Prev = 99;  // Need to switch between arrays
 
 	// 1.1.Draw Border, Set colors, Draw Titles and user input handler
 	Draw_Border(Borders_Rect[(int)EPress::Border_Menu_Sub][0]);  // draw border
@@ -837,89 +887,41 @@ void AsUI_Builder::Redraw_Button_User_Input(const wchar_t &user_text)
 	Draw_Button_User_Input();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Redraw_Buttons_Request()
+void AsUI_Builder::Redraw_Button_Request() const
 {
-	int button_offset;
-	int box_size;
-	int scale;
-	int half_box;
-	RECT *ui_rect_offset = 0;
-	
-	button_offset = 9;
-	box_size = 21;
-	half_box = (int)( (float)box_size / 2.0f);
-	scale = AsConfig::Global_Scale;
-
-	FillRect(Ptr_Hdc, &Borders_Rect[(int)EPress::Button_Reguest][0], AsConfig::Brush_Background_Dark);  // hide reguest
+	FillRect(Ptr_Hdc, &Borders_Rect[(int)EPress::Button_Reguest][0], AsConfig::Brush_Background_Dark);
 	FillRect(Ptr_Hdc, &Borders_Rect[(int)EPress::Button_Reguest][1], AsConfig::Brush_Background_Dark);
-
-	// 1.1 Draw first Rectangle decrease
-	SelectObject(Ptr_Hdc, AsConfig::Brush_Green_Dark);  // Select color
-	ui_rect_offset = &Borders_Rect[(int)EPress::Button_Reguest][0];
-	ui_rect_offset->left = Borders_Rect[(int)EPress::Buttons_User_Input][Button_Menu_Sub_Prev - Button_User_Offset].right + button_offset;
-	ui_rect_offset->top = Borders_Rect[(int)EPress::Buttons_User_Input][Button_Menu_Sub_Prev - Button_User_Offset].top;
-	ui_rect_offset->right = Borders_Rect[(int)EPress::Buttons_User_Input][Button_Menu_Sub_Prev - Button_User_Offset].right + button_offset + box_size;
-	ui_rect_offset->bottom = Borders_Rect[(int)EPress::Buttons_User_Input][Button_Menu_Sub_Prev - Button_User_Offset].top + box_size;
-
-	Rectangle(Ptr_Hdc, ui_rect_offset->left, ui_rect_offset->top, ui_rect_offset->right, ui_rect_offset->bottom);
-	MoveToEx(Ptr_Hdc, ui_rect_offset->left + scale, ui_rect_offset->top + half_box, 0);
-	LineTo(Ptr_Hdc, ui_rect_offset->right - scale, ui_rect_offset->top + half_box);
-
-	// 1.2. Draw Second rect increase
-	Borders_Rect[(int)EPress::Button_Reguest][1].left = ui_rect_offset->left + box_size + scale;
-	Borders_Rect[(int)EPress::Button_Reguest][1].top = ui_rect_offset->top;
-	Borders_Rect[(int)EPress::Button_Reguest][1].right = ui_rect_offset->right + box_size + scale;
-	Borders_Rect[(int)EPress::Button_Reguest][1].bottom = ui_rect_offset->bottom;
-	ui_rect_offset = &Borders_Rect[(int)EPress::Button_Reguest][1];
-	
-	Rectangle(Ptr_Hdc, ui_rect_offset->left, ui_rect_offset->top, ui_rect_offset->right, ui_rect_offset->bottom);
-	MoveToEx(Ptr_Hdc, ui_rect_offset->left + scale, ui_rect_offset->top + half_box, 0);
-	LineTo(Ptr_Hdc, ui_rect_offset->right - scale, ui_rect_offset->top + half_box);
-	MoveToEx(Ptr_Hdc, ui_rect_offset->left + half_box, ui_rect_offset->top + scale,0);
-	LineTo(Ptr_Hdc, ui_rect_offset->left + half_box, ui_rect_offset->bottom - scale);
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Redraw_Buttons_Menu_Main()
 {
-	const RECT &prev_button = Borders_Rect[(int)EPress::Button_Menu_Main][Button_Menu_Main_Prev];
-	const RECT &curr_button = Borders_Rect[(int)EPress::Button_Menu_Main][(int)Active_Button];
+	const RECT &prev_button = Borders_Rect[(int)EPress::Button_Menu_Main][Buttons[(int)EActive_Button::EAB_Menu_Main_Prev]];
+	const RECT &curr_button = Borders_Rect[(int)EPress::Button_Menu_Main][Buttons[(int)EActive_Button::EAB_Menu_Main_Curr]];
 
-	FillRect(Ptr_Hdc, &Borders_Rect[(int)EPress::Button_Reguest][0], AsConfig::Brush_Background_Dark);  // hide reguest
-	FillRect(Ptr_Hdc, &Borders_Rect[(int)EPress::Button_Reguest][1], AsConfig::Brush_Background_Dark);
+	Redraw_Button_Request();
 
-	Draw_Button_Text(true, prev_button, AsConfig::Menu_Main_Buttons_Text_Eng[Button_Menu_Main_Prev]);
-	Draw_Button_Text(false, curr_button, AsConfig::Menu_Main_Buttons_Text_Eng[(int)Active_Button]);
+	Draw_Button_Text(true, prev_button, AsConfig::Menu_Main_Buttons_Text_Eng[Buttons[(int)EActive_Button::EAB_Menu_Main_Prev]]);
+	Draw_Button_Text(false, curr_button, AsConfig::Menu_Main_Buttons_Text_Eng[Buttons[(int)EActive_Button::EAB_Menu_Main_Curr]]);
+
+	Buttons[(int)EActive_Button::EAB_Menu_Main_Prev] = Buttons[(int)EActive_Button::EAB_Menu_Main_Curr];
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Redraw_Buttons_Menu_Sub()
 {
 	wchar_t *text;
-	const RECT &prev_button = Borders_Rect[(int)EPress::Buttons_User_Input][Button_Menu_Sub_Prev - Button_User_Offset];
-	const RECT &curr_button = Borders_Rect[(int)EPress::Buttons_User_Input][(int)Active_Button - Button_User_Offset];
-	int index = 0;
+	int buttons_count = 0;
+	const RECT &prev_button = Borders_Rect[(int)EPress::Buttons_User_Input][(int)Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] - Button_User_Offset];
+	const RECT &curr_button = Borders_Rect[(int)EPress::Buttons_User_Input][(int)Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] - Button_User_Offset];
 
-	while (index < 2)
+	while (buttons_count < 2)
 	{
-		It_User_Map_Active = User_Maps[(int)Active_Map]->begin();  // Button_Menu_Sub_Prev || Clear button
-		std::advance(It_User_Map_Active, index == 0 ? (int)Button_Menu_Sub_Prev : (int)Active_Button);
+		It_User_Map_Active = User_Maps[(int)Active_Map]->begin();  // Clear button
+		std::advance(It_User_Map_Active, buttons_count == 0 ? Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] : Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr]);
 		text = It_User_Map_Active->second->Title_Name_Num;
-		Draw_Button_Text(index == 0 ? true : false, index == 0 ? prev_button : curr_button, text);
-		index++;
+		Draw_Button_Text(buttons_count == 0 ? true : false, buttons_count == 0 ? prev_button : curr_button, text);
+		buttons_count++;
 	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Button_Text(const bool is_dark, const RECT &rect, const wchar_t *str) const
-{
-	HBRUSH test = is_dark ? AsConfig::Brush_Background_Dark : AsConfig::Brush_Green_Dark;
-	COLORREF bk_color = is_dark ? AsConfig::Color_Dark : AsConfig::Color_Text_Green;
-	COLORREF text_color = is_dark ? AsConfig::Color_Text_Green : AsConfig::Color_Dark;
-
-	SelectObject(Ptr_Hdc, test);
-	SetBkColor(Ptr_Hdc, bk_color);
-	SetTextColor(Ptr_Hdc, text_color);
-
-	Rectangle(Ptr_Hdc, rect.left, rect.top, rect.right, rect.bottom);  // draw rect
-	TextOutW(Ptr_Hdc, rect.left + AsConfig::Global_Scale, rect.top + AsConfig::Global_Scale, str, (int)wcslen(str));  // button_prev text ( x its text out in middle
+	Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] = Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr];
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map)
@@ -1201,7 +1203,7 @@ unsigned long long  AsUI_Builder::User_Map_Convert_Out(unsigned long long &ch)
 	return 0LL;  // Bad Reserved 99
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Button_Press(const RECT &mouse_cord, const int border_index, const int count, int &result)
+void AsUI_Builder::Handle_Border_Pressed(const RECT &mouse_cord, const int border_index, const int count, int &result)
 {
 	for (result = 0; result < count; result++)
 		if (IntersectRect(Mouse_Cord_Destination, &mouse_cord, &Borders_Rect[border_index][result] ) )
@@ -1223,6 +1225,7 @@ void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_han
 	for (index = 0; index < (int)EPress::Non_Bordered; index++)
 		if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[index][0] ) )
 			break;
+
 
 	// 1.1. Context Menu if rect is not empty clear
 	if (Borders_Rect[(int)EPress::Border_Menu_Context][0].left != 0)
@@ -1257,16 +1260,16 @@ void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_han
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Main()
 {
-	int i = 0;
+	int button_index = 0;
 
-	Handle_Button_Press(*Mouse_Cord, (int)Border_Pressed, AsConfig::Menu_Main_Button_Count, i);
-	if ( !(i != AsConfig::Menu_Main_Button_Count) )
+	Handle_Border_Pressed(*Mouse_Cord, (int)Border_Pressed, AsConfig::Menu_Main_Button_Count, button_index);
+	if ( !(button_index != AsConfig::Menu_Main_Button_Count) )  // if less buttons we have
 		return;
 
-	if ( (Active_Menu = (EActive_Menu)i) == EActive_Menu::EAM_Exit)
-		return PostQuitMessage(0);
+	if ( (Active_Menu = (EActive_Menu)button_index) == EActive_Menu::EAM_Exit)
+		return PostQuitMessage(0);  // If pressed at button Exit
 
-	switch (Active_Menu = (EActive_Menu)i )
+	switch (Active_Menu = (EActive_Menu)button_index)  // !!! Change Active menu to User_Arrays =)
 	{
 	case EAM_Watching:
 		Active_Map = EUser_Arrays::EUA_Watching;
@@ -1282,10 +1285,9 @@ void AsUI_Builder::Handle_Menu_Main()
 		break;
 	}
 
-	Active_Button = (EActive_Button)i;
+	Buttons[(int)EActive_Button::EAB_Menu_Main_Curr] = button_index;
 	Draw_Buttons_Menu_Sub();
 	Redraw_Buttons_Menu_Main();  // Redraw pressed button
-	Button_Menu_Main_Prev = (int)Active_Button;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Sub()
@@ -1300,7 +1302,7 @@ void AsUI_Builder::Handle_Menu_Sub()
 			return Handle_Clipboard();
 
 	// 1.2. Next or Prev page Handler
-	Handle_Button_Press(*Mouse_Cord, (int)EPress::Button_Pages, EPage_Button::EPB_Last, i);
+	Handle_Border_Pressed(*Mouse_Cord, (int)EPress::Button_Pages, EPage_Button::EPB_Last, i);
 	if (i != EPage_Button::EPB_Last)
 	{
 		if (i == EPage_Button::EPB_Prev)
@@ -1312,25 +1314,24 @@ void AsUI_Builder::Handle_Menu_Sub()
 		if (i == EPage_Button::EPB_Next)
 			Button_User_Offset += AsConfig::Max_Line;
 
-		Active_Button = EActive_Button::EAB_Main_Menu;
+		Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = 0;
+		Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] = 0;
 		Draw_Buttons_Menu_Sub();
-		Redraw_Buttons_Request();
+		Redraw_Button_Request();
 		return;
 	}
 
-	// 1.3. Buttons  Title
-	for (i = 0; i < AsConfig::Max_Line + 1; i++)
+	// 1.3. Buttons  Sub Title
+	for (i = 0; i <= AsConfig::Max_Line; i++)
 		if (IntersectRect(Mouse_Cord_Destination, Mouse_Cord, &Borders_Rect[(int)EPress::Buttons_User_Input][i] ) )
 			break;
 
-	if (i > AsConfig::Max_Line)  // if out of border, miss hit on button
+	if (i >= AsConfig::Max_Line)  // if out of border, miss hit on button
 		return;
-	Active_Button = (EActive_Button)(i + Button_User_Offset);
-	if (Button_Menu_Sub_Prev == 99)
-		Button_Menu_Sub_Prev = (int)Active_Button;
+	Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = i + Button_User_Offset;
 	Redraw_Buttons_Menu_Sub();
-	Button_Menu_Sub_Prev = (int)Active_Button;  // Save Prev Button to redraw it
-	Redraw_Buttons_Request();
+	Redraw_Button_Request();
+	Draw_Buttons_Request();
 	Redraw_Image();
 }
 //------------------------------------------------------------------------------------------------------------
@@ -1365,7 +1366,7 @@ void AsUI_Builder::Handle_Menu_Context()
 	int i = 0;
 	std::map<wchar_t *, STitle_Info *, SCmp_Char> *map = 0;
 
-	Handle_Button_Press(*Mouse_Cord, (int)EPress::Button_Context, AsConfig::Context_Button_Count, i);  // which array
+	Handle_Border_Pressed(*Mouse_Cord, (int)EPress::Button_Context, AsConfig::Context_Button_Count, i);  // which array
 	switch ( (EActive_Menu)i)  // If pressed first button context menu choose action
 	{
 	case EAM_Watching:
@@ -1394,9 +1395,9 @@ void AsUI_Builder::Handle_Menu_Context()
 		User_Maps[(int)Active_Map]->erase(It_User_Map_Active->first);  // Errase from map
 	}
 
-	Active_Button = EActive_Button::EAB_Main_Menu;
-	Button_Menu_Sub_Prev = 99;  // set to no prev_button
-	Redraw_Buttons_Request();
+	//Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = EActive_Button::EAB_Menu_Main_Curr;
+	Buttons[(int)EActive_Button::EAB_Menu_Main_Prev] = 99;
+	Draw_Buttons_Request();
 	Draw_Buttons_Menu_Sub();
 }
 //------------------------------------------------------------------------------------------------------------
@@ -1405,11 +1406,11 @@ void AsUI_Builder::Handle_Non_Bordered()
 	int i = 0;
 	const int how_many_buttons = 2;
 
-	Handle_Button_Press(*Mouse_Cord, (int)EPress::Button_Reguest, how_many_buttons, i);
+	Handle_Border_Pressed(*Mouse_Cord, (int)EPress::Button_Reguest, how_many_buttons, i);
 	if (i == how_many_buttons)  // if cant find any return
 		return;
 
-	Active_Button = (EActive_Button)Button_Menu_Sub_Prev;
+	Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev];
 	Handle_Button_Request(i);
 	Redraw_Buttons_Menu_Sub();
 }

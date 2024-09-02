@@ -199,15 +199,23 @@ void AsExamples::Display_FFmpeg_Commands()
 		- ffmpeg -i inFile.mp4 -ss 00:01 -vframes 1 -q:v 1 -vf "scale=1920:1080" outfile.png  // Get Screen
 	
 	- Video:
+			- Cut Video:  //  // Cut video from ss to...
+				- ffmpeg -i input.mp4 -ss 17 -c copy output_after_17_sec.mp4  // Before 17 second save video
+				- ffmpeg -i input.mp4 -t 17 -c copy output_17_sec.mp4  // Save only first 17 second
+
+				- ffmpeg -ss 00:00:00 -to 00:00:17 -i inFile.mp4 -c copy outfile.mp4  // Save 17 second 
+				- ffmpeg -i inFile.mp4 -ss 00:00:00 -to 00:00:17 out.mp4 -c copy outfile.mp4  //
+				- ffmpeg -ss 14 -i inFile.mp4 -t 4 outfile.mp4  //  -ss 14 skip 14 second | -t time duration 4 seconds
+				- ffmpeg -i inFile.mp4 -ss 14 -to 18 outfile.mp4
+
+			- Convert :
+		- ffmpeg -i Temp_06.mp4 -vf "scale=1920:1080,fps=60" -c:v libx264 -b:v 3061k -profile:v high -preset veryfast -c:a aac -b:a 128k -ar 44100 output_02.mp4
 		- ffmpeg -i inFile.mp4 outfile.mp4  // Convert from avi to mp4
 		- ffmpeg -i inFile.mp4 -q 23 quality_23.avi  // or if mp4 use -crf || -q(quality) 23 value quality low better?!?
-		- ffmpeg -i inFile.mp4 -ss 00:00:30 -to 00:01:00 out.mp4 -c copy outfile.mp4  // Cut video from ss to...
-		- ffmpeg -ss 00:00:30 -to 00:01:00 -i inFile.mp4 -c copy outfile.mp4  // Cut video from ss to...
-		- ffmpeg -ss 14 -i inFile.mp4 -t 4 outfile.mp4  //  -ss 14 skip 14 second | -t time duration 4 seconds
-		- ffmpeg -i inFile.mp4 -ss 14 -to 18 outfile.mp4
 
 	- Video Concatenation :
-		- ffmpeg -f concat -safe 0 -i file_list.txt -c copy outfile.mp4  // Create .txt and set all files to concatenate 'Test_00.mp4'
+		- ffmpeg -f concat -safe 0 -i file_list.txt -c copy outfile.mp4  // Create .txt and set all files to concatenate || file 'Test_00.mp4'
+		- ffmpeg -f concat -safe 0 -i file_list.txt -vf "scale=1920:1080,fps=60" -c:v libx264 -crf 0 -preset veryfast outfile.mp4
 
 	- Audio:
 		- ffmpeg -i inFile.mp3 -b:a 320k outfile.mp3  // -b:a maybe bitrate for audo can change 320k to 1000k need write k
@@ -296,3 +304,36 @@ void AsExamples::Display_FFmpeg_Examples()
 
 }
 //------------------------------------------------------------------------------------------------------------
+
+
+/*
+	// Get youtube url for ffmpeg
+	yt-dlp -f best -g https://www.youtube.com/watch?v=rn4PSf_-J1s
+
+
+ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1725287016/ei/CHbVZqPcM8TKi9oPgdvlgQ8/ip/185.19.6.90/id/rn4PSf_-J1s.1/itag/96/source/yt_live_broadcast/requiressl/yes/ratebypass/yes/live/1/sgoap/gir%3Dyes%3Bitag%3D140/sgovp/gir%3Dyes%3Bitag%3D137/rqh/1/hdlc/1/hls_chunk_host/rr13---sn-3c27sn7r.googlevideo.com/xpc/EgVo2aDSNQ%3D%3D/spc/Mv1m9uriw5XvrKyKxBDvR1fTvvsl473zECpaTSguUSHrtCB0N94jL8I/vprv/1/playlist_type/DVR/initcwndbps/1318750/mh/bK/mm/44/mn/sn-3c27sn7r/ms/lva/mv/m/mvi/13/pl/25/dover/11/pacing/0/keepalive/yes/mt/1725264996/sparams/expire,ei,ip,id,itag,source,requiressl,ratebypass,live,sgoap,sgovp,rqh,hdlc,xpc,spc,vprv,playlist_type/sig/AJfQdSswRAIgbna8IGZ0CEirQvwtRBjzx6CxiwL-PFS-EkwByEmXn_QCIBu6VEBLkht5Xnww-sRjZ0GEtfQKyG8tdHASeFgg8eJm/lsparams/hls_chunk_host,initcwndbps,mh,mm,mn,ms,mv,mvi,pl/lsig/ABPmVW0wRQIhAKUnMH-mh9jzFSKDimgH2J4mxf97sNxllc0-esiNBykzAiA1hgN2voNIBMTOKkwvb33YIW3jXRjbyEBXDEu53rTa2Q%3D%3D/playlist/index.m3u8"
+ -filter_complex "[0:a]showwaves=s=1920x1080:mode=cline:colors=cyan|magenta:scale=sqrt,eq=gamma=2.0[v]" -map "[v]" -map 0:a
+ -f flv "rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h"
+
+ // Work GOOD
+ ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1725287016/ei/CHbVZqPcM8TKi9oPgdvlgQ8/ip/185.19.6.90/id/rn4PSf_-J1s.1/itag/96/source/yt_live_broadcast/requiressl/yes/ratebypass/yes/live/1/sgoap/gir%3Dyes%3Bitag%3D140/sgovp/gir%3Dyes%3Bitag%3D137/rqh/1/hdlc/1/hls_chunk_host/rr13---sn-3c27sn7r.googlevideo.com/xpc/EgVo2aDSNQ%3D%3D/spc/Mv1m9uriw5XvrKyKxBDvR1fTvvsl473zECpaTSguUSHrtCB0N94jL8I/vprv/1/playlist_type/DVR/initcwndbps/1318750/mh/bK/mm/44/mn/sn-3c27sn7r/ms/lva/mv/m/mvi/13/pl/25/dover/11/pacing/0/keepalive/yes/mt/1725264996/sparams/expire,ei,ip,id,itag,source,requiressl,ratebypass,live,sgoap,sgovp,rqh,hdlc,xpc,spc,vprv,playlist_type/sig/AJfQdSswRAIgbna8IGZ0CEirQvwtRBjzx6CxiwL-PFS-EkwByEmXn_QCIBu6VEBLkht5Xnww-sRjZ0GEtfQKyG8tdHASeFgg8eJm/lsparams/hls_chunk_host,initcwndbps,mh,mm,mn,ms,mv,mvi,pl/lsig/ABPmVW0wRQIhAKUnMH-mh9jzFSKDimgH2J4mxf97sNxllc0-esiNBykzAiA1hgN2voNIBMTOKkwvb33YIW3jXRjbyEBXDEu53rTa2Q%3D%3D/playlist/index.m3u8" \
+  -filter_complex "[0:a]showwaves=s=1920x360:mode=cline:colors=cyan|magenta:scale=sqrt,format=rgba,fade=t=in:st=0:d=1,alphaextract[a]; [0:v]scale=1920:1080,pad=iw:ih+360:0:0:black[v]; [a]format=rgba,colorchannelmixer=aa=0.5[overlay]; [v][overlay]overlay=0:main_h-overlay_h" \
+  -c:v libx264 \
+  -crf 23 -preset fast \
+  -c:a aac -b:a 192k \
+  -f flv "rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h"
+
+ // Work
+ ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1725287016/ei/CHbVZqPcM8TKi9oPgdvlgQ8/ip/185.19.6.90/id/rn4PSf_-J1s.1/itag/96/source/yt_live_broadcast/requiressl/yes/ratebypass/yes/live/1/sgoap/gir%3Dyes%3Bitag%3D140/sgovp/gir%3Dyes%3Bitag%3D137/rqh/1/hdlc/1/hls_chunk_host/rr13---sn-3c27sn7r.googlevideo.com/xpc/EgVo2aDSNQ%3D%3D/spc/Mv1m9uriw5XvrKyKxBDvR1fTvvsl473zECpaTSguUSHrtCB0N94jL8I/vprv/1/playlist_type/DVR/initcwndbps/1318750/mh/bK/mm/44/mn/sn-3c27sn7r/ms/lva/mv/m/mvi/13/pl/25/dover/11/pacing/0/keepalive/yes/mt/1725264996/sparams/expire,ei,ip,id,itag,source,requiressl,ratebypass,live,sgoap,sgovp,rqh,hdlc,xpc,spc,vprv,playlist_type/sig/AJfQdSswRAIgbna8IGZ0CEirQvwtRBjzx6CxiwL-PFS-EkwByEmXn_QCIBu6VEBLkht5Xnww-sRjZ0GEtfQKyG8tdHASeFgg8eJm/lsparams/hls_chunk_host,initcwndbps,mh,mm,mn,ms,mv,mvi,pl/lsig/ABPmVW0wRQIhAKUnMH-mh9jzFSKDimgH2J4mxf97sNxllc0-esiNBykzAiA1hgN2voNIBMTOKkwvb33YIW3jXRjbyEBXDEu53rTa2Q%3D%3D/playlist/index.m3u8" \
+-filter_complex "[0:a]showwaves=s=1920x1080:mode=cline:colors=cyan|magenta:scale=sqrt[v];[0:v][v]hstack=inputs=2" \
+-c:v libx264 
+-crf 23 
+-preset fast 
+-c:a aac -b:a 192k 
+-f flv "rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h"
+
+ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1725287016/ei/CHbVZqPcM8TKi9oPgdvlgQ8/ip/185.19.6.90/id/rn4PSf_-J1s.1/itag/96/source/yt_live_broadcast/requiressl/yes/ratebypass/yes/live/1/sgoap/gir%3Dyes%3Bitag%3D140/sgovp/gir%3Dyes%3Bitag%3D137/rqh/1/hdlc/1/hls_chunk_host/rr13---sn-3c27sn7r.googlevideo.com/xpc/EgVo2aDSNQ%3D%3D/spc/Mv1m9uriw5XvrKyKxBDvR1fTvvsl473zECpaTSguUSHrtCB0N94jL8I/vprv/1/playlist_type/DVR/initcwndbps/1318750/mh/bK/mm/44/mn/sn-3c27sn7r/ms/lva/mv/m/mvi/13/pl/25/dover/11/pacing/0/keepalive/yes/mt/1725264996/sparams/expire,ei,ip,id,itag,source,requiressl,ratebypass,live,sgoap,sgovp,rqh,hdlc,xpc,spc,vprv,playlist_type/sig/AJfQdSswRAIgbna8IGZ0CEirQvwtRBjzx6CxiwL-PFS-EkwByEmXn_QCIBu6VEBLkht5Xnww-sRjZ0GEtfQKyG8tdHASeFgg8eJm/lsparams/hls_chunk_host,initcwndbps,mh,mm,mn,ms,mv,mvi,pl/lsig/ABPmVW0wRQIhAKUnMH-mh9jzFSKDimgH2J4mxf97sNxllc0-esiNBykzAiA1hgN2voNIBMTOKkwvb33YIW3jXRjbyEBXDEu53rTa2Q%3D%3D/playlist/index.m3u8" \
+-filter_complex "[0:a]showwaves=s=1920x360:mode=cline:colors=cyan|magenta:scale=sqrt,format=rgba,fade=t=in:st=0:d=1,alphaextract[a]; [0:v]pad=iw:ih+360:0:0:black[v]; [a]format=rgba,geq='r=0:g=0:b=0:a=1.0'[overlay]; [v][overlay]overlay=0.5:main_h-overlay_h" \
+-c:v libx264 -crf 23 -preset fast -c:a aac -b:a 192k -f flv "rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h"
+
+*/

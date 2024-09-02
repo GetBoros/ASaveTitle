@@ -6,7 +6,8 @@
 const int Timer_ID = WM_USER + 1;
 //------------------------------------------------------------------------------------------------------------
 enum EActive_Menu
-{
+{// !!! Delete
+
 	EAM_Main = -1,
 	EAM_Watching = 0,
 	EAM_Library_Menu,
@@ -66,8 +67,11 @@ enum class EUser_Arrays : byte
 //------------------------------------------------------------------------------------------------------------
 enum class EActive_Button : byte
 {
-	EAB_Main_Menu,
-	EAB_Sub_Menu
+	EAB_Menu_Main_Curr,
+	EAB_Menu_Main_Prev,
+	EAB_Menu_Sub_Curr,
+	EAB_Menu_Sub_Prev,
+	EAB_Handlers_Count
 };
 //------------------------------------------------------------------------------------------------------------
 enum class EPress : int
@@ -145,7 +149,7 @@ private:
 
 
 // AsUI_Builder
-class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. | 520 : 22.08.2024 | 168 : 25.08.2024 | 128 : 01.09.2024 |
+class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. | 520 : 22.08.2024 | 168 : 25.08.2024 | 104 : 02.09.2024 |
 {// !!! Draw UI, Handle User Inputs, Load Save Data, 
 
 public:
@@ -154,7 +158,7 @@ public:
 
 	void Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 
-	EActive_Menu Active_Menu;
+	EActive_Menu Active_Menu;  // Not need
 	EUser_Arrays Active_Map;
 	HDC Ptr_Hdc;
 
@@ -164,6 +168,7 @@ private:
 	void Draw_Border(RECT &border_rect) const;  // Draw border and return inner rect
 	void Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const;  // Draw Button and return free border rect space 
 	void Draw_Button_Text(const bool is_dark, const RECT &rect, const wchar_t *str) const;
+	void Draw_Buttons_Request();  // Draw Request raise or decrease series
 	void Draw_Buttons_Menu_Main();
 	void Draw_Buttons_Menu_Sub();  // Sub Menu draw arrays from curr active button
 	void Draw_Buttons_Menu_Context(const int &x, const int &y);  // Draw context menu and store data rect
@@ -172,13 +177,13 @@ private:
 	void Redraw_Buttons_Menu_Main();  // Draw and Redraw Active Buttons in nice color
 	void Redraw_Buttons_Menu_Sub();  // Draw and Redraw Active And Prev Buttons 
 	void Redraw_Buttons_Menu_Context(RECT &rect);  // restore image
-	void Redraw_Buttons_Request();  // Draw Request raise or decrease series
+	void Redraw_Button_Request() const;
 	void Redraw_Button_User_Input(const wchar_t &text);  // Add and show input to User_Input Buttons
 	void Redraw_Image() const;  // Draw Image reacting on Active Button
 
 	void Handle_Button_Bordered(const EUI_Builder_Handler &builder_handlerconst, const LPARAM &lParam);
 	void Handle_Button_Request(const bool is_increment);  // Change active title num
-	void Handle_Button_Press(const RECT &mouse_cord, const int border_index, const int count, int &result);
+	void Handle_Border_Pressed(const RECT &mouse_cord, const int border_index, const int count, int &result);  // Check all buttons _IN_ Border
 	void Handle_Menu_Main();
 	void Handle_Menu_Sub();
 	void Handle_Clipboard();
@@ -197,18 +202,15 @@ private:
 	unsigned short User_Map_Convert_In(unsigned short ch);  // Convert title, need to save to file
 	unsigned long long User_Map_Convert_Out(unsigned long long &ch);  // Convert back and get Title
 
+	byte *Buttons;
 	wchar_t *User_Input;  // whant std::wstring || really hard
 	int Button_User_Offset;  // Help Draw Buttons Menu Sub draw currect buttons while in next or prev page
-	int Button_Menu_Main_Prev;  // Need to redraw prev menu main button, store value
-	int Button_Menu_Sub_Prev;  // Need to redraw prev menu sub button, store value
 	
 	// !!! Refactoring to byte and add Active_Map
-	EActive_Button Active_Button;  // If AB = 0 we init_sub_menu if not only draw Main menu, that`s all
-	EPage_Button Active_Page;
-	EPress Border_Pressed;
+	EPress Border_Pressed;  // Maybe don`t need
 
 	RECT **Borders_Rect;  // Storage for all border rects
-	RECT *Mouse_Cord_Destination;
+	RECT *Mouse_Cord_Destination;  // Can be in one
 	RECT *Mouse_Cord;
 	HDC Hdc_Memory;
 	HBITMAP H_Bitmap;

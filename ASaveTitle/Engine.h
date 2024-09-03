@@ -83,6 +83,7 @@ enum class EPress : int
 	Border_Menu_Sub,  // V Border Sub Menu
 	Non_Bordered,
 	Button_User_Input,  // V Button to input text
+	Button_User_Input_Second,  // V Button to input text
 	Button_Reguest,  // V Buttons - or + series
 	Button_Pages,  // V Buttons Choose Page
 	Buttons_User_Input,  // V Buttons Titles

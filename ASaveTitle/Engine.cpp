@@ -450,7 +450,7 @@ void AsUI_Builder::Init()
 	Borders_Rect[(int)EPress::Button_Pages][EPage_Button::EPB_Next] = { 1305, 12, 1375, 30 };
 
 	Buttons = new byte[(int)EActive_Button::EAB_Handlers_Count] {};
-	User_Input = new wchar_t[64] {};
+	User_Input = new wchar_t[128] {};
 	Mouse_Cord = new RECT {};
 	Mouse_Cord_Destination = new RECT {};
 }
@@ -465,33 +465,22 @@ void AsUI_Builder::Handle_User_Input()
 	if (wcsstr(User_Input, AsConfig::Protocols[0]) != 0 || wcsstr(User_Input, AsConfig::Protocols[1]) != 0)
 	{
 		// 1.1. Try to get url content from ACurl
-		length = (int)wcslen(User_Input) + 1;
-		url_content = new wchar_t[length]{};
-		wcsncpy_s(url_content, length, User_Input, static_cast<rsize_t>(length) - 1);
+		length = 128;  // !!! TEMP need to right
+		url_content = new wchar_t[length]{};  // need send a lot of memorry to get long title names
+		wcsncpy_s(url_content, (int)wcslen(User_Input) + 1, User_Input, (int)wcslen(User_Input) );
 		ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
 
 		// 1.2. Covert data and title
 		Handle_Title_Info(url_content);
 
-		// 1.3. Save image
+		// 1.3. Save image // !!! save name as converted to num data in futures
 		image_name_format = url_content;
 		wcsncpy_s(image_name_format + wcslen(url_content), wcslen(AsConfig::Image_Format) + 1, AsConfig::Image_Format, wcslen(AsConfig::Image_Format) );
 		std::filesystem::rename(AsConfig::Image_Name_File, std::filesystem::path(AsConfig::Image_Folder) / image_name_format);
 	}
 
 	// 2.0. Find Title index
-	Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = (int)std::distance(User_Maps[(int)Active_Map]->begin(), It_User_Map_Active);
-	if (Buttons[(int)EActive_Button::EAB_Menu_Main_Curr] > AsConfig::Max_Line)
-		Button_User_Offset += AsConfig::Max_Line;
-
-	// 2.1. Update Menu Sub, show info
-	User_Input[0] = L'\0';
-	Draw_Buttons_Menu_Sub();
-	Redraw_Buttons_Menu_Sub();  // Show new added title
-	
-	Redraw_Image();
-	Draw_Buttons_Request();
-	Draw_Button_User_Input();
+	Handle_Button_Pressed();
 
 	delete[] url_content;
 }
@@ -556,13 +545,13 @@ void AsUI_Builder::Handle_Title_Info(wchar_t *ptr)
 	{
 		It_User_Map_Active->second->Title_Num = title_num;
 		const wchar_t *season_str = AsConfig::Season_Case_Up[std::stoi(ptr + 1, 0, 10) - 1];
-		if (!season_str != 0)
+		if (title_season == 0)
 		{// Not work from 9 to 10 or 99 to 100 for now
 
-			title_buffer= It_User_Map_Active->second->Title_Name_Num;
-			title_buffer= title_buffer+ (title_num_space - title_name_num);
-			*(++title_buffer) = *(++title_num_space);
-			*(++title_buffer) = *(++title_num_space);
+			title_buffer = It_User_Map_Active->second->Title_Name_Num;
+			title_buffer = title_buffer + (title_num_space - title_name_num);
+			while (*title_buffer != '\0')
+				*(++title_buffer) = *(++title_num_space);
 		}
 		else
 			Handle_Title_Name_Num(title_name_num, title_num_space, season_str, It_User_Map_Active->second->Title_Name_Num);
@@ -711,7 +700,7 @@ void AsUI_Builder::Draw_Button_Text(const bool is_dark, const RECT &rect, const 
 	SetTextColor(Ptr_Hdc, text_color);
 
 	Rectangle(Ptr_Hdc, rect.left, rect.top, rect.right, rect.bottom);  // draw rect
-	TextOutW(Ptr_Hdc, rect.left + AsConfig::Global_Scale, rect.top + AsConfig::Global_Scale, str, (int)wcslen(str));  // button_prev text ( x its text out in middle
+	TextOutW(Ptr_Hdc, rect.left + AsConfig::Global_Scale, rect.top + AsConfig::Global_Scale, str, (int)wcslen(str) );  // button_prev text ( x its text out in middle
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Buttons_Request()
@@ -1210,6 +1199,34 @@ void AsUI_Builder::Handle_Border_Pressed(const RECT &mouse_cord, const int borde
 			break;
 }
 //------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Button_Pressed()
+{
+	Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = (int)std::distance(User_Maps[(int)Active_Map]->begin(), It_User_Map_Active);
+
+	// If button must be on next page
+	if (Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] > AsConfig::Max_Line)
+	{
+		Button_User_Offset += AsConfig::Max_Line;
+		Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] = Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr];
+	}
+
+	if (Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] < AsConfig::Max_Line && Button_User_Offset > 0)
+	{
+		Button_User_Offset -= AsConfig::Max_Line;
+		Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] = Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr];
+	}
+
+	// 2.1. Update Menu Sub, show info
+	User_Input[0] = L'\0';
+	Draw_Buttons_Menu_Sub();
+	Redraw_Buttons_Menu_Sub();  // Show new added title
+
+	Redraw_Image();
+	Redraw_Button_Request();
+	Draw_Buttons_Request();
+	Draw_Button_User_Input();
+}
+//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_handler, const LPARAM &lParam)
 {
 	const int x = lParam & 0xffff;
@@ -1397,6 +1414,7 @@ void AsUI_Builder::Handle_Menu_Context()
 
 	//Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = EActive_Button::EAB_Menu_Main_Curr;
 	Buttons[(int)EActive_Button::EAB_Menu_Main_Prev] = 99;
+	Redraw_Button_Request();
 	Draw_Buttons_Request();
 	Draw_Buttons_Menu_Sub();
 }
@@ -1510,7 +1528,7 @@ void AsUI_Builder::Redraw_Buttons_Menu_Context(RECT &rect)
 	}
 	rect = {};  // обнуляем
 }
-//------------------------------------------------------------------------------------------------------------  1850 - 1403 || 1640 - 1555 CURL
+//------------------------------------------------------------------------------------------------------------  1850 - 1403 || 1640 - 1514 CURL
 
 
 

@@ -158,7 +158,7 @@ public:
 
 	void Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 
-	EActive_Menu Active_Menu;  // Not need
+	EActive_Menu Active_Menu;  // !!! Not need
 	EUser_Arrays Active_Map;
 	HDC Ptr_Hdc;
 
@@ -184,6 +184,7 @@ private:
 	void Handle_Button_Bordered(const EUI_Builder_Handler &builder_handlerconst, const LPARAM &lParam);
 	void Handle_Button_Request(const bool is_increment);  // Change active title num
 	void Handle_Border_Pressed(const RECT &mouse_cord, const int border_index, const int count, int &result);  // Check all buttons _IN_ Border
+	void Handle_Button_Pressed();
 	void Handle_Menu_Main();
 	void Handle_Menu_Sub();
 	void Handle_Clipboard();
@@ -966,19 +967,26 @@ V	- Threads load files, 4m Tacts
 	- Refactoring
 
 */
-// TASKS --- 06.08.2024 - 30.08.2024 --- Current ---
+// TASKS --- 06.08.2024 - 30.08.2024 ---
 /*
 V	- После добавления перенести картинку в главную папку и переименувать
 V		- Need save image TemporaryName.png rename and save to Pictures/Аватар Короля
 	- Иногда багует draw page потестить, розобраться
 	- Сделать рефакторинг
 */
+// TASKS --- 03.09.2024 --- Current ---
+/*
+	- При конвертации сохранять в структуру ID
+	- Настроить сколько выделять памяти, лучшый вариант передавать url, в CURL очищать и заново выделять память
+	- Сохранять изображения под названием ID в структуре
+		- Меньше проблем с форматируванием текста
+
+*/
 
 // MAIN TASKS
 /*
 --- MOST WANTED ---
 X	- Добавиить опцию, увиличение шрифта?
-		- Не тяжело но нужно ли
 
 X	- Добавить отоборжение страниц?
 

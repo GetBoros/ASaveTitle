@@ -5,16 +5,10 @@
 //------------------------------------------------------------------------------------------------------------
 const int Timer_ID = WM_USER + 1;
 //------------------------------------------------------------------------------------------------------------
-enum EActive_Menu
-{// !!! Delete
-
-	EAM_Main = -1,
-	EAM_Watching = 0,
-	EAM_Library_Menu,
-	EAM_Paused_Menu,
-	EAM_Wishlist,
-	EAM_Erase,
-	EAM_Exit
+enum class EBuilder_State : byte
+{
+	EBS_Working,
+	EBS_Exit = 5
 };
 //------------------------------------------------------------------------------------------------------------
 enum EPage_Button
@@ -62,7 +56,8 @@ enum class EUser_Arrays : byte
 	EUA_Library,
 	EUA_Paused,
 	EUA_Wishlist,
-	EUA_Arrays_Count
+	EUA_Arrays_Count,
+	EUA_Quit_Button
 };
 //------------------------------------------------------------------------------------------------------------
 enum class EActive_Button : byte
@@ -74,11 +69,11 @@ enum class EActive_Button : byte
 	EAB_Handlers_Count
 };
 //------------------------------------------------------------------------------------------------------------
-enum class EPress : int
+enum class EPress : byte
 {// Press at border
 
-	Border_None = -1,
-	Border_Menu_Main = 0,  // V Border Main Menu
+	Border_None,
+	Border_Menu_Main,  // V Border Main Menu
 	Border_Menu_Context,  // V Border Context Menu
 	Border_Menu_Sub,  // V Border Sub Menu
 	Non_Bordered,
@@ -159,9 +154,7 @@ public:
 
 	void Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 
-	EActive_Menu Active_Menu;  // !!! Not need
-	EUser_Arrays Active_Map;
-	HDC Ptr_Hdc;
+	EBuilder_State Builder_State;  // Can be improved
 
 private:
 	void Init();  // Do just once
@@ -172,12 +165,12 @@ private:
 	void Draw_Buttons_Request();  // Draw Request raise or decrease series
 	void Draw_Buttons_Menu_Main();
 	void Draw_Buttons_Menu_Sub();  // Sub Menu draw arrays from curr active button
-	void Draw_Buttons_Menu_Context(const int &x, const int &y);  // Draw context menu and store data rect
+	void Draw_Buttons_Menu_Context();  // Draw context menu and store data rect
 	void Draw_Button_User_Input() const;  // Show user_input in sub menu
 	
 	void Redraw_Buttons_Menu_Main();  // Draw and Redraw Active Buttons in nice color
 	void Redraw_Buttons_Menu_Sub();  // Draw and Redraw Active And Prev Buttons 
-	void Redraw_Buttons_Menu_Context(RECT &rect);  // restore image
+	void Redraw_Buttons_Menu_Context();  // restore image
 	void Redraw_Button_Request() const;
 	void Redraw_Button_User_Input(const wchar_t &text);  // Add and show input to User_Input Buttons
 	void Redraw_Image() const;  // Draw Image reacting on Active Button
@@ -204,16 +197,16 @@ private:
 	unsigned short User_Map_Convert_In(unsigned short ch);  // Convert title, need to save to file
 	unsigned long long User_Map_Convert_Out(unsigned long long &ch);  // Convert back and get Title
 
-	byte *Buttons;
-	wchar_t *User_Input;  // whant std::wstring || really hard
-	int Button_User_Offset;  // Help Draw Buttons Menu Sub draw currect buttons while in next or prev page
+	EUser_Arrays Active_Map;
+	EPress Border_Pressed;
 	
-	// !!! Refactoring to byte and add Active_Map
-	EPress Border_Pressed;  // Maybe don`t need
-
+	int Button_User_Offset;  // Help Draw Buttons Menu Sub draw currect buttons while in next or prev page | can be multypayer
+	byte *Buttons;  // Can be problem if on screen more then 256+ buttons
+	wchar_t *User_Input;  // whant std::wstring || really hard
+	
 	RECT **Borders_Rect;  // Storage for all border rects
-	RECT *Mouse_Cord_Destination;  // Can be in one
-	RECT *Mouse_Cord;
+	RECT *Mouse_Cord;  // Can be transfered to Borders Rect, but why
+	HDC Ptr_Hdc;
 	HDC Hdc_Memory;
 	HBITMAP H_Bitmap;
 	HGDIOBJ Saved_Object;
@@ -977,10 +970,11 @@ V		- Need save image TemporaryName.png rename and save to Pictures/Аватар 
 */
 // TASKS --- 03.09.2024 --- Current ---
 /*
-	- При конвертации сохранять в структуру ID
-	- Настроить сколько выделять памяти, лучшый вариант передавать url, в CURL очищать и заново выделять память
-	- Сохранять изображения под названием ID в структуре
-		- Меньше проблем с форматируванием текста
+X	- При конвертации сохранять в структуру ID
+X	- Настроить сколько выделять памяти, лучшый вариант передавать url, в CURL очищать и заново выделять память
+X	- Сохранять изображения под названием ID в структуре
+X		- Меньше проблем с форматируванием текста
+
 
 */
 

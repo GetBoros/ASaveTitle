@@ -72,7 +72,6 @@ enum class EActive_Button : byte
 enum class EPress : byte
 {// Press at border
 
-	Border_None,
 	Border_Menu_Main,  // V Border Main Menu
 	Border_Menu_Context,  // V Border Context Menu
 	Border_Menu_Sub,  // V Border Sub Menu
@@ -84,6 +83,7 @@ enum class EPress : byte
 	Buttons_User_Input,  // V Buttons Titles
 	Button_Context,  // V Buttons Contexts
 	Button_Menu_Main,  // V Buttons Main Menu
+	Mouse_Coordinate,
 	Button_Not_Handled
 };
 //------------------------------------------------------------------------------------------------------------
@@ -145,7 +145,7 @@ private:
 
 
 // AsUI_Builder
-class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. | 520 : 22.08.2024 | 168 : 25.08.2024 | 104 : 02.09.2024 |
+class AsUI_Builder  // 808 bytes 8 aligt || 776 | 12.08.2024 | 640 : 15.08. | 520 : 22.08.2024 | 168 : 25.08.2024 | 96 : 04.09.2024 |
 {// !!! Draw UI, Handle User Inputs, Load Save Data, 
 
 public:
@@ -177,7 +177,7 @@ private:
 
 	void Handle_Button_Bordered(const EUI_Builder_Handler &builder_handlerconst, const LPARAM &lParam);
 	void Handle_Button_Request(const bool is_increment);  // Change active title num
-	void Handle_Border_Pressed(const RECT &mouse_cord, const int border_index, const int count, int &result) const;  // Check all buttons _IN_ Border
+	void Handle_Border_Pressed(const int border_index, const int border_length, int &result) const;  // Check all buttons _IN_ result
 	void Handle_Button_Pressed();
 	void Handle_Menu_Main();
 	void Handle_Menu_Sub();
@@ -189,7 +189,7 @@ private:
 	void Handle_Title_Info(wchar_t *ptr);
 	void Handle_Title_Info_Beta(wchar_t *user_input, STitle_Info *&data);  // !!! Refactoring some day || Do just one universal
 	void Handle_Title_Season(wchar_t *ptr, int &result, int &season_length);
-	void Handle_Title_Name_Num(const wchar_t *key, wchar_t *num, const wchar_t *season, wchar_t *result);
+	void Handle_Title_Name_Num(const wchar_t *key, wchar_t *num, const wchar_t *season, wchar_t *&result);
 
 	void User_Map_Load(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  //Load from file || !!! Can be refactored
 	void User_Map_Save(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  // Save to file map
@@ -204,8 +204,7 @@ private:
 	byte *Buttons;  // Can be problem if on screen more then 256+ buttons
 	wchar_t *User_Input;  // whant std::wstring || really hard
 	
-	RECT **Borders_Rect;  // Storage for all border rects
-	RECT *Mouse_Cord;  // Can be transfered to Borders Rect, but why
+	RECT **Borders_Rect;  // Storage for all border rects | Used with EPress ENUMERATIONS
 	HDC Ptr_Hdc;
 	HDC Hdc_Memory;
 	HBITMAP H_Bitmap;

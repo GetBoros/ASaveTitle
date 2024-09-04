@@ -361,7 +361,7 @@ AsUI_Builder::~AsUI_Builder()
 				User_Map_Free(*User_Maps[i]);  // Thread 1
 			});
 	}
-	for (std::thread& thread : threads_temp)
+	for (std::thread &thread : threads_temp)
 		thread.join();
 
 	// 1.4. Free memory
@@ -376,7 +376,7 @@ AsUI_Builder::~AsUI_Builder()
 //------------------------------------------------------------------------------------------------------------
 AsUI_Builder::AsUI_Builder(HDC hdc)
 : Ptr_Hdc(hdc), Builder_State(EBuilder_State::EBS_Working), Active_Map(EUser_Arrays::EUA_Arrays_Count), Border_Pressed(EPress::Border_Menu_Main), 
-  Buttons {}, User_Input(0), Button_User_Offset(0), Borders_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}
+  Buttons {}, User_Input(0), Button_User_Offset(0), Borders_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}, It_User_Map_Active {}
 {
 	int i;
 	std::vector<std::thread> threads;
@@ -394,7 +394,7 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 
 	Init();
 	Draw_Buttons_Menu_Main();
-	for (std::thread& thread : threads)
+	for (std::thread &thread : threads)
 		thread.detach();
 }
 //------------------------------------------------------------------------------------------------------------
@@ -422,6 +422,18 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 	case EUI_Builder_Handler::EBH_UI_Menu_Sub:
 		Handle_User_Input();
 		break;
+	case EUI_Builder_Handler::EBH_UI_Maximazed:
+		Borders_Rect[(int)EPress::Border_Menu_Main][0] = {};
+		Draw_Buttons_Menu_Main();
+
+		if (EUser_Arrays::EUA_Arrays_Count > Active_Map)
+		{
+			Draw_Buttons_Menu_Sub();
+			Redraw_Buttons_Menu_Sub();  // Bad Draw Button even if not pressed
+			Draw_Buttons_Request();
+			Redraw_Buttons_Menu_Main();
+		}
+		break;
 	}
 }
 //------------------------------------------------------------------------------------------------------------
@@ -448,165 +460,6 @@ void AsUI_Builder::Init()
 
 	Buttons = new byte[(int)EActive_Button::EAB_Handlers_Count] {};
 	User_Input = new wchar_t[128] {};
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_User_Input()
-{
-	int length = 0;
-	wchar_t *url_content = 0;
-	wchar_t *image_name_format = 0;
-
-	// 1.0. If it`s url use ACurl_Client to Get ID_Content, Get Title + Num + Season
-	if (wcsstr(User_Input, AsConfig::Protocols[0]) != 0 || wcsstr(User_Input, AsConfig::Protocols[1]) != 0)
-	{
-		// 1.1. Try to get url content from ACurl
-		length = 128;  // !!! TEMP need to right
-		url_content = new wchar_t[length]{};  // need send a lot of memorry to get long title names
-		wcsncpy_s(url_content, (size_t)(wcslen(User_Input) + 1), User_Input, (int)wcslen(User_Input) );
-		ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
-
-		// 1.2. Covert data and title
-		Handle_Title_Info(url_content);
-
-		// 1.3. Save image // !!! save name as converted to num data in futures
-		image_name_format = url_content;
-		wcsncpy_s(image_name_format + wcslen(url_content), wcslen(AsConfig::Image_Format) + 1, AsConfig::Image_Format, wcslen(AsConfig::Image_Format) );
-		std::filesystem::rename(AsConfig::Image_Name_File, std::filesystem::path(AsConfig::Image_Folder) / image_name_format);
-	}
-	Border_Pressed = EPress::Button_User_Input_Second;
-	delete[] url_content;
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Title_Info(wchar_t *ptr)
-{
-	wchar_t *title_name_num = ptr;
-	wchar_t *title_num_space = 0;
-	wchar_t *title_season_space = 0;
-	wchar_t *title_buffer = 0;
-	int title_num = 0;
-	int title_season = 0;
-	STitle_Info *data = 0;
-
-	// 1.0. Get Num
-	title_num_space = wcsrchr(ptr, L' ');
-	title_num = std::wcstol(title_num_space + 1, 0, 10);
-	*title_num_space = L'\0';
-
-	// 1.1. Get Season
-	title_season_space = wcsrchr(ptr, L' ');
-	if (title_season_space)
-	{
-		title_season = std::wcstol(title_season_space + 1, 0, 10);
-		if (title_season != 0)
-			*title_season_space = L'\0';
-	}
-
-	// 1.2. Get Name Num And Name Key
-	while (*(++ptr) != L'\0')
-		*ptr = std::towlower(*ptr);
-	It_User_Map_Active = User_Maps[(int)Active_Map]->find(title_name_num);
-	if (!(It_User_Map_Active != User_Maps[(int)Active_Map]->end() ) )
-	{// If doesn`t exist create and add to active map
-		data = new STitle_Info();
-
-		// 1.2.a. Title_Name_Key
-		data->Title_Name_Key = new wchar_t[wcslen(title_name_num) + 1] {};
-		wcsncpy_s(data->Title_Name_Key, wcslen(title_name_num) + 1, title_name_num, wcslen(title_name_num) );
-		*title_num_space = L' ';
-
-		if (title_season != 0)
-		{
-			const wchar_t *season_str = AsConfig::Season_Case_Up[title_season - 1];
-			Handle_Title_Name_Num(title_name_num, title_num_space, season_str, data->Title_Name_Num);
-		}
-		else
-		{
-			// 1.2.b. Title_Name_Num
-			if (title_season != 0 && title_season_space != 0)
-				*title_season_space = L' ';
-			data->Title_Name_Num = new wchar_t[wcslen(title_name_num) + 1] {};
-			wcsncpy_s(data->Title_Name_Num, wcslen(title_name_num) + 1, title_name_num, wcslen(title_name_num) );
-		}
-
-		// 1.2.c. Title_Num && Title_Season
-		data->Title_Num = title_num;
-		data->Title_Season = title_season;  // If season need something to do
-		It_User_Map_Active = User_Maps[(int)Active_Map]->emplace(data->Title_Name_Key, data).first;
-	}
-	else
-	{
-		It_User_Map_Active->second->Title_Num = title_num;
-		const wchar_t *season_str = AsConfig::Season_Case_Up[std::stoi(ptr + 1, 0, 10) - 1];
-		if (title_season == 0)
-		{// Not work from 9 to 10 or 99 to 100 for now
-
-			title_buffer = It_User_Map_Active->second->Title_Name_Num;
-			title_buffer = title_buffer + (title_num_space - title_name_num);
-			while (*title_buffer != '\0')
-				*(++title_buffer) = *(++title_num_space);
-		}
-		else
-			Handle_Title_Name_Num(title_name_num, title_num_space, season_str, It_User_Map_Active->second->Title_Name_Num);
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Redraw_Image() const
-{
-	int width = 0, height = 0, bpp = 0;
-	DXGI_FORMAT format {};
-	RECT img_cords {};
-	std::filesystem::path image_path {};
-	BITMAPINFO bmi = {};
-	DirectX::ScratchImage image_title {};
-
-	if (Active_Map == EUser_Arrays::EUA_Arrays_Count)
-		image_path = AsConfig::Main_Image_Folder;
-	else
-		image_path = AsConfig::Image_Folder + std::wstring(It_User_Map_Active->second->Title_Name_Key) + AsConfig::Image_Format;
-
-	DirectX::LoadFromWICFile(image_path.c_str(), DirectX::WIC_FLAGS_NONE, 0, image_title);
-
-	const DirectX::Image *img = image_title.GetImage(0, 0, 0);
-	if (!img != 0)
-		return;
-
-	format = img->format;
-	bpp = (int)DirectX::BitsPerPixel(format);
-	width = (int)img->width;
-	height = (int)img->height;
-
-	bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-	bmi.bmiHeader.biWidth = width;
-	bmi.bmiHeader.biHeight = -height; // отрицательное значение для вертикального растеризации сверху вниз
-	bmi.bmiHeader.biPlanes = 1;
-	bmi.bmiHeader.biBitCount = bpp;
-	bmi.bmiHeader.biCompression = BI_RGB;
-
-	img_cords.left = 9;
-	img_cords.top = 182;
-	img_cords.right = AsConfig::Main_Image_Width;  // 415
-	img_cords.bottom = AsConfig::Main_Image_Height;  // 636
-	FillRect(Ptr_Hdc, &img_cords, AsConfig::Brush_Background_Dark);
-
-	img_cords.right = width;  // 415
-	img_cords.bottom = height;  // 636
-
-	StretchDIBits(Ptr_Hdc, img_cords.left, img_cords.top, img_cords.right, img_cords.bottom, 0, 0, width, height, img->pixels, &bmi, DIB_RGB_COLORS, SRCCOPY);
-
-	image_title.Release();
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Title_Name_Num(const wchar_t *key, wchar_t *num, const wchar_t *season, wchar_t *&result)
-{
-	*num = L' ';
-	int title_length = (int)(wcslen(num) + wcslen(key) + 1 + wcslen(season) + 1);
-	result = new wchar_t[title_length + 1] {};
-
-	wcsncpy_s(result, wcslen(key) + 1, key, wcslen(key) );
-	*(result + wcslen(result) ) = L' ';
-	wcsncpy_s(result + wcslen(result), wcslen(season) + 1, season, wcslen(season) );
-	*(result + wcslen(result) ) = L' ';
-	wcsncpy_s(result + wcslen(result), wcslen(num) + 1, num, wcslen(num) );
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Border()
@@ -838,6 +691,78 @@ void AsUI_Builder::Draw_Button_User_Input() const
 		TextOutW(Ptr_Hdc, offset_x, offset_y, AsConfig::Sub_Menu_User_Input_Title, (int)wcslen(AsConfig::Sub_Menu_User_Input_Title) );
 }
 //------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Draw_Buttons_Menu_Context()
+{
+	int button_text_len;
+	int scale;
+	int context_offset;
+	int user_input_len;
+	int button_heigh;
+	RECT *context_rect;
+	
+	context_rect = &Borders_Rect[(int)EPress::Border_Menu_Context][0];
+	button_text_len = (int)wcslen(AsConfig::Menu_Main_Buttons_Text_Eng[3]);
+	scale = AsConfig::Global_Scale;
+	context_offset = 6;
+	user_input_len = button_text_len * AsConfig::Ch_W + context_offset;
+	button_heigh = AsConfig::Ch_H * AsConfig::Context_Button_Count + context_offset;
+
+	// 1. Start point where RMB pressed, then we take longest word and add his len like width
+	context_rect->left = Borders_Rect[(int)EPress::Mouse_Coordinate]->right;
+	context_rect->top = Borders_Rect[(int)EPress::Mouse_Coordinate]->top;
+	context_rect->right = context_rect->left + user_input_len;
+	context_rect->bottom = context_rect->top + button_heigh;
+
+	// 3. Before draw Context Menu save Image where we draw it to reload
+	Hdc_Memory = CreateCompatibleDC(Ptr_Hdc);
+	if (!Hdc_Memory != 0)
+		return;
+
+	H_Bitmap = CreateCompatibleBitmap(Ptr_Hdc, context_rect->right - context_rect->left, context_rect->bottom - context_rect->top);
+	if (!H_Bitmap != 0)
+		return;
+
+	Saved_Object = SelectObject(Hdc_Memory, H_Bitmap);
+	BitBlt(Hdc_Memory, 0, 0, context_rect->right - context_rect->left, context_rect->bottom - context_rect->top, Ptr_Hdc, context_rect->left, context_rect->top, SRCCOPY);
+
+	// 4. Draw Context Menu
+	Rectangle(Ptr_Hdc, context_rect->left, context_rect->top, context_rect->right, context_rect->bottom);
+
+	for (int i = 0; i < AsConfig::Context_Button_Count; i++)
+	{
+		button_text_len = (int)wcslen(AsConfig::Menu_Main_Buttons_Text_Eng[i]);
+		TextOutW(Ptr_Hdc, context_rect->left + scale + 1, context_rect->top + AsConfig::Ch_H * i + scale + 1, AsConfig::Menu_Main_Buttons_Text_Eng[i], button_text_len);
+
+		// 4.1. Save Context Buttons Rects || handle when LMB pressed
+		Borders_Rect[(int)EPress::Button_Context][i].left = context_rect->left;
+		Borders_Rect[(int)EPress::Button_Context][i].top = context_rect->top;
+		Borders_Rect[(int)EPress::Button_Context][i].right = context_rect->right;
+		Borders_Rect[(int)EPress::Button_Context][i].bottom = context_rect->top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H;
+		if (!(i < AsConfig::Context_Button_Count - 1) )
+			break;
+
+		MoveToEx(Ptr_Hdc, context_rect->left + scale, context_rect->top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H, 0);
+		LineTo(Ptr_Hdc, context_rect->left + scale + button_text_len * 8, context_rect->top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H);
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Redraw_Buttons_Menu_Context()
+{
+	RECT &rect = Borders_Rect[(int)EPress::Border_Menu_Context][0];
+
+	if (Hdc_Memory != 0 && H_Bitmap != 0 && Saved_Object != 0)
+	{
+		BitBlt(Ptr_Hdc, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, Hdc_Memory, 0, 0, SRCCOPY);
+		SelectObject(Hdc_Memory, Saved_Object);
+		DeleteObject(H_Bitmap);
+		DeleteDC(Hdc_Memory);
+		Hdc_Memory = 0;
+		H_Bitmap = 0;
+		Saved_Object = 0;
+	}
+	rect = {};  // обнуляем
+}
+//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Redraw_Button_User_Input(const wchar_t &user_text)
 {
 	wchar_t *to_map;
@@ -867,6 +792,53 @@ void AsUI_Builder::Redraw_Button_User_Input(const wchar_t &user_text)
 		User_Input[user_input_lenght - 1] = '\0';  // delete prev user_text
 
 	Draw_Button_User_Input();
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Redraw_Image() const
+{
+	int width = 0, height = 0, bpp = 0;
+	DXGI_FORMAT format {};
+	RECT img_cords {};
+	std::filesystem::path image_path {};
+	BITMAPINFO bmi = {};
+	DirectX::ScratchImage image_title {};
+
+	//if (Active_Map == EUser_Arrays::EUA_Arrays_Count)
+	if (Border_Pressed == EPress::Border_Menu_Main)
+		image_path = AsConfig::Main_Image_Folder;
+	else
+		image_path = AsConfig::Image_Folder + std::wstring(It_User_Map_Active->second->Title_Name_Key) + AsConfig::Image_Format;
+
+	DirectX::LoadFromWICFile(image_path.c_str(), DirectX::WIC_FLAGS_NONE, 0, image_title);
+
+	const DirectX::Image *img = image_title.GetImage(0, 0, 0);
+	if (!img != 0)
+		return;
+
+	format = img->format;
+	bpp = (int)DirectX::BitsPerPixel(format);
+	width = (int)img->width;
+	height = (int)img->height;
+
+	bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+	bmi.bmiHeader.biWidth = width;
+	bmi.bmiHeader.biHeight = -height; // отрицательное значение для вертикального растеризации сверху вниз
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = bpp;
+	bmi.bmiHeader.biCompression = BI_RGB;
+
+	img_cords.left = 9;
+	img_cords.top = 182;
+	img_cords.right = AsConfig::Main_Image_Width;  // 415
+	img_cords.bottom = AsConfig::Main_Image_Height;  // 636
+	FillRect(Ptr_Hdc, &img_cords, AsConfig::Brush_Background_Dark);
+
+	img_cords.right = width;  // 415
+	img_cords.bottom = height;  // 636
+
+	StretchDIBits(Ptr_Hdc, img_cords.left, img_cords.top, img_cords.right, img_cords.bottom, 0, 0, width, height, img->pixels, &bmi, DIB_RGB_COLORS, SRCCOPY);
+
+	image_title.Release();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Redraw_Button_Request() const
@@ -903,285 +875,6 @@ void AsUI_Builder::Redraw_Buttons_Menu_Sub()
 		buttons_count++;
 	}
 	Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] = Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr];
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map)
-{
-	bool is_add_to_user_array = false;
-	wchar_t *to_map = 0;
-	wchar_t *user_input = new wchar_t[100]{};
-	int how_much_g = 0;
-	int block_sum_ull = 0;
-	int block_sum_index = 0, str = 0;
-	unsigned long long *ull_array_blocks = 0;
-	unsigned long long ull_char = 0;
-	unsigned long long ull_index = 0;
-	unsigned long long ull_number = 0;
-	STitle_Info *buffer = {};
-
-	std::ifstream infile(file_path, std::ios::binary);
-	if (!infile)
-		return;
-	infile.seekg(0, std::ios::end);  // Go to last char in file
-	how_much_g = (int)infile.tellg();    // How many char in file || Need use seekg
-	block_sum_ull = how_much_g / sizeof(unsigned long long);  // (long long) 8 / size = how manny ULL in file
-	infile.seekg(0, std::ios::beg);  // Go to first char in file
-	ull_array_blocks = new unsigned long long[block_sum_ull];  // Get memory to cast 
-	infile.read(reinterpret_cast<char *>(ull_array_blocks), how_much_g);  // reinterpret file size to ull by char
-
-	while (block_sum_index < block_sum_ull)
-	{
-		ull_number = ull_array_blocks[block_sum_index];
-		ull_index = AsConfig::ULL_Index_Length;
-
-		while (ull_index != 0)
-		{
-			ull_char = ull_number / ull_index;
-			ull_index /= 100;
-			ull_char %= 100;
-
-			while (ull_char == 0)
-			{// If invalid ull_char need to find valid
-
-				if (ull_index == 0)
-					break;
-				ull_char = ull_number / ull_index;
-				ull_char %= 100;
-				ull_index /= 100;
-			}
-
-			if (ull_char >= 43 && ull_char <= 52)  // 43 == 0 52 == 9
-				is_add_to_user_array = true;
-
-			if (is_add_to_user_array && ull_char > 52 || is_add_to_user_array && ull_char < 43)  // If after ull_number end
-			{
-				user_input[str] = L'\0';  // Title end here
-				user_input[0] = user_input[0] - 32;  // Upper Case first char
-
-				buffer = new STitle_Info{};
-				buffer->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
-				to_map = buffer->Title_Name_Num;
-				wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-				
-				Handle_Title_Info_Beta(buffer->Title_Name_Num, buffer);// Convert Data
-				map.emplace(buffer->Title_Name_Key, buffer);  // Add to map
-
-				is_add_to_user_array = false;  // look next numbers
-				str = 0;
-			}
-			user_input[str++] = (wchar_t)User_Map_Convert_Out(ull_char);  // Convert to norm wchar_t and add to user_input
-		}
-		
-		block_sum_index++;  // go to next index
-		if (block_sum_index == block_sum_ull && user_input[0] != L'\0')
-		{// If block last and user_input not empty save unsaved
-
-			user_input[str] = L'\0';  // say it`s end
-			user_input[0] = user_input[0] - 32;  // Set Upper Case first symbol
-
-			buffer = new STitle_Info{};
-			buffer->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
-			to_map = buffer->Title_Name_Num;
-			wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
-				
-			Handle_Title_Info_Beta(buffer->Title_Name_Num, buffer);// Convert Data
-			map.emplace(buffer->Title_Name_Key, buffer);  // Add to map
-		}
-	}
-	infile.close();
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Title_Season(wchar_t *ptr, int &result, int &season_length)
-{
-	int i = 0;
-
-	season_length = 0;
-
-	if (*ptr != L'i' && *ptr != L'x' && *ptr != L'v')
-		return;
-
-	while (*ptr != ' ')
-	{
-		*(ptr--) = std::toupper(*ptr);
-		season_length++;
-	}
-	*ptr = L'\0';
-	ptr += 1;
-	*(ptr + season_length) = L'\0';
-
-	for (i = 0; i < 10; i++)
-		if (wcscmp(ptr, AsConfig::Season_Case_Up[i]) == 0)
-		{
-			result = i + 1;
-			break;
-		}
-
-	*(ptr + season_length) = L' ';
-	*(ptr - 1) = L' ';
-	season_length++;
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Title_Info_Beta(wchar_t *user_input, STitle_Info *&data)
-{
-	unsigned short current_ch;
-	int user_input_length;
-	int temp = 0;
-
-	user_input_length = (int)wcslen(user_input) - 1;  // length without 0
-	current_ch = (unsigned short)user_input[user_input_length];  // get last index char
-
-	while (current_ch == L' ' || current_ch >= 48 && current_ch <= 57)
-	{// Get NUM and Seasons Data
-
-		if (current_ch == L' ')
-			if (data->Title_Num == 0)
-				data->Title_Num = std::stoi(user_input + user_input_length + 1);  // Get NUM Title
-			else
-				data->Title_Season = std::stoi(user_input + user_input_length + 1);  // Get Season Title
-
-		current_ch = (unsigned short)user_input[--user_input_length];  // go to prev index and get ch
-		if (data->Title_Num != 0)
-			Handle_Title_Season(user_input + user_input_length, data->Title_Season, temp);
-	}
-	
-	user_input_length -= temp;  // 1 for space
-	user_input_length += 1;  // Set to next index |
-	data->Title_Name_Key = new wchar_t[user_input_length + 1] {};  // + 1 '\0'
-	wcsncpy_s(data->Title_Name_Key, static_cast<rsize_t>(user_input_length + 1), user_input, user_input_length);  // Get Title Name Key
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Free(std::map<wchar_t *, STitle_Info *, SCmp_Char> &map)
-{
-	for (std::map<wchar_t *, STitle_Info *>::iterator it = map.begin(); it != map.end(); )
-	{// Free Memorry from all pointers in map
-
-		delete it->second->Title_Name_Key;
-		delete it->second->Title_Name_Num;
-		delete it->second;
-
-		it = map.erase(it);
-	}
-	map.clear();
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::User_Map_Save(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map)
-{
-	int title_index = 0, title_index_length = 0;
-	int number_index = 0;
-	unsigned short ch_i = 0;
-	unsigned long long numbers = 0;
-
-	std::ofstream outfile(file_path, std::ios::out | std::ios::binary);  // Создаем новые данные
-	if (!outfile)
-		return;
-
-	for (std::pair<wchar_t *, STitle_Info *> it : map)
-	{
-		while (it.second->Title_Name_Num[title_index_length] != L'\0')
-		{// Title length
-
-			ch_i = User_Map_Convert_In( (unsigned short)it.second->Title_Name_Num[title_index_length++]);
-			if (++number_index % 9 == 0)
-			{
-				numbers += ch_i;
-				outfile.write(reinterpret_cast<const char *>( &numbers), sizeof(numbers) );
-				numbers = 0;
-			}
-			else
-				numbers = (numbers + ch_i) * 100;
-		}
-		title_index_length = 0;
-	}
-
-	if (number_index % 9 == 0)
-		outfile.close();
-	else
-		outfile.write(reinterpret_cast<const char *>( &numbers), sizeof(numbers) );
-}
-//------------------------------------------------------------------------------------------------------------
-unsigned short AsUI_Builder::User_Map_Convert_In(unsigned short ch)
-{
-	// 1.1 Russian || Other Languages
-	if (ch >= 1025 && ch <= 1105)
-	{
-		// 1.0. Rus Symbols
-		if (ch >= 1072 && ch <= 1103)  // а - я
-			return ch = (ch - 1000) - 30 - 32;  // if a = 10 | я = 41
-
-		if (ch >= 1040 && ch <= 1071)  // А - Я
-			return ch = (ch - 1000) - 30;    // if A = 10 | Я = 41
-
-		if (ch == 1105)  // ё
-			return ch = (ch - 1000) - 30 - 32 - 1;  // ё = 42
-
-		if (ch == 1025)  // Ё
-			return ch = (ch - 1000) + 17;  // ё = 42
-	}
-	
-	// 1.2. English
-	if (ch >= 65 && ch <= 122)
-	{
-		// 3.0 English Symbols
-		if (ch >= 97 && ch <= 122)  // а = 97 || z = 122
-			return ch = ch - 24;  // a = 73 | z = 98
-
-		if (ch >= 65 && ch <= 90)  // A = 65 Z = 90  | 25 
-			return ch = ch + 8;  // A = 73 | Z = 98
-
-		if (ch == 96)  // `
-			return ch = (ch - 24);  // ` = 72
-	}
-	
-	// 1.3. Symbols
-	if (ch >= 32 && ch <= 63)
-	{
-		if (ch >= 32 && ch <= 47)  // space || ! " # ( ) * + , - . / $ %
-			return ch = (ch + 24);  // space = 56 || / = 71
-
-		if (ch >= 48 && ch <= 59)  // 0 - 9 - :
-			return ch = (ch - 5);  // 0 = 43 | 9 = 52 | : = 53 | ; = 54
-
-		if (ch == 63)  // ?
-			return ch = (ch - 8);  // ? = 55
-	}
-	
-	return 0;  // Reserved 99
-}
-//------------------------------------------------------------------------------------------------------------
-unsigned long long  AsUI_Builder::User_Map_Convert_Out(unsigned long long &ch)
-{
-	// 1.1 Russian
-	if (ch >= 10 && ch <= 42)  // Rus Symb
-	{
-		if (ch >= 10 && ch <= 41)  // а - я
-			return ch = (ch + 1000) + 30 + 32;  // a = 10 | я = 41
-		else  // ё
-			return ch = (ch + 1000) + 30 + 32 + 1;  // ё = 42
-	}
-
-	// 1.2. English
-	if (ch >= 72 && ch <= 98)  // Eng Symb
-	{
-		if (ch >= 73 && ch <= 98)  // а = 97 || z = 122
-			return ch = ch + 24;  // a = 73 | z = 98
-		else  // `
-			return ch = (ch + 24);  // ` = 72
-	}
-
-	// 1.3. Symbols
-	if (ch >= 43 && ch <= 71)  // Standart Help symbols
-	{
-		if (ch >= 43 && ch <= 54)
-			return ch = (ch + 5);  // 0 = 43 | 9 = 52 | : = 53 | ; = 54
-
-		if (ch == 55)  // ?
-			return ch = (ch + 8);  // ? = 55
-
-		if (ch >= 56 && ch <= 71)  // space || ! " # ( ) * + , - . / $ %
-			return ch = (ch - 24);  // space = 56 || / = 71
-	}
-
-	return 0LL;  // Bad Reserved 99
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_handler, const LPARAM &lParam)
@@ -1351,6 +1044,7 @@ void AsUI_Builder::Handle_Menu_Main()
 		return PostQuitMessage(0);  // If pressed at button Exit
 	}
 	Buttons[(int)EActive_Button::EAB_Menu_Main_Curr] = button_index;
+	It_User_Map_Active = User_Maps[(int)Active_Map]->begin();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Sub()
@@ -1451,76 +1145,396 @@ void AsUI_Builder::Handle_Non_Bordered()
 	Redraw_Buttons_Menu_Sub();
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Draw_Buttons_Menu_Context()
+void AsUI_Builder::Handle_User_Input()
 {
-	int button_text_len;
-	int scale;
-	int context_offset;
-	int user_input_len;
-	int button_heigh;
-	RECT *context_rect;
-	
-	context_rect = &Borders_Rect[(int)EPress::Border_Menu_Context][0];
-	button_text_len = (int)wcslen(AsConfig::Menu_Main_Buttons_Text_Eng[3]);
-	scale = AsConfig::Global_Scale;
-	context_offset = 6;
-	user_input_len = button_text_len * AsConfig::Ch_W + context_offset;
-	button_heigh = AsConfig::Ch_H * AsConfig::Context_Button_Count + context_offset;
+	int length = 0;
+	wchar_t *url_content = 0;
+	wchar_t *image_name_format = 0;
 
-	// 1. Start point where RMB pressed, then we take longest word and add his len like width
-	context_rect->left = Borders_Rect[(int)EPress::Mouse_Coordinate]->right;
-	context_rect->top = Borders_Rect[(int)EPress::Mouse_Coordinate]->top;
-	context_rect->right = context_rect->left + user_input_len;
-	context_rect->bottom = context_rect->top + button_heigh;
-
-	// 3. Before draw Context Menu save Image where we draw it to reload
-	Hdc_Memory = CreateCompatibleDC(Ptr_Hdc);
-	if (!Hdc_Memory != 0)
-		return;
-
-	H_Bitmap = CreateCompatibleBitmap(Ptr_Hdc, context_rect->right - context_rect->left, context_rect->bottom - context_rect->top);
-	if (!H_Bitmap != 0)
-		return;
-
-	Saved_Object = SelectObject(Hdc_Memory, H_Bitmap);
-	BitBlt(Hdc_Memory, 0, 0, context_rect->right - context_rect->left, context_rect->bottom - context_rect->top, Ptr_Hdc, context_rect->left, context_rect->top, SRCCOPY);
-
-	// 4. Draw Context Menu
-	Rectangle(Ptr_Hdc, context_rect->left, context_rect->top, context_rect->right, context_rect->bottom);
-
-	for (int i = 0; i < AsConfig::Context_Button_Count; i++)
+	// 1.0. If it`s url use ACurl_Client to Get ID_Content, Get Title + Num + Season
+	if (wcsstr(User_Input, AsConfig::Protocols[0]) != 0 || wcsstr(User_Input, AsConfig::Protocols[1]) != 0)
 	{
-		button_text_len = (int)wcslen(AsConfig::Menu_Main_Buttons_Text_Eng[i]);
-		TextOutW(Ptr_Hdc, context_rect->left + scale + 1, context_rect->top + AsConfig::Ch_H * i + scale + 1, AsConfig::Menu_Main_Buttons_Text_Eng[i], button_text_len);
+		// 1.1. Try to get url content from ACurl
+		length = 128;  // !!! TEMP need to right
+		url_content = new wchar_t[length]{};  // need send a lot of memorry to get long title names
+		wcsncpy_s(url_content, (size_t)(wcslen(User_Input) + 1), User_Input, (int)wcslen(User_Input) );
+		ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
 
-		// 4.1. Save Context Buttons Rects || handle when LMB pressed
-		Borders_Rect[(int)EPress::Button_Context][i].left = context_rect->left;
-		Borders_Rect[(int)EPress::Button_Context][i].top = context_rect->top;
-		Borders_Rect[(int)EPress::Button_Context][i].right = context_rect->right;
-		Borders_Rect[(int)EPress::Button_Context][i].bottom = context_rect->top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H;
-		if (!(i < AsConfig::Context_Button_Count - 1) )
-			break;
+		// 1.2. Covert data and title
+		Handle_Title_Info(url_content);
 
-		MoveToEx(Ptr_Hdc, context_rect->left + scale, context_rect->top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H, 0);
-		LineTo(Ptr_Hdc, context_rect->left + scale + button_text_len * 8, context_rect->top + AsConfig::Ch_H * i + scale + AsConfig::Ch_H);
+		// 1.3. Save image // !!! save name as converted to num data in futures
+		image_name_format = url_content;
+		wcsncpy_s(image_name_format + wcslen(url_content), wcslen(AsConfig::Image_Format) + 1, AsConfig::Image_Format, wcslen(AsConfig::Image_Format) );
+		std::filesystem::rename(AsConfig::Image_Name_File, std::filesystem::path(AsConfig::Image_Folder) / image_name_format);
+	}
+	Border_Pressed = EPress::Button_User_Input_Second;
+	delete[] url_content;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Title_Info(wchar_t *ptr)
+{
+	wchar_t *title_name_num = ptr;
+	wchar_t *title_num_space = 0;
+	wchar_t *title_season_space = 0;
+	wchar_t *title_buffer = 0;
+	int title_num = 0;
+	int title_season = 0;
+	STitle_Info *data = 0;
+
+	// 1.0. Get Num
+	title_num_space = wcsrchr(ptr, L' ');
+	title_num = std::wcstol(title_num_space + 1, 0, 10);
+	*title_num_space = L'\0';
+
+	// 1.1. Get Season
+	title_season_space = wcsrchr(ptr, L' ');
+	if (title_season_space)
+	{
+		title_season = std::wcstol(title_season_space + 1, 0, 10);
+		if (title_season != 0)
+			*title_season_space = L'\0';
+	}
+
+	// 1.2. Get Name Num And Name Key
+	while (*(++ptr) != L'\0')
+		*ptr = std::towlower(*ptr);
+	It_User_Map_Active = User_Maps[(int)Active_Map]->find(title_name_num);
+	if (!(It_User_Map_Active != User_Maps[(int)Active_Map]->end() ) )
+	{// If doesn`t exist create and add to active map
+		data = new STitle_Info();
+
+		// 1.2.a. Title_Name_Key
+		data->Title_Name_Key = new wchar_t[wcslen(title_name_num) + 1] {};
+		wcsncpy_s(data->Title_Name_Key, wcslen(title_name_num) + 1, title_name_num, wcslen(title_name_num) );
+		*title_num_space = L' ';
+
+		if (title_season != 0)
+		{
+			const wchar_t *season_str = AsConfig::Season_Case_Up[title_season - 1];
+			Handle_Title_Name_Num(title_name_num, title_num_space, season_str, data->Title_Name_Num);
+		}
+		else
+		{
+			// 1.2.b. Title_Name_Num
+			if (title_season != 0 && title_season_space != 0)
+				*title_season_space = L' ';
+			data->Title_Name_Num = new wchar_t[wcslen(title_name_num) + 1] {};
+			wcsncpy_s(data->Title_Name_Num, wcslen(title_name_num) + 1, title_name_num, wcslen(title_name_num) );
+		}
+
+		// 1.2.c. Title_Num && Title_Season
+		data->Title_Num = title_num;
+		data->Title_Season = title_season;  // If season need something to do
+		It_User_Map_Active = User_Maps[(int)Active_Map]->emplace(data->Title_Name_Key, data).first;
+	}
+	else
+	{
+		It_User_Map_Active->second->Title_Num = title_num;
+		const wchar_t *season_str = AsConfig::Season_Case_Up[std::stoi(ptr + 1, 0, 10) - 1];
+		if (title_season == 0)
+		{// Not work from 9 to 10 or 99 to 100 for now
+
+			title_buffer = It_User_Map_Active->second->Title_Name_Num;
+			title_buffer = title_buffer + (title_num_space - title_name_num);
+			while (*title_buffer != '\0')
+				*(++title_buffer) = *(++title_num_space);
+		}
+		else
+			Handle_Title_Name_Num(title_name_num, title_num_space, season_str, It_User_Map_Active->second->Title_Name_Num);
 	}
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Redraw_Buttons_Menu_Context()
+void AsUI_Builder::Handle_Title_Info_Beta(wchar_t *user_input, STitle_Info *&data)
 {
-	RECT &rect = Borders_Rect[(int)EPress::Border_Menu_Context][0];
+	unsigned short current_ch;
+	int user_input_length;
+	int temp = 0;
 
-	if (Hdc_Memory != 0 && H_Bitmap != 0 && Saved_Object != 0)
-	{
-		BitBlt(Ptr_Hdc, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, Hdc_Memory, 0, 0, SRCCOPY);
-		SelectObject(Hdc_Memory, Saved_Object);
-		DeleteObject(H_Bitmap);
-		DeleteDC(Hdc_Memory);
-		Hdc_Memory = 0;
-		H_Bitmap = 0;
-		Saved_Object = 0;
+	user_input_length = (int)wcslen(user_input) - 1;  // length without 0
+	current_ch = (unsigned short)user_input[user_input_length];  // get last index char
+
+	while (current_ch == L' ' || current_ch >= 48 && current_ch <= 57)
+	{// Get NUM and Seasons Data
+
+		if (current_ch == L' ')
+			if (data->Title_Num == 0)
+				data->Title_Num = std::stoi(user_input + user_input_length + 1);  // Get NUM Title
+			else
+				data->Title_Season = std::stoi(user_input + user_input_length + 1);  // Get Season Title
+
+		current_ch = (unsigned short)user_input[--user_input_length];  // go to prev index and get ch
+		if (data->Title_Num != 0)
+			Handle_Title_Season(user_input + user_input_length, data->Title_Season, temp);
 	}
-	rect = {};  // обнуляем
+	
+	user_input_length -= temp;  // 1 for space
+	user_input_length += 1;  // Set to next index |
+	data->Title_Name_Key = new wchar_t[user_input_length + 1] {};  // + 1 '\0'
+	wcsncpy_s(data->Title_Name_Key, static_cast<rsize_t>(user_input_length + 1), user_input, user_input_length);  // Get Title Name Key
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Title_Season(wchar_t *ptr, int &result, int &season_length)
+{
+	int i = 0;
+
+	season_length = 0;
+
+	if (*ptr != L'i' && *ptr != L'x' && *ptr != L'v')
+		return;
+
+	while (*ptr != ' ')
+	{
+		*(ptr--) = std::toupper(*ptr);
+		season_length++;
+	}
+	*ptr = L'\0';
+	ptr += 1;
+	*(ptr + season_length) = L'\0';
+
+	for (i = 0; i < 10; i++)
+		if (wcscmp(ptr, AsConfig::Season_Case_Up[i]) == 0)
+		{
+			result = i + 1;
+			break;
+		}
+
+	*(ptr + season_length) = L' ';
+	*(ptr - 1) = L' ';
+	season_length++;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Title_Name_Num(const wchar_t *key, wchar_t *num, const wchar_t *season, wchar_t *&result)
+{
+	*num = L' ';
+	int title_length = (int)(wcslen(num) + wcslen(key) + 1 + wcslen(season) + 1);
+	result = new wchar_t[title_length + 1] {};
+
+	wcsncpy_s(result, wcslen(key) + 1, key, wcslen(key) );
+	*(result + wcslen(result) ) = L' ';
+	wcsncpy_s(result + wcslen(result), wcslen(season) + 1, season, wcslen(season) );
+	*(result + wcslen(result) ) = L' ';
+	wcsncpy_s(result + wcslen(result), wcslen(num) + 1, num, wcslen(num) );
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map)
+{
+	bool is_add_to_user_array = false;
+	wchar_t *to_map = 0;
+	wchar_t *user_input = new wchar_t[100]{};
+	int how_much_g = 0;
+	int block_sum_ull = 0;
+	int block_sum_index = 0, str = 0;
+	unsigned long long *ull_array_blocks = 0;
+	unsigned long long ull_char = 0;
+	unsigned long long ull_index = 0;
+	unsigned long long ull_number = 0;
+	STitle_Info *buffer = {};
+
+	std::ifstream infile(file_path, std::ios::binary);
+	if (!infile)
+		return;
+	infile.seekg(0, std::ios::end);  // Go to last char in file
+	how_much_g = (int)infile.tellg();    // How many char in file || Need use seekg
+	block_sum_ull = how_much_g / sizeof(unsigned long long);  // (long long) 8 / size = how manny ULL in file
+	infile.seekg(0, std::ios::beg);  // Go to first char in file
+	ull_array_blocks = new unsigned long long[block_sum_ull];  // Get memory to cast 
+	infile.read(reinterpret_cast<char *>(ull_array_blocks), how_much_g);  // reinterpret file size to ull by char
+
+	while (block_sum_index < block_sum_ull)
+	{
+		ull_number = ull_array_blocks[block_sum_index];
+		ull_index = AsConfig::ULL_Index_Length;
+
+		while (ull_index != 0)
+		{
+			ull_char = ull_number / ull_index;
+			ull_index /= 100;
+			ull_char %= 100;
+
+			while (ull_char == 0)
+			{// If invalid ull_char need to find valid
+
+				if (ull_index == 0)
+					break;
+				ull_char = ull_number / ull_index;
+				ull_char %= 100;
+				ull_index /= 100;
+			}
+
+			if (ull_char >= 43 && ull_char <= 52)  // 43 == 0 52 == 9
+				is_add_to_user_array = true;
+
+			if (is_add_to_user_array && ull_char > 52 || is_add_to_user_array && ull_char < 43)  // If after ull_number end
+			{
+				user_input[str] = L'\0';  // Title end here
+				user_input[0] = user_input[0] - 32;  // Upper Case first char
+
+				buffer = new STitle_Info{};
+				buffer->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
+				to_map = buffer->Title_Name_Num;
+				wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
+				
+				Handle_Title_Info_Beta(buffer->Title_Name_Num, buffer);// Convert Data
+				map.emplace(buffer->Title_Name_Key, buffer);  // Add to map
+
+				is_add_to_user_array = false;  // look next numbers
+				str = 0;
+			}
+			user_input[str++] = (wchar_t)User_Map_Convert_Out(ull_char);  // Convert to norm wchar_t and add to user_input
+		}
+		
+		block_sum_index++;  // go to next index
+		if (block_sum_index == block_sum_ull && user_input[0] != L'\0')
+		{// If block last and user_input not empty save unsaved
+
+			user_input[str] = L'\0';  // say it`s end
+			user_input[0] = user_input[0] - 32;  // Set Upper Case first symbol
+
+			buffer = new STitle_Info{};
+			buffer->Title_Name_Num = new wchar_t[wcslen(user_input) + 1] {};
+			to_map = buffer->Title_Name_Num;
+			wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
+				
+			Handle_Title_Info_Beta(buffer->Title_Name_Num, buffer);// Convert Data
+			map.emplace(buffer->Title_Name_Key, buffer);  // Add to map
+		}
+	}
+	infile.close();
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Map_Save(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map)
+{
+	int title_index = 0, title_index_length = 0;
+	int number_index = 0;
+	unsigned short ch_i = 0;
+	unsigned long long numbers = 0;
+
+	std::ofstream outfile(file_path, std::ios::out | std::ios::binary);  // Создаем новые данные
+	if (!outfile)
+		return;
+
+	for (std::pair<wchar_t *, STitle_Info *> it : map)
+	{
+		while (it.second->Title_Name_Num[title_index_length] != L'\0')
+		{// Title length
+
+			ch_i = User_Map_Convert_In( (unsigned short)it.second->Title_Name_Num[title_index_length++]);
+			if (++number_index % 9 == 0)
+			{
+				numbers += ch_i;
+				outfile.write(reinterpret_cast<const char *>( &numbers), sizeof(numbers) );
+				numbers = 0;
+			}
+			else
+				numbers = (numbers + ch_i) * 100;
+		}
+		title_index_length = 0;
+	}
+
+	if (number_index % 9 == 0)
+		outfile.close();
+	else
+		outfile.write(reinterpret_cast<const char *>( &numbers), sizeof(numbers) );
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::User_Map_Free(std::map<wchar_t *, STitle_Info *, SCmp_Char> &map)
+{
+	for (std::map<wchar_t *, STitle_Info *>::iterator it = map.begin(); it != map.end(); )
+	{// Free Memorry from all pointers in map
+
+		delete it->second->Title_Name_Key;
+		delete it->second->Title_Name_Num;
+		delete it->second;
+
+		it = map.erase(it);
+	}
+	map.clear();
+}
+//------------------------------------------------------------------------------------------------------------
+unsigned short AsUI_Builder::User_Map_Convert_In(unsigned short ch)
+{
+	// 1.1 Russian || Other Languages
+	if (ch >= 1025 && ch <= 1105)
+	{
+		// 1.0. Rus Symbols
+		if (ch >= 1072 && ch <= 1103)  // а - я
+			return ch = (ch - 1000) - 30 - 32;  // if a = 10 | я = 41
+
+		if (ch >= 1040 && ch <= 1071)  // А - Я
+			return ch = (ch - 1000) - 30;    // if A = 10 | Я = 41
+
+		if (ch == 1105)  // ё
+			return ch = (ch - 1000) - 30 - 32 - 1;  // ё = 42
+
+		if (ch == 1025)  // Ё
+			return ch = (ch - 1000) + 17;  // ё = 42
+	}
+	
+	// 1.2. English
+	if (ch >= 65 && ch <= 122)
+	{
+		// 3.0 English Symbols
+		if (ch >= 97 && ch <= 122)  // а = 97 || z = 122
+			return ch = ch - 24;  // a = 73 | z = 98
+
+		if (ch >= 65 && ch <= 90)  // A = 65 Z = 90  | 25 
+			return ch = ch + 8;  // A = 73 | Z = 98
+
+		if (ch == 96)  // `
+			return ch = (ch - 24);  // ` = 72
+	}
+	
+	// 1.3. Symbols
+	if (ch >= 32 && ch <= 63)
+	{
+		if (ch >= 32 && ch <= 47)  // space || ! " # ( ) * + , - . / $ %
+			return ch = (ch + 24);  // space = 56 || / = 71
+
+		if (ch >= 48 && ch <= 59)  // 0 - 9 - :
+			return ch = (ch - 5);  // 0 = 43 | 9 = 52 | : = 53 | ; = 54
+
+		if (ch == 63)  // ?
+			return ch = (ch - 8);  // ? = 55
+	}
+	
+	return 0;  // Reserved 99
+}
+//------------------------------------------------------------------------------------------------------------
+unsigned long long  AsUI_Builder::User_Map_Convert_Out(unsigned long long &ch)
+{
+	// 1.1 Russian
+	if (ch >= 10 && ch <= 42)  // Rus Symb
+	{
+		if (ch >= 10 && ch <= 41)  // а - я
+			return ch = (ch + 1000) + 30 + 32;  // a = 10 | я = 41
+		else  // ё
+			return ch = (ch + 1000) + 30 + 32 + 1;  // ё = 42
+	}
+
+	// 1.2. English
+	if (ch >= 72 && ch <= 98)  // Eng Symb
+	{
+		if (ch >= 73 && ch <= 98)  // а = 97 || z = 122
+			return ch = ch + 24;  // a = 73 | z = 98
+		else  // `
+			return ch = (ch + 24);  // ` = 72
+	}
+
+	// 1.3. Symbols
+	if (ch >= 43 && ch <= 71)  // Standart Help symbols
+	{
+		if (ch >= 43 && ch <= 54)
+			return ch = (ch + 5);  // 0 = 43 | 9 = 52 | : = 53 | ; = 54
+
+		if (ch == 55)  // ?
+			return ch = (ch + 8);  // ? = 55
+
+		if (ch >= 56 && ch <= 71)  // space || ! " # ( ) * + , - . / $ %
+			return ch = (ch - 24);  // space = 56 || / = 71
+	}
+
+	return 0LL;  // Bad Reserved 99
 }
 //------------------------------------------------------------------------------------------------------------  1850 - 1403 || 1640 - 1525 CURL
 
@@ -1588,7 +1602,7 @@ AsEngine::~AsEngine()
 }
 //------------------------------------------------------------------------------------------------------------
 AsEngine::AsEngine()
- : Is_After_Maximazied(true), UI_Builder(0), UI_Book_Reader(0), W_Param(0), L_Param(0),
+ : UI_Builder(0), UI_Book_Reader(0), W_Param(0), L_Param(0),
 	EBuilder_Handler(EUI_Builder_Handler::EBH_UI_Menu_Main), Ptr_Hwnd(0), Ptr_Hdc(0), Paint_Struct{}
 {
 }
@@ -1601,16 +1615,9 @@ void AsEngine::Draw_Frame_ASaver(HWND hwnd)
 	if (UI_Builder != 0)
 		UI_Builder->Builder_Handler(Ptr_Hdc, EBuilder_Handler, W_Param, L_Param);
 	else
-		UI_Builder = new AsUI_Builder(Ptr_Hdc);
+		UI_Builder = new AsUI_Builder(Ptr_Hdc);  // <= 9ms || what if without Init()?
 
-	if (!Is_After_Maximazied)
-	{
-		Is_After_Maximazied = !Is_After_Maximazied;
-		UI_Builder->Builder_Handler(Ptr_Hdc, EUI_Builder_Handler::EBH_UI_Menu_Main, W_Param, L_Param);
-
-		return;
-	}
-
+	EBuilder_Handler = EUI_Builder_Handler::EBH_UI_Maximazed;
 	if (UI_Builder->Builder_State == EBuilder_State::EBS_Exit)
 		AsEngine::~AsEngine();
 	EndPaint(Ptr_Hwnd, &Paint_Struct);

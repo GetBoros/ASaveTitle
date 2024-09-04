@@ -47,6 +47,7 @@ enum class EUI_Builder_Handler : int
 	EBH_UI_Button,
 	EBH_UI_Menu_Main,
 	EBH_UI_Menu_Sub,
+	EBH_UI_Maximazed,
 	EBH_UI_Last
 };
 //------------------------------------------------------------------------------------------------------------
@@ -241,19 +242,17 @@ public:
 	void Draw_Frame_ASaver(HWND hwnd);
 	void Redraw_Frame(const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 
-	bool Is_After_Maximazied;
-	AsUI_Builder *UI_Builder;
-	AsUI_Book_Reader *UI_Book_Reader;
-
 private:
 	void Get_Current_Data_Time();  // !!! Temp Get curre
 	void Draw_Frame_Book_Reader(HWND hwnd);
 	int Draw_Frame_Chooser_Main_Mane(HWND hwnd);  // !!! bad
 	int Connect_To_Server();  // Send to server ULL; change IP ADDRESS of serv || NEED TURN ON SERVER prog
 
+	EUI_Builder_Handler EBuilder_Handler;
 	WPARAM W_Param;
 	LPARAM L_Param;
-	EUI_Builder_Handler EBuilder_Handler;
+	AsUI_Book_Reader *UI_Book_Reader;
+	AsUI_Builder *UI_Builder;
 	HWND Ptr_Hwnd;
 	HDC Ptr_Hdc;
 	PAINTSTRUCT Paint_Struct;

@@ -168,8 +168,7 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_SIZE:
 		if (wParam == SIZE_MAXIMIZED)
-			if (AsMain::Main_Window != 0)
-				AsMain::Main_Window->Engine.Is_After_Maximazied = false;
+			int yy = 0;
 		break;
 
 	default:

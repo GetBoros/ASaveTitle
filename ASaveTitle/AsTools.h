@@ -18,5 +18,7 @@ public:
 
 private:
 	unsigned long long start_tick, end_tick, delta_tick;
+
+	static unsigned long long How_Fast;
 };
 //------------------------------------------------------------------------------------------------------------

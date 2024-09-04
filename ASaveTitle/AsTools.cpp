@@ -1,18 +1,18 @@
 ﻿#include "AsTools.h"
 
 // AsTools
+unsigned long long AsTools::How_Fast = 0LL;
+//------------------------------------------------------------------------------------------------------------
 AsTools::~AsTools()
 {
-	size_t yy;
-
 	end_tick = __rdtsc();
 	delta_tick = end_tick - start_tick;  // 194176 170824 192866
-	yy = delta_tick;
+	How_Fast = delta_tick;
 
-	if (delta_tick > 4000000)  // 86000
-		yy = 0;  // Bed | 11088 || 58 999 arr* || 25000 arr[]
-	else if (delta_tick < 4000000)
-		yy = 1;  // Good  // 9639
+	if (delta_tick > 1999888)  // 86000
+		How_Fast = 0;  // Good
+	else if (delta_tick < 999888)
+		How_Fast = 0;  // Bad |
 }
 //------------------------------------------------------------------------------------------------------------
 AsTools::AsTools()

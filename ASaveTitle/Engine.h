@@ -159,7 +159,7 @@ public:
 private:
 	void Init();  // Do just once
 
-	void Draw_Border(RECT &border_rect) const;  // Draw border and return inner rect
+	void Draw_Border();  // Draw border and return inner rect
 	void Draw_Button(RECT &border_rect, RECT &button, const wchar_t *title_name) const;  // Draw Button and return free border rect space 
 	void Draw_Button_Text(const bool is_dark, const RECT &rect, const wchar_t *str) const;
 	void Draw_Buttons_Request();  // Draw Request raise or decrease series
@@ -177,7 +177,7 @@ private:
 
 	void Handle_Button_Bordered(const EUI_Builder_Handler &builder_handlerconst, const LPARAM &lParam);
 	void Handle_Button_Request(const bool is_increment);  // Change active title num
-	void Handle_Border_Pressed(const RECT &mouse_cord, const int border_index, const int count, int &result);  // Check all buttons _IN_ Border
+	void Handle_Border_Pressed(const RECT &mouse_cord, const int border_index, const int count, int &result) const;  // Check all buttons _IN_ Border
 	void Handle_Button_Pressed();
 	void Handle_Menu_Main();
 	void Handle_Menu_Sub();

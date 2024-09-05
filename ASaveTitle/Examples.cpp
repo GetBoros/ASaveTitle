@@ -34,6 +34,9 @@ AsExamples::AsExamples(const EShow_Preview show_preview)
 	case EShow_Preview::EP_Show_Cast_Exam:
 		Display_Cast_Exam();
 		break;
+	case EShow_Preview::EP_Show_Html_Decode:
+		Display_Html_Decoder();
+		break;
 	case EShow_Preview::EP_Show_Std_Map_Pair_Ptrs:
 		Display_Map_Pair_Ptr();
 		break;
@@ -148,6 +151,41 @@ void AsExamples::Display_Cast_Exam()
 	base.A = 5;
 	SSame *same = reinterpret_cast<SSame *>(&base);
 	int yy = base.A;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsExamples::Display_Html_Decoder()
+{
+	unsigned int unicode_char;
+	std::size_t bgn, found, end;  // Begin hex, found hex end, end - index of ;
+	std::string hex_code;
+	std::string html_encoded;
+	std::wstring decoded_str;
+	std::stringstream str_strm;
+
+	unicode_char = 0;
+	bgn = 0, found = 0, end = 0;
+	hex_code = {};
+	html_encoded = "&#x414;&#x438;&#x441;&#x43A;&#x432;&#x430;&#x43B;&#x438;&#x444;&#x438;&#x446;&#x438;&#x440;";
+	decoded_str = {};
+	str_strm << std::hex;
+
+	while ( (found = html_encoded.find("&#x", bgn) ) != std::string::npos)
+	{
+		decoded_str.append(html_encoded.begin() + bgn, html_encoded.begin() + found);  // Копируем часть строки до кодировки
+		end = html_encoded.find(';', found);
+		if (!(end != std::string::npos) )
+			break;  // Если нет ';', прекращаем обработку
+
+		hex_code = html_encoded.substr(found + 3, end - found - 3);  // Extract hex value
+		str_strm << hex_code;  // hex to stream buffer
+		str_strm >> unicode_char;  // From hex to char
+
+		decoded_str += static_cast<wchar_t>(unicode_char);  // Add to std::wstring decoded value
+		bgn = end + 1;  // offset to next value
+		hex_code.clear();
+		str_strm.clear();
+	}
+	decoded_str.append(html_encoded.begin() + bgn, html_encoded.end() );  // Копируем остаток строки
 }
 //------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_Replace_S()

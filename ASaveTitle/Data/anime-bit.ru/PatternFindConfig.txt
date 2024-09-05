@@ -1,6 +1,0 @@
-title_bgn = laquo;
-title_end = &raquo
-title_num_bgn = : [
-title_num_end =  
-image_bgn = <img src='
-image_end = ' width

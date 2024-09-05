@@ -397,7 +397,12 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 	Init();
 	Draw_Buttons_Menu_Main();
 	for (std::thread &thread : threads)
-		thread.detach();
+		thread.join();
+
+	// !!!
+	const wchar_t* temp = L"https://dreamerscast.com/home/release/297-isekai-shikkaku";
+	wcsncpy_s(User_Input, (size_t)(wcslen(temp) + 1), temp, (int)wcslen(temp));
+	Handle_User_Input();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam)

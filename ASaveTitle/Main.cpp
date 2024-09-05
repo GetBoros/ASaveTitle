@@ -1,6 +1,33 @@
 ﻿#include "Main.h"
-// Singlton
-AsMain *AsMain::Main_Window = 0;
+
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <iomanip>
+
+AsMain *AsMain::Main_Window = 0;  // Singlton
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
+//------------------------------------------------------------------------------------------------------------
+void DecodeHTML_qwe()
+{
+	/*
+		- <picture>  // start save file from here
+		- image start	= <img src="
+		- image end		= " alt>
+		- 122 - 180
+		// 2 Варианта декодирувать русс, или оставить на английском, или оба?
+		- title bgn		= ; / 
+		- title end		= </h3>
+		- title num bgn= </span>
+<span>
+		- title num end=  
+		- Done
+	*/
+}
 //------------------------------------------------------------------------------------------------------------
 
 
@@ -9,8 +36,9 @@ AsMain *AsMain::Main_Window = 0;
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
+
 	// Tutorial
-	/*AsExamples *examples = new AsExamples(EShow_Preview::EP_Show_FFMpeg_Example);*/
+	/*AsExamples *examples = new AsExamples(EShow_Preview::EP_Show_Html_Decode);*/
 
 	return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not
 }

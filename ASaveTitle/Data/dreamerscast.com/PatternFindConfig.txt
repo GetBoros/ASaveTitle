@@ -1,7 +1,0 @@
-title_bgn = ; / 
-title_end = </h3>
-title_num_bgn = </span>
-<span>
-title_num_end =  
-image_bgn = <img src="
-image_end = " alt>

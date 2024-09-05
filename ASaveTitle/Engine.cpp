@@ -53,7 +53,7 @@ void ACurl_Client::CURL_Handler()
 	Get_URL_Data();
 	Get_Contents();
 	Get_Title();
-	//Get_Image();  // not in range
+	Get_Image();  // not in range | need make modular
 }
 //------------------------------------------------------------------------------------------------------------
 bool ACurl_Client::Erase_ID(const int &if_not_last_id_content)
@@ -226,14 +226,14 @@ void ACurl_Client::Get_URL_Data() const
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::Get_Contents()
 {
-	const char *pattern = "<div class=\"postItem\">";
-	//const char *pattern = "<h1>";
 	int line_to_save;
 	int line_current;
+	char *start_point = 0;
 	std::string line_from_file;
 	std::string content_from_file;
 
-	line_to_save = 25;  // Content line from start needed
+	AsTools::Format_Wide_Char_To_Char(Patterns_Array[(int)EPatterns_Site::Init_Load], start_point);  // set start ptr
+	line_to_save = std::stoi(Patterns_Array[(int)EPatterns_Site::Init_Load_Line]);  // how many line need save
 	line_current = 0;
 	delete Content_W;
 
@@ -243,7 +243,7 @@ void ACurl_Client::Get_Contents()
 		return;
 	
 	while (std::getline(file, line_from_file) )
-		if ( (line_current = (int)line_from_file.find(pattern) ) != std::string::npos)
+		if ( (line_current = (int)line_from_file.find(start_point) ) != std::string::npos)
 			break;
 
 	// 1.1. Add(Write) needed content to string
@@ -258,7 +258,8 @@ void ACurl_Client::Get_Contents()
 	// !!! 1.2. Conver from string to wstring and return like result || Make AsTools
 	line_to_save = MultiByteToWideChar(CP_UTF8, 0, &content_from_file[0], (int)content_from_file.size(), 0, 0);
 	Content_W = new std::wstring(line_to_save, 0);
-	MultiByteToWideChar(CP_UTF8, 0, &content_from_file[0], (int)content_from_file.size(), &(*Content_W)[0], line_to_save);  // !!! &(*Content_W)[0] Inresting moment
+	MultiByteToWideChar(CP_UTF8, 0, &content_from_file[0], (int)content_from_file.size(), &(*Content_W)[0], line_to_save);
+	delete[] start_point;
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::Get_Title()
@@ -303,16 +304,14 @@ void ACurl_Client::Get_Image()
 {
 	char *c_url;
 	wchar_t *w_url;
-	const wchar_t *bgn = Patterns_Array[(int)EPatterns_Site::Image_Bgn];
-	const wchar_t *end = Patterns_Array[(int)EPatterns_Site::Image_End];
 	FILE *file;
 	CURL *url_easy;
 	CURLcode response;
 	std::wstring w_str_url;
-	
+
 	// 1.2. Create image url full with domein and convert to char
-	AsTools::Format_Sub_WString(Content_W->c_str(), bgn, end, w_url);
-	w_str_url = std::wstring(AsConfig::Protocols[0]) + Title_Site + w_url;
+	AsTools::Format_Sub_WString(Content_W->c_str(), Patterns_Array[(int)EPatterns_Site::Image_Bgn], Patterns_Array[(int)EPatterns_Site::Image_End], w_url);
+	w_str_url = std::wstring(AsConfig::Protocols[0]) + Patterns_Array[(int)EPatterns_Site::Init_URL] + w_url;
 	AsTools::Format_Wide_Char_To_Char(w_str_url.c_str(), c_url);
 
 	// 1.3. Init and Download
@@ -380,12 +379,11 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 : Ptr_Hdc(hdc), Builder_State(EBuilder_State::EBS_Working), Active_Map(EUser_Arrays::EUA_Arrays_Count), Border_Pressed(EPress::Border_Menu_Main), 
   Buttons {}, User_Input(0), Button_User_Offset(0), Borders_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}, It_User_Map_Active {}
 {
-	int i;
 	std::vector<std::thread> threads;
 
 	User_Maps = new std::map<wchar_t *, STitle_Info *, SCmp_Char> *[(int)EUser_Arrays::EUA_Arrays_Count] {};
 
-	for (i = 0; i < (int)EUser_Arrays::EUA_Arrays_Count; ++i)
+	for (int i = 0; i < (int)EUser_Arrays::EUA_Arrays_Count; ++i)
 	{
 		threads.emplace_back([&, i]()
 			{
@@ -397,12 +395,7 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 	Init();
 	Draw_Buttons_Menu_Main();
 	for (std::thread &thread : threads)
-		thread.join();
-
-	// !!!
-	const wchar_t* temp = L"https://dreamerscast.com/home/release/297-isekai-shikkaku";
-	wcsncpy_s(User_Input, (size_t)(wcslen(temp) + 1), temp, (int)wcslen(temp));
-	Handle_User_Input();
+		thread.detach();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam)
@@ -1142,7 +1135,6 @@ void AsUI_Builder::Handle_User_Input()
 {
 	int length = 0;
 	wchar_t *url_content = 0;
-	wchar_t *image_name_format = 0;
 
 	// 1.0. If it`s url use ACurl_Client to Get ID_Content, Get Title + Num + Season
 	if (wcsstr(User_Input, AsConfig::Protocols[0]) != 0 || wcsstr(User_Input, AsConfig::Protocols[1]) != 0)
@@ -1157,10 +1149,10 @@ void AsUI_Builder::Handle_User_Input()
 		{// Covert data and title and Save image
 			Handle_Title_Info(url_content);
 
-			image_name_format = url_content;
-			wcsncpy_s(image_name_format + wcslen(url_content), wcslen(AsConfig::Image_Format) + 1, AsConfig::Image_Format, wcslen(AsConfig::Image_Format) );
-			std::filesystem::rename(AsConfig::Image_Name_File, std::filesystem::path(AsConfig::Image_Folder) / image_name_format);
-
+			length = (int)wcslen(It_User_Map_Active->second->Title_Name_Key);
+			wcsncpy_s(url_content, length + 1, It_User_Map_Active->second->Title_Name_Key, length);
+			wcsncpy_s(url_content + wcslen(url_content), wcslen(AsConfig::Image_Format) + 1, AsConfig::Image_Format, wcslen(AsConfig::Image_Format) );
+			std::filesystem::rename(AsConfig::Image_Name_File, std::filesystem::path(AsConfig::Image_Folder) / url_content);
 		}
 	}
 	Border_Pressed = EPress::Button_User_Input_Second;

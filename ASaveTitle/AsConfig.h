@@ -19,7 +19,6 @@ public:
 	static const char *Temporary_File_Name[];
 
 	static const int Invalid_Chars_Len = 3;
-	static const int Patterns_Length = 7;
 	static constexpr int Menu_Main_Button_Count = 6;
 	static constexpr int Context_Button_Count = Menu_Main_Button_Count - 1;
 
@@ -33,7 +32,7 @@ public:
 	static const wchar_t Sub_Menu_User_Input_Title[];
 	static const wchar_t *Menu_Main_Buttons_Text_Eng[Menu_Main_Button_Count];
 	static const wchar_t *Menu_Main_Buttons_Text_Rus[Menu_Main_Button_Count];
-	static const wchar_t *Patterns_Config[Patterns_Length];
+	static const wchar_t *Patterns_Config[];
 	static const wchar_t *Battons_Page_Name[];
 	static const wchar_t *Season_Case_Up[];
 	static const wchar_t *Season_Case_Low[];

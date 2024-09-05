@@ -22,7 +22,10 @@ enum EPage_Button
 //------------------------------------------------------------------------------------------------------------
 enum class EPatterns_Site : byte
 {
-	Title_Bgn = 0,
+	Init_Load,
+	Init_Load_Line,
+	Init_URL,
+	Title_Bgn,
 	Title_End,
 	Title_Num_Bgn,
 	Title_Num_End,

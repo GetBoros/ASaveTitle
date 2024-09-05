@@ -47,12 +47,13 @@ void ACurl_Client::CURL_Handler()
 		return Add_Pattern_File();
 
 	// Get ID Title, Season, Num and download image to file
-	Get_ID();
+	
 	Get_Patterns();
+	//Get_ID();  // Must be modular
 	Get_URL_Data();
 	Get_Contents();
 	Get_Title();
-	Get_Image();
+	//Get_Image();  // not in range
 }
 //------------------------------------------------------------------------------------------------------------
 bool ACurl_Client::Erase_ID(const int &if_not_last_id_content)
@@ -225,7 +226,8 @@ void ACurl_Client::Get_URL_Data() const
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::Get_Contents()
 {
-	const char *pattern = "<h1>";
+	const char *pattern = "<div class=\"postItem\">";
+	//const char *pattern = "<h1>";
 	int line_to_save;
 	int line_current;
 	std::string line_from_file;
@@ -1146,13 +1148,15 @@ void AsUI_Builder::Handle_User_Input()
 		wcsncpy_s(url_content, (size_t)(wcslen(User_Input) + 1), User_Input, (int)wcslen(User_Input) );
 		ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
 
-		// 1.2. Covert data and title
-		Handle_Title_Info(url_content);
+		if (*url_content != L'\0')
+		{// Covert data and title and Save image
+			Handle_Title_Info(url_content);
 
-		// 1.3. Save image // !!! save name as converted to num data in futures
-		image_name_format = url_content;
-		wcsncpy_s(image_name_format + wcslen(url_content), wcslen(AsConfig::Image_Format) + 1, AsConfig::Image_Format, wcslen(AsConfig::Image_Format) );
-		std::filesystem::rename(AsConfig::Image_Name_File, std::filesystem::path(AsConfig::Image_Folder) / image_name_format);
+			image_name_format = url_content;
+			wcsncpy_s(image_name_format + wcslen(url_content), wcslen(AsConfig::Image_Format) + 1, AsConfig::Image_Format, wcslen(AsConfig::Image_Format) );
+			std::filesystem::rename(AsConfig::Image_Name_File, std::filesystem::path(AsConfig::Image_Folder) / image_name_format);
+
+		}
 	}
 	Border_Pressed = EPress::Button_User_Input_Second;
 	delete[] url_content;
@@ -1522,7 +1526,7 @@ unsigned long long  AsUI_Builder::User_Map_Convert_Out(unsigned long long &ch)
 
 	return 0LL;  // Bad Reserved 99
 }
-//------------------------------------------------------------------------------------------------------------  1850 - 1403 || 1640 - 1525 CURL
+//------------------------------------------------------------------------------------------------------------  1850 - 1525 CURL
 
 
 

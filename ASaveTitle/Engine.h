@@ -174,12 +174,13 @@ private:
 	void Redraw_Buttons_Menu_Context();  // restore image
 	void Redraw_Button_Request() const;
 	void Redraw_Button_User_Input(const wchar_t &text);  // Add and show input to User_Input Buttons
+	void Redraw_Button_User_Input_Added();
 	void Redraw_Image() const;  // Draw Image reacting on Active Button
 
 	void Handle_Button_Bordered(const EUI_Builder_Handler &builder_handlerconst, const LPARAM &lParam);
+	void Handle_Border_Pressed();
+	void Handle_Border_Pressed_Index(const int border_index, const int border_length, int &result) const;  // Check all buttons _IN_ result
 	void Handle_Button_Request(const bool is_increment);  // Change active title num
-	void Handle_Border_Pressed(const int border_index, const int border_length, int &result) const;  // Check all buttons _IN_ result
-	void Handle_Button_Pressed();
 	void Handle_Menu_Main();
 	void Handle_Menu_Sub();
 	void Handle_Clipboard();

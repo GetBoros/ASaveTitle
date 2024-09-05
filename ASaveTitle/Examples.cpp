@@ -200,8 +200,8 @@ void AsExamples::Display_FFmpeg_Commands()
 	
 	- Video:
 			- Cut Video:  //  // Cut video from ss to...
-				- ffmpeg -i input.mp4 -ss 17 -c copy output_after_17_sec.mp4  // Before 17 second save video
-				- ffmpeg -i input.mp4 -t 17 -c copy output_17_sec.mp4  // Save only first 17 second
+				- ffmpeg -i input.mp4 -ss 56 -c copy output.mp4  // Before 17 second save video
+				- ffmpeg -i input.mp4 -t 156 -c copy output.mp4  // Save only first 17 second
 
 				- ffmpeg -ss 00:00:00 -to 00:00:17 -i inFile.mp4 -c copy outfile.mp4  // Save 17 second 
 				- ffmpeg -i inFile.mp4 -ss 00:00:00 -to 00:00:17 out.mp4 -c copy outfile.mp4  //
@@ -209,13 +209,12 @@ void AsExamples::Display_FFmpeg_Commands()
 				- ffmpeg -i inFile.mp4 -ss 14 -to 18 outfile.mp4
 
 			- Convert :
-		- ffmpeg -i Temp_06.mp4 -vf "scale=1920:1080,fps=60" -c:v libx264 -b:v 3061k -profile:v high -preset veryfast -c:a aac -b:a 128k -ar 44100 output_02.mp4
-		- ffmpeg -i inFile.mp4 outfile.mp4  // Convert from avi to mp4
-		- ffmpeg -i inFile.mp4 -q 23 quality_23.avi  // or if mp4 use -crf || -q(quality) 23 value quality low better?!?
+		- ffmpeg -i input.mp4 -vf "scale=1920:1080,fps=60" -c:v libx264 -b:v 3462k -profile:v high -preset slow -c:a aac -b:a 128k -ar 44100 output.mp4
+		- ffmpeg -i input.mp4 outfile.mp4  // Convert from avi to mp4
+		- ffmpeg -i input.mp4 -q 23 quality_23.avi  // or if mp4 use -crf || -q(quality) 23 value quality low better?!?
 
 	- Video Concatenation :
 		- ffmpeg -f concat -safe 0 -i file_list.txt -c copy outfile.mp4  // Create .txt and set all files to concatenate || file 'Test_00.mp4'
-		- ffmpeg -f concat -safe 0 -i file_list.txt -vf "scale=1920:1080,fps=60" -c:v libx264 -crf 0 -preset veryfast outfile.mp4
 
 	- Audio:
 		- ffmpeg -i inFile.mp3 -b:a 320k outfile.mp3  // -b:a maybe bitrate for audo can change 320k to 1000k need write k

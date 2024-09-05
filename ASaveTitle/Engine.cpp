@@ -794,6 +794,35 @@ void AsUI_Builder::Redraw_Button_User_Input(const wchar_t &user_text)
 	Draw_Button_User_Input();
 }
 //------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Redraw_Button_User_Input_Added()
+{
+	Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = (int)std::distance(User_Maps[(int)Active_Map]->begin(), It_User_Map_Active);
+
+	// 1.0. If button must be on next page
+	if (Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] > AsConfig::Max_Line)
+	{
+		Button_User_Offset += AsConfig::Max_Line;
+		Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] = Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr];
+	}
+
+	// 1.1. If button must be on prev page and not less than 0
+	if (Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] < AsConfig::Max_Line && Button_User_Offset > 0)
+	{
+		Button_User_Offset -= AsConfig::Max_Line;
+		Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] = Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr];
+	}
+
+	// 1.2. If new title redraw, if old just redraw button?
+	if (true)  // is new
+		Draw_Buttons_Menu_Sub();  // !!! How to know new or old
+	Redraw_Buttons_Menu_Sub();  // Show new added title
+	Redraw_Image();  // Show Image
+	Redraw_Button_Request();  // Clear old request
+	Draw_Buttons_Request();  // Draw new request
+	User_Input[0] = L'\0';
+	Draw_Button_User_Input();
+}
+//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Redraw_Image() const
 {
 	int width = 0, height = 0, bpp = 0;
@@ -899,29 +928,66 @@ void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_han
 	if (Borders_Rect[(int)EPress::Border_Menu_Context][0].left != 0)
 		Redraw_Buttons_Menu_Context();
 
-	// 1.2. Borders Handler
-	switch (Border_Pressed = (EPress)index)
+	Border_Pressed = (EPress)index;
+	Handle_Border_Pressed();  // !!! Rename
+	if (builder_handler == EUI_Builder_Handler::EBH_RM_Button)  // If RM Button
+		Draw_Buttons_Menu_Context();
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Border_Pressed()
+{
+	switch (Border_Pressed)
 	{
+	case EPress::Border_Menu_Main:
+		Handle_Menu_Main();
+		if (Active_Map == EUser_Arrays::EUA_Quit_Button)
+			return;
+		Draw_Buttons_Menu_Sub();
+		Redraw_Buttons_Menu_Main();  // Redraw pressed button
+		break;
+	case EPress::Border_Menu_Context:
+		Handle_Menu_Context();
+		Redraw_Button_Request();
+		Draw_Buttons_Menu_Sub();
+		break;
+	case EPress::Border_Menu_Sub:
+		Handle_Menu_Sub();  // Change Border pressed State to User_Input | _Second | Button_Pages | Buttons_User_Input
+		Handle_Border_Pressed();
+		break;
 	case EPress::Non_Bordered:
 		Handle_Non_Bordered();
 		break;
-
-	case EPress::Border_Menu_Main:
-		Handle_Menu_Main();
+	case EPress::Button_User_Input:
+		Draw_Button_User_Input();
 		break;
-
-	case EPress::Border_Menu_Context:
-		Handle_Menu_Context();
+	case EPress::Button_User_Input_Second:
+		Redraw_Button_User_Input_Added();
 		break;
-
-	case EPress::Border_Menu_Sub:
-		Handle_Menu_Sub();
+	case EPress::Button_Reguest:
+		break;
+	case EPress::Button_Pages:
+		Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = 0;
+		Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] = Button_User_Offset;
+		Redraw_Button_Request();
+		Draw_Buttons_Menu_Sub();
+		break;
+	case EPress::Buttons_User_Input:
+		Redraw_Buttons_Menu_Sub();
+		Redraw_Button_Request();
+		Draw_Buttons_Request();
+		Redraw_Image();
 		break;
 	}
-	Handle_Button_Pressed();
+	Border_Pressed = EPress::Non_Bordered;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Border_Pressed_Index(const int border_index, const int border_length, int& result) const
+{
+	RECT mouse_cord_destination{};
 
-	if (builder_handler == EUI_Builder_Handler::EBH_RM_Button)  // If RM Button
-		Draw_Buttons_Menu_Context();
+	for (result = 0; result < border_length; result++)
+		if (IntersectRect(&mouse_cord_destination, Borders_Rect[(int)EPress::Mouse_Coordinate], &Borders_Rect[border_index][result]))
+			break;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Button_Request(const bool is_increment)
@@ -950,91 +1016,11 @@ void AsUI_Builder::Handle_Button_Request(const bool is_increment)
 	*title_num += increase_to;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Border_Pressed(const int border_index, const int border_length, int &result) const
-{
-	RECT mouse_cord_destination {};
-
-	for (result = 0; result < border_length; result++)
-		if (IntersectRect(&mouse_cord_destination, Borders_Rect[(int)EPress::Mouse_Coordinate], &Borders_Rect[border_index][result] ) )
-			break;
-}
-//------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Button_Pressed()
-{
-	switch (Border_Pressed)
-	{
-	case EPress::Border_Menu_Main:
-		if (Active_Map == EUser_Arrays::EUA_Quit_Button)
-			return;
-		Draw_Buttons_Menu_Sub();
-		Redraw_Buttons_Menu_Main();  // Redraw pressed button
-		break;
-
-
-	case EPress::Button_Pages:
-		Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = 0;
-		Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] = Button_User_Offset;
-		Redraw_Button_Request();
-		Draw_Buttons_Menu_Sub();
-		break;
-
-
-	case EPress::Border_Menu_Context:
-		Redraw_Button_Request();
-		Draw_Buttons_Menu_Sub();
-		break;
-
-
-	case EPress::Button_User_Input:
-		Draw_Button_User_Input();
-		break;
-
-
-	case EPress::Button_User_Input_Second:
-		Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = (int)std::distance(User_Maps[(int)Active_Map]->begin(), It_User_Map_Active);
-
-		// 1.0. If button must be on next page
-		if (Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] > AsConfig::Max_Line)
-		{
-			Button_User_Offset += AsConfig::Max_Line;
-			Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] = Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr];
-		}
-
-		// 1.1. If button must be on prev page and not less than 0
-		if (Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] < AsConfig::Max_Line && Button_User_Offset > 0)
-		{
-			Button_User_Offset -= AsConfig::Max_Line;
-			Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] = Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr];
-		}
-
-		// 1.2. If new title redraw, if old just redraw button?
-		if (true)  // is new
-			Draw_Buttons_Menu_Sub();  // !!! How to know new or old
-		Redraw_Buttons_Menu_Sub();  // Show new added title
-		Redraw_Image();  // Show Image
-		Redraw_Button_Request();  // Clear old request
-		Draw_Buttons_Request();  // Draw new request
-
-		// 1.3. User Input Button
-		User_Input[0] = L'\0';
-		Draw_Button_User_Input();
-		break;
-
-
-	case EPress::Buttons_User_Input:  // Casual button press
-		Redraw_Buttons_Menu_Sub();
-		Redraw_Button_Request();
-		Draw_Buttons_Request();
-		Redraw_Image();
-		break;
-	}
-}
-//------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Main()
 {
 	int button_index = 0;
 
-	Handle_Border_Pressed( (int)EPress::Button_Menu_Main, AsConfig::Menu_Main_Button_Count, button_index);
+	Handle_Border_Pressed_Index( (int)EPress::Button_Menu_Main, AsConfig::Menu_Main_Button_Count, button_index);
 	if ( !(button_index != AsConfig::Menu_Main_Button_Count) )  // if less buttons we have
 		return;
 
@@ -1060,7 +1046,7 @@ void AsUI_Builder::Handle_Menu_Sub()
 			return Handle_Clipboard();
 
 	// 1.2. Next or Prev page Handler
-	Handle_Border_Pressed( (int)EPress::Button_Pages, EPage_Button::EPB_Last, i);
+	Handle_Border_Pressed_Index( (int)EPress::Button_Pages, EPage_Button::EPB_Last, i);
 	if (i != EPage_Button::EPB_Last)
 	{
 		if (i == EPage_Button::EPB_Prev)
@@ -1076,7 +1062,7 @@ void AsUI_Builder::Handle_Menu_Sub()
 	}
 
 	// 1.3. Buttons  Sub Title
-	Handle_Border_Pressed( (int)EPress::Buttons_User_Input, AsConfig::Max_Line, (i = 0) );
+	Handle_Border_Pressed_Index( (int)EPress::Buttons_User_Input, AsConfig::Max_Line, (i = 0) );
 	if (i >= AsConfig::Max_Line)  // if out of border, miss hit on button
 		return;
 	Buttons[(int)EActive_Button::EAB_Menu_Sub_Curr] = i + Button_User_Offset;
@@ -1114,7 +1100,7 @@ void AsUI_Builder::Handle_Menu_Context()
 	int i = 0;
 	std::map<wchar_t *, STitle_Info *, SCmp_Char> *map = 0;
 
-	Handle_Border_Pressed( (int)EPress::Button_Context, AsConfig::Context_Button_Count, i);  // which array
+	Handle_Border_Pressed_Index( (int)EPress::Button_Context, AsConfig::Context_Button_Count, i);  // which array
 
 	if (i == (int)EUser_Arrays::EUA_Arrays_Count)
 	{
@@ -1136,7 +1122,7 @@ void AsUI_Builder::Handle_Non_Bordered()
 	int i = 0;
 	const int how_many_buttons = 2;
 
-	Handle_Border_Pressed( (int)EPress::Button_Reguest, how_many_buttons, i);
+	Handle_Border_Pressed_Index( (int)EPress::Button_Reguest, how_many_buttons, i);
 	if (i == how_many_buttons)  // if cant find any return
 		return;
 

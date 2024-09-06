@@ -247,7 +247,7 @@ void AsExamples::Display_FFmpeg_Commands()
 				- ffmpeg -i inFile.mp4 -ss 14 -to 18 outfile.mp4
 
 			- Convert :
-		- ffmpeg -i input.mp4 -vf "scale=1920:1080,fps=60" -c:v libx264 -b:v 3462k -profile:v high -preset slow -c:a aac -b:a 128k -ar 44100 output.mp4
+		- ffmpeg -i input.mp4 -vf "scale=1920:1080,fps=60" -c:v libx264 -b:v 8000k -profile:v high -preset slow -c:a aac -b:a 128k -ar 44100 output.mp4
 		- ffmpeg -i input.mp4 outfile.mp4  // Convert from avi to mp4
 		- ffmpeg -i input.mp4 -q 23 quality_23.avi  // or if mp4 use -crf || -q(quality) 23 value quality low better?!?
 
@@ -342,7 +342,7 @@ void AsExamples::Display_FFmpeg_Examples()
 }
 //------------------------------------------------------------------------------------------------------------
 
-
+// Restream || Effects ++
 /*
 	// Get youtube url for ffmpeg
 	yt-dlp -f best -g https://www.youtube.com/watch?v=rn4PSf_-J1s

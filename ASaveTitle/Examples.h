@@ -13,6 +13,7 @@ enum class EShow_Preview : int
 	EP_Show_Cast_Exam,  // Reinterpret cast examples and other useful thinks
 	EP_Show_Html_Decode,
 	EP_Show_String_Replace,  // Example how to handle string, replace, find texts
+	EP_Show_Conect_To_Servers,
 	EP_Show_Std_Map_Pair_Ptrs,  // Example how tu use ptr Maps and pairs
 	EP_Show_FFmpeg_Ex,  // Example, commands and how to use ffmpeg
 	EP_Show_FFMpeg_Example,
@@ -37,6 +38,7 @@ private:
 	void Display_Cast_Exam();
 	void Display_Html_Decoder();
 	void Display_Replace_S();  // Example how replace std::string
+	void Display_Connect_Server();
 	void Display_Map_Pair_Ptr();
 	void Display_FFmpeg_Commands();
 	void Display_FFmpeg_Examples();

@@ -46,14 +46,11 @@ void ACurl_Client::CURL_Handler()
 	if(!std::filesystem::exists(*Content_W) )  // If new site create pattern in file, need handle it personal
 		return Add_Pattern_File();
 
-	// Get ID Title, Season, Num and download image to file
-	
 	Get_Patterns();
-	//Get_ID();  // Must be modular
 	Get_URL_Data();
 	Get_Contents();
 	Get_Title();
-	Get_Image();  // not in range | need make modular
+	Get_Image();
 }
 //------------------------------------------------------------------------------------------------------------
 bool ACurl_Client::Erase_ID(const int &if_not_last_id_content)
@@ -1695,7 +1692,7 @@ int AsEngine::Connect_To_Server()
 	// Settings
 	address_server = {};
 	client_buffer = 1234567890123456789ULL;  // this we send to server
-	memcpy(buffer_to_server, &client_buffer, sizeof(unsigned long long));
+	memcpy(buffer_to_server, &client_buffer, sizeof(unsigned long long) );
 
 	if (WSAStartup(MAKEWORD(2, 2), &wsocket_data) != 0)  // set versions of sockets data
 		return 1;
@@ -1712,7 +1709,7 @@ int AsEngine::Connect_To_Server()
 	address_server.sin_port = htons(666);
 
 	// 1.2. Try to connect to server using address server
-	if (connect(socket_to_server, (struct sockaddr*)&address_server, sizeof(address_server)) == SOCKET_ERROR)  // wait server
+	if (connect(socket_to_server, (struct sockaddr*)&address_server, sizeof(address_server) ) == SOCKET_ERROR)  // wait server
 	{
 		closesocket(socket_to_server);
 		WSACleanup();

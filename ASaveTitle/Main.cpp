@@ -1,20 +1,68 @@
 ﻿#include "Main.h"
 
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <iomanip>
-
-AsMain *AsMain::Main_Window = 0;  // Singlton
-//------------------------------------------------------------------------------------------------------------
 
 
 
 
 //------------------------------------------------------------------------------------------------------------
-void func_temp()
+void init(SOCKET &socket_to_server, struct sockaddr_in &address_server)
 {
+	int result;
+	WSADATA wsocket_data;
 
+	result = 0;
+	address_server = {};  // Инициализируем структуру адреса
+
+	if (WSAStartup(MAKEWORD(2, 2), &wsocket_data) )
+		return;
+	socket_to_server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+	// 1.1. Создаем сокет и задаем адрес сервера
+	if (socket_to_server == INVALID_SOCKET)
+	{
+		WSACleanup();
+		return;
+	}
+
+	address_server.sin_family = AF_INET;
+	address_server.sin_addr.s_addr = inet_addr("127.0.0.1");  // IP-адрес сервера
+	address_server.sin_port = htons(666);  // Порт сервера
+}
+//------------------------------------------------------------------------------------------------------------
+int connect_to_server()
+{
+	SOCKET socket_to_server;
+	struct sockaddr_in address_server;
+	unsigned long long data_to_send[5] {}; // Данные, которые отправляем на сервер
+	unsigned char buffer_to_server[sizeof(data_to_send)] = {};
+
+	for (size_t i = 0; i < 5; ++i) {
+		data_to_send[i] = 999999ULL; // Пример заполнения массива
+	}
+
+	memcpy(buffer_to_server, data_to_send, sizeof(data_to_send) );  // Копируем данные в буфер для отправки
+	init(socket_to_server, address_server);
+
+	// 1.2. Подключаемся к серверу
+	if (connect(socket_to_server, (sockaddr *) &address_server, sizeof(address_server) ) == SOCKET_ERROR)  // can`t connect server
+	{
+		closesocket(socket_to_server);
+		WSACleanup();
+		return 1;
+	}
+
+	// 1.3. Отправляем данные на сервер
+	if (send(socket_to_server, (char *) &buffer_to_server, sizeof(buffer_to_server), 0) == SOCKET_ERROR)  // send data to server
+	{
+		closesocket(socket_to_server);
+		WSACleanup();
+		return 1;
+	}
+
+	closesocket(socket_to_server);
+	WSACleanup();
+
+	return 0;
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -24,8 +72,10 @@ void func_temp()
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
+	connect_to_server();
+	return 0;
 	// Tutorial
-	/*AsExamples *examples = new AsExamples(EShow_Preview::EP_Show_Html_Decode);*/
+	AsExamples *examples = new AsExamples(EShow_Preview::EP_Show_Conect_To_Server);
 
 	return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not
 }
@@ -35,6 +85,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_
 
 
 // AsMain
+AsMain *AsMain::Main_Window = 0;  // Singlton
 bool AsMain::Is_Hwnd_Created = false;
 EProgram AsMain::Programs = EProgram::Invalid;
 WCHAR AsMain::SZ_Title[] = L"ASaver";
@@ -43,6 +94,7 @@ WCHAR AsMain::SZ_Window[] = L"Book_Reader";
 AsMain::AsMain(HINSTANCE handle_instance)
 	:HInstance(handle_instance)
 {
+	Main_Window = this;
 	setlocale(LC_ALL, "ru_RU.UTF-8");
 
 	LoadStringW(HInstance, IDC_ASAVETITLE, SZ_Window, AsConfig::Max_Loadstring);

@@ -15,7 +15,6 @@ public:
 	int Get_WParam() const;
 
 	static AsMain *Set_Instance(HINSTANCE handle_instance);
-	static AsMain *Main_Window;
 
 private:
 
@@ -35,5 +34,6 @@ private:
 
 	static bool Is_Hwnd_Created;
 	static EProgram Programs;
+	static AsMain *Main_Window;
 };
 //------------------------------------------------------------------------------------------------------------

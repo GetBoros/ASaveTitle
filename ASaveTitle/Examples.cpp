@@ -37,6 +37,9 @@ AsExamples::AsExamples(const EShow_Preview show_preview)
 	case EShow_Preview::EP_Show_Html_Decode:
 		Display_Html_Decoder();
 		break;
+	case EShow_Preview::EP_Show_Conect_To_Servers:
+		Display_Connect_Server();
+		break;
 	case EShow_Preview::EP_Show_Std_Map_Pair_Ptrs:
 		Display_Map_Pair_Ptr();
 		break;
@@ -200,6 +203,11 @@ void AsExamples::Display_Replace_S()
 	string_need_replace += "Well Done";
 }
 //------------------------------------------------------------------------------------------------------------
+void AsExamples::Display_Connect_Server()
+{
+
+}
+//------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_Map_Pair_Ptr()
 {
 	struct S_Test { int a; int b; } S_Example = {};
@@ -238,8 +246,9 @@ void AsExamples::Display_FFmpeg_Commands()
 	
 	- Video:
 			- Cut Video:  //  // Cut video from ss to...
-				- ffmpeg -i input.mp4 -ss 56 -c copy output.mp4  // Before 17 second save video
-				- ffmpeg -i input.mp4 -t 156 -c copy output.mp4  // Save only first 17 second
+				- ffmpeg -i input.mp4 -ss 00:01:18 -to 00:02:48 -c copy 0.mp4
+				- ffmpeg -i input.mp4 -ss 5 -c copy output.mp4  // Before 5 second save video
+				- ffmpeg -i input.mp4 -t 15 -c copy output.mp4  // Save only first 15 second
 
 				- ffmpeg -ss 00:00:00 -to 00:00:17 -i inFile.mp4 -c copy outfile.mp4  // Save 17 second 
 				- ffmpeg -i inFile.mp4 -ss 00:00:00 -to 00:00:17 out.mp4 -c copy outfile.mp4  //
@@ -247,7 +256,8 @@ void AsExamples::Display_FFmpeg_Commands()
 				- ffmpeg -i inFile.mp4 -ss 14 -to 18 outfile.mp4
 
 			- Convert :
-		- ffmpeg -i input.mp4 -vf "scale=1920:1080,fps=60" -c:v libx264 -b:v 8000k -profile:v high -preset slow -c:a aac -b:a 128k -ar 44100 output.mp4
+		- ffmpeg -i input.mp4 -vf "scale=1920:1080, fps=60, unsharp=5:5:1.0" -c:v libx264 -b:v 14866k -profile:v high -preset slow -c:a aac -b:a 128k -ar 44100 output.mp4
+		- ffmpeg -i input.mp4 -vf "scale=1920:1080,fps=60" -c:v libx264 -b:v 14866k -profile:v high -preset slow -c:a aac -b:a 128k -ar 44100 output.mp4
 		- ffmpeg -i input.mp4 outfile.mp4  // Convert from avi to mp4
 		- ffmpeg -i input.mp4 -q 23 quality_23.avi  // or if mp4 use -crf || -q(quality) 23 value quality low better?!?
 
@@ -278,7 +288,7 @@ void AsExamples::Display_FFmpeg_Commands()
 			- ffmpeg -i inFile.mp4  -vf "hflip" outfile.mp4  // Result from left to right
 		- Equalization :
 			- ffmpeg -i inFile.mp4 -filter "colorbalance=rs=-0.3:bs=0.3:rh=0.1:bh=-0.1" outfile.mp4  // r,g,b and (shadow, midtones, highlights)
-			- ffmpeg -i inFile.mp4 -vf "eq=contrast=1.3" outfile.mp4  // 1.3 Darger and more 0.8 and less brighter
+			- ffmpeg -i inFile.mp4 -vf "eq=contrast=1.3" outfile.mp4  // 1.3 Darker and more 0.8 and less brighter
 			- ffmpeg -i inFile.mp4 -vf "eq=brightness=0.3" outfile.mp4  // 0.3 to mush light or -0.3 too much dark
 			- ffmpeg -i inFile.mp4 -vf "eq=saturation=1.5, unsharp" outfile.mp4
 			- ffmpeg -i inFile.mp4 -vf "eq=gamma_r=1.5" outfile.mp4  // _r red channel _g green _b blue
@@ -342,18 +352,21 @@ void AsExamples::Display_FFmpeg_Examples()
 }
 //------------------------------------------------------------------------------------------------------------
 
-// Restream || Effects ++
+// Restream || Effects ++ || yt-dlp Examples
 /*
 	// Get youtube url for ffmpeg
-	yt-dlp -f best -g https://www.youtube.com/watch?v=rn4PSf_-J1s
+		- yt-dlp -f best -g https://www.youtube.com/watch?v=rn4PSf_-J1s
+	// Get download video + audio from site useing manifest format .mpd or .m3u8
+		- yt-dlp -f bestvideo+bestaudio --merge-output-format mp4 -o "4.mp4" "https://edge35-waw.live.mmcdn.com/live-edge/am"
+		- yt-dlp --merge-output-format mp4 -o "4.mp4" "https://edge35-waw.live.mmcdn.com/live-edge/amlst:_haruka_-sd-0c269a"
 
-
-ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1725287016/ei/CHbVZqPcM8TKi9oPgdvlgQ8/ip/185.19.6.90/id/rn4PSf_-J1s.1/itag/96/source/yt_live_broadcast/requiressl/yes/ratebypass/yes/live/1/sgoap/gir%3Dyes%3Bitag%3D140/sgovp/gir%3Dyes%3Bitag%3D137/rqh/1/hdlc/1/hls_chunk_host/rr13---sn-3c27sn7r.googlevideo.com/xpc/EgVo2aDSNQ%3D%3D/spc/Mv1m9uriw5XvrKyKxBDvR1fTvvsl473zECpaTSguUSHrtCB0N94jL8I/vprv/1/playlist_type/DVR/initcwndbps/1318750/mh/bK/mm/44/mn/sn-3c27sn7r/ms/lva/mv/m/mvi/13/pl/25/dover/11/pacing/0/keepalive/yes/mt/1725264996/sparams/expire,ei,ip,id,itag,source,requiressl,ratebypass,live,sgoap,sgovp,rqh,hdlc,xpc,spc,vprv,playlist_type/sig/AJfQdSswRAIgbna8IGZ0CEirQvwtRBjzx6CxiwL-PFS-EkwByEmXn_QCIBu6VEBLkht5Xnww-sRjZ0GEtfQKyG8tdHASeFgg8eJm/lsparams/hls_chunk_host,initcwndbps,mh,mm,mn,ms,mv,mvi,pl/lsig/ABPmVW0wRQIhAKUnMH-mh9jzFSKDimgH2J4mxf97sNxllc0-esiNBykzAiA1hgN2voNIBMTOKkwvb33YIW3jXRjbyEBXDEu53rTa2Q%3D%3D/playlist/index.m3u8"
+	// Streaming
+ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1725287016/ei/CHbVZqPcM8"
  -filter_complex "[0:a]showwaves=s=1920x1080:mode=cline:colors=cyan|magenta:scale=sqrt,eq=gamma=2.0[v]" -map "[v]" -map 0:a
  -f flv "rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h"
 
  // Work GOOD
- ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1725287016/ei/CHbVZqPcM8TKi9oPgdvlgQ8/ip/185.19.6.90/id/rn4PSf_-J1s.1/itag/96/source/yt_live_broadcast/requiressl/yes/ratebypass/yes/live/1/sgoap/gir%3Dyes%3Bitag%3D140/sgovp/gir%3Dyes%3Bitag%3D137/rqh/1/hdlc/1/hls_chunk_host/rr13---sn-3c27sn7r.googlevideo.com/xpc/EgVo2aDSNQ%3D%3D/spc/Mv1m9uriw5XvrKyKxBDvR1fTvvsl473zECpaTSguUSHrtCB0N94jL8I/vprv/1/playlist_type/DVR/initcwndbps/1318750/mh/bK/mm/44/mn/sn-3c27sn7r/ms/lva/mv/m/mvi/13/pl/25/dover/11/pacing/0/keepalive/yes/mt/1725264996/sparams/expire,ei,ip,id,itag,source,requiressl,ratebypass,live,sgoap,sgovp,rqh,hdlc,xpc,spc,vprv,playlist_type/sig/AJfQdSswRAIgbna8IGZ0CEirQvwtRBjzx6CxiwL-PFS-EkwByEmXn_QCIBu6VEBLkht5Xnww-sRjZ0GEtfQKyG8tdHASeFgg8eJm/lsparams/hls_chunk_host,initcwndbps,mh,mm,mn,ms,mv,mvi,pl/lsig/ABPmVW0wRQIhAKUnMH-mh9jzFSKDimgH2J4mxf97sNxllc0-esiNBykzAiA1hgN2voNIBMTOKkwvb33YIW3jXRjbyEBXDEu53rTa2Q%3D%3D/playlist/index.m3u8" \
+ ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/" \
   -filter_complex "[0:a]showwaves=s=1920x360:mode=cline:colors=cyan|magenta:scale=sqrt,format=rgba,fade=t=in:st=0:d=1,alphaextract[a]; [0:v]scale=1920:1080,pad=iw:ih+360:0:0:black[v]; [a]format=rgba,colorchannelmixer=aa=0.5[overlay]; [v][overlay]overlay=0:main_h-overlay_h" \
   -c:v libx264 \
   -crf 23 -preset fast \
@@ -361,7 +374,7 @@ ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/172
   -f flv "rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h"
 
  // Work
- ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1725287016/ei/CHbVZqPcM8TKi9oPgdvlgQ8/ip/185.19.6.90/id/rn4PSf_-J1s.1/itag/96/source/yt_live_broadcast/requiressl/yes/ratebypass/yes/live/1/sgoap/gir%3Dyes%3Bitag%3D140/sgovp/gir%3Dyes%3Bitag%3D137/rqh/1/hdlc/1/hls_chunk_host/rr13---sn-3c27sn7r.googlevideo.com/xpc/EgVo2aDSNQ%3D%3D/spc/Mv1m9uriw5XvrKyKxBDvR1fTvvsl473zECpaTSguUSHrtCB0N94jL8I/vprv/1/playlist_type/DVR/initcwndbps/1318750/mh/bK/mm/44/mn/sn-3c27sn7r/ms/lva/mv/m/mvi/13/pl/25/dover/11/pacing/0/keepalive/yes/mt/1725264996/sparams/expire,ei,ip,id,itag,source,requiressl,ratebypass,live,sgoap,sgovp,rqh,hdlc,xpc,spc,vprv,playlist_type/sig/AJfQdSswRAIgbna8IGZ0CEirQvwtRBjzx6CxiwL-PFS-EkwByEmXn_QCIBu6VEBLkht5Xnww-sRjZ0GEtfQKyG8tdHASeFgg8eJm/lsparams/hls_chunk_host,initcwndbps,mh,mm,mn,ms,mv,mvi,pl/lsig/ABPmVW0wRQIhAKUnMH-mh9jzFSKDimgH2J4mxf97sNxllc0-esiNBykzAiA1hgN2voNIBMTOKkwvb33YIW3jXRjbyEBXDEu53rTa2Q%3D%3D/playlist/index.m3u8" \
+ ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/172" \
 -filter_complex "[0:a]showwaves=s=1920x1080:mode=cline:colors=cyan|magenta:scale=sqrt[v];[0:v][v]hstack=inputs=2" \
 -c:v libx264 
 -crf 23 
@@ -369,8 +382,32 @@ ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/172
 -c:a aac -b:a 192k 
 -f flv "rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h"
 
-ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1725287016/ei/CHbVZqPcM8TKi9oPgdvlgQ8/ip/185.19.6.90/id/rn4PSf_-J1s.1/itag/96/source/yt_live_broadcast/requiressl/yes/ratebypass/yes/live/1/sgoap/gir%3Dyes%3Bitag%3D140/sgovp/gir%3Dyes%3Bitag%3D137/rqh/1/hdlc/1/hls_chunk_host/rr13---sn-3c27sn7r.googlevideo.com/xpc/EgVo2aDSNQ%3D%3D/spc/Mv1m9uriw5XvrKyKxBDvR1fTvvsl473zECpaTSguUSHrtCB0N94jL8I/vprv/1/playlist_type/DVR/initcwndbps/1318750/mh/bK/mm/44/mn/sn-3c27sn7r/ms/lva/mv/m/mvi/13/pl/25/dover/11/pacing/0/keepalive/yes/mt/1725264996/sparams/expire,ei,ip,id,itag,source,requiressl,ratebypass,live,sgoap,sgovp,rqh,hdlc,xpc,spc,vprv,playlist_type/sig/AJfQdSswRAIgbna8IGZ0CEirQvwtRBjzx6CxiwL-PFS-EkwByEmXn_QCIBu6VEBLkht5Xnww-sRjZ0GEtfQKyG8tdHASeFgg8eJm/lsparams/hls_chunk_host,initcwndbps,mh,mm,mn,ms,mv,mvi,pl/lsig/ABPmVW0wRQIhAKUnMH-mh9jzFSKDimgH2J4mxf97sNxllc0-esiNBykzAiA1hgN2voNIBMTOKkwvb33YIW3jXRjbyEBXDEu53rTa2Q%3D%3D/playlist/index.m3u8" \
+ffmpeg -i "https://manifest.googlevideo.com/api/manifest/" \
 -filter_complex "[0:a]showwaves=s=1920x360:mode=cline:colors=cyan|magenta:scale=sqrt,format=rgba,fade=t=in:st=0:d=1,alphaextract[a]; [0:v]pad=iw:ih+360:0:0:black[v]; [a]format=rgba,geq='r=0:g=0:b=0:a=1.0'[overlay]; [v][overlay]overlay=0.5:main_h-overlay_h" \
 -c:v libx264 -crf 23 -preset fast -c:a aac -b:a 192k -f flv "rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h"
+
+ ffmpeg -i "https://video-weaver.vie02.hls.ttvnw.net/v1/playlist/CqMGIo_mYhKfjtfZHQi4FxidzrVBb1ny2xiBiRCHDtencN6IVyhg5X0cKRqqZnE1ExwbQQZwag7E4kWh6aq_Er8EenBSpVRdfPURRluTl2z35uKdGvz85KxqBKEffD_mdXDxz4pYpj7yjcoOJolUF-5TnBL4AgrHrsN9OHjELhucsZ3WeWXaKVIFpyEP4xmGHjuOuGcoUpilRIkwz1y0VMPk4JqM3RZ5drDK9SKe0vN5of5rgXd-hYPQ4KG9E3r-sKzlw0J_czTU0sdu4i5oJUCcvTZo7c651_HVPTJRxDLPHZITmaNVqbAX0-5OAHGvzOAbE-SbcGbVmhkANxy3tvtJqd_ifGN3XSUphuhAr_I6_cP_F6Cqc9P1VAWJvnIb7djWB7QCLR4wgIG-ZTHoivwZ5Y3t6e-0YoxfnaH0AkR_bFwCa1ZLlBA3x3dQFxn0ZJ9Hi5Sc414DL2HifI8VI-a4phoEcfdvE6ljcK_mxOFL2szgRLjA8drx0PAn5LTHeebyPudAZWeLML6sOzJ4oAVAEkdTUddnzpUvQXmThbd6ctY0GCV1EORpDnJZeUjrz4XDnowftg0JbySgFeLH3wmxRW3CFEE-EacJsLPxgEV1Fw5wuLiXwI_F7PecB1RK0xCqOiUawuWxjQ9Z5UhPYzZFkY2UV4PeXKXXeGS-E0Qy2Cm7na35DD2DQBLjG_PZboPf1Q-eLmm0vCTY3Jg0Zsqozt0ogKeNbvwZ4GqmNmSXg0sqOp-YLhlTQ0Kr37ZRFB0t_EfI9-xehWGOYIF8B8OQa7tFjSnuehN5SZAY_Avi-piygj097ptj8pr-eDLgRMxk4kcNz3RvCcBKe7BkVhyXDTiAlOGwutJspVppPGbBJuraz5jZ1Z24axfluOtrgXgWgcpX0PQZYF5EYQblRFFHKOllQ4Wu8Z9WdJULZl5XFNRbWG59qjK7H4nBVETc6OspM4hKUBt5xyWo54l8W8qpgxwcEy5XRNUJ_so7fHpE9DGmOVQYsF9YNtq-f0jNh_8Jkro8fon4B0BGWQEGe6ijvJewF48Mk8hkl_1jwEybtJnOoR4aDNN6qUJwUaTpLqQaJyABKglldS13ZXN0LTIwrgo.m3u8" \
+  -c:v libx264 \
+  -crf 23 -preset fast \
+  -c:a aac -b:a 192k \
+  -f flv "rtmp://b.rtmp.youtube.com/live2?backup=1/6qr3-2umk-tquf-9kjy-563h"
+
+  ffmpeg -i "https://video-weaver.vie02.hls.ttvnw.net/v1/playlist/CqMGIo_mYhKfjtfZHQi4FxidzrVBb1ny2xiBiRCHDtencN6IVyhg5X0cKRqqZnE1ExwbQQZwag7E4kWh6aq_Er8EenBSpVRdfPURRluTl2z35uKdGvz85KxqBKEffD_mdXDxz4pYpj7yjcoOJolUF-5TnBL4AgrHrsN9OHjELhucsZ3WeWXaKVIFpyEP4xmGHjuOuGcoUpilRIkwz1y0VMPk4JqM3RZ5drDK9SKe0vN5of5rgXd-hYPQ4KG9E3r-sKzlw0J_czTU0sdu4i5oJUCcvTZo7c651_HVPTJRxDLPHZITmaNVqbAX0-5OAHGvzOAbE-SbcGbVmhkANxy3tvtJqd_ifGN3XSUphuhAr_I6_cP_F6Cqc9P1VAWJvnIb7djWB7QCLR4wgIG-ZTHoivwZ5Y3t6e-0YoxfnaH0AkR_bFwCa1ZLlBA3x3dQFxn0ZJ9Hi5Sc414DL2HifI8VI-a4phoEcfdvE6ljcK_mxOFL2szgRLjA8drx0PAn5LTHeebyPudAZWeLML6sOzJ4oAVAEkdTUddnzpUvQXmThbd6ctY0GCV1EORpDnJZeUjrz4XDnowftg0JbySgFeLH3wmxRW3CFEE-EacJsLPxgEV1Fw5wuLiXwI_F7PecB1RK0xCqOiUawuWxjQ9Z5UhPYzZFkY2UV4PeXKXXeGS-E0Qy2Cm7na35DD2DQBLjG_PZboPf1Q-eLmm0vCTY3Jg0Zsqozt0ogKeNbvwZ4GqmNmSXg0sqOp-YLhlTQ0Kr37ZRFB0t_EfI9-xehWGOYIF8B8OQa7tFjSnuehN5SZAY_Avi-piygj097ptj8pr-eDLgRMxk4kcNz3RvCcBKe7BkVhyXDTiAlOGwutJspVppPGbBJuraz5jZ1Z24axfluOtrgXgWgcpX0PQZYF5EYQblRFFHKOllQ4Wu8Z9WdJULZl5XFNRbWG59qjK7H4nBVETc6OspM4hKUBt5xyWo54l8W8qpgxwcEy5XRNUJ_so7fHpE9DGmOVQYsF9YNtq-f0jNh_8Jkro8fon4B0BGWQEGe6ijvJewF48Mk8hkl_1jwEybtJnOoR4aDNN6qUJwUaTpLqQaJyABKglldS13ZXN0LTIwrgo.m3u8" \
+  -c:v libx264   -crf 23 -preset fast   -c:a aac -b:a 192k \
+  -f flv "rtmp://b.rtmp.youtube.com/live2?backup=1/6qr3-2umk-tquf-9kjy-563h"
+
+  // Restream шумоподавление, аншарп, вывести надпись
+ffmpeg -i "https://video-weaver.vie02.hls.ttvnw.net/v1/playlist/CpUIEqBUXsqXxPolz7mKcvv1qyOQZjwIxZJOCoQjj4Kr0W5fMcji8ChyQ9VdPrAWrdnC9QmBjKG28XMv6pFGOEewSSGUhbAjOGQ3l6K3ZWryDH5pq_9MZQHepWA08WBNBBozWakYSy4nKJjfryly2H7qjWJ9jTjh9iGhriJiMnVXCKBOzqt5yYTLu2Im3RIATuzL3L5BrA0Wffp2sJ4wuY4nYDjN5PJDY-H1PDClx_0fiZ_7cqLctwbO1Ek9qxdqDtkpltwi2eqVbNhv4KS5fuVfwzhsa-l4PYOxjX5UdbYw5f0EGYyZm3ai4JDEb9FQxCjtPQi8ZCjkNDG2M7dUbZ6P2CbLuRxnJyWpN7K-dbPprQYx_DpiedBU__sMn5whDlzef3lgYL_0FsBOYL6hNVHWo7ChST-eLtHkdxwriuf8KSzh846xiaMa0434HQhanZx76bz4s5S6bBSe4RKnvLIKgnrWw1g5M_ZSM1wbgdGd2dhSrJQv0r5oh-tYZdHr3vOU15wN_4IcRYnVp3jR5G_RNGOz6oghSwn3sttiMtZzzDAwL9i60B56V9lUx_un4I5eOqBRicEPps1bvDpXNCZ0uBG7l6E3GS8SPyCGBlrarosuUSvgPTV6Okemm2kb-9h0GacQe2OY3k9Vh7b4NVGsd6g-8b9SkttmPgiTH8szZvCVkr6ItA4Cy8UQtNPkl1pf_fxYvPepfETEHSOsAAhS_SED9ZzaQC7TNXmS4AwdpKJhqUQsDEqgTTg-end3J__22SvSsrQ47ZMRPrgKkyC7iZZKVGqF17iZI25nueor1s6IexVW8SQ6Ri_XXws6cImpWqN0sa7hzWCRofNZuphNFbJkqlwH64phbvQrNKNZlzGqflYbTwvsBnCXAramO5qcKXUZRLsTs6w2G9bRKY1wvkJdQmU17o4JLGrGZx8Un7AN1qYuU0e-7FPglfkPeb51ZDn26uv9o9VzhAL7IzFZAUKB28GlwhwRY7dDhHgte8YkAcJnGAvTecYNSTUUCF7B-TTrDzfKThErHlWLurSs3kJIVQsaXkj9AGYlMj9jngB--7ezyf4-XRU0-u-ypd5tqJs1l4ydkn2t5T8DGe90kuJG8m1veCXsWrwI4UrIvSVdm8NnzXsm97DuamU3E9U4-7p1P6tPZRvWFWuMN1qgHyUFIDC2wFTA6h4HKH5btJ99b0dN3RI8B4pwxzlDoLN0_B4cyn5ZDJ6i-pbzXN7psZ9vM7B5BcBlzW9UkDRZD3xmFQxemdD_s02vB1oUcNssOGM8QNfgCzRbOXm8U4fg0nWrhMrwUr4tDTxWhgIOfegPu0WltAGEBG6GcL8TnbWXCYDNHLZrqzzI-Um00ihnhK4LBElPj4Wd_5m86MQIof9RsTTT1hoMS39TTbBwzr-2tAyVIAEqCWV1LXdlc3QtMjCuCg.m3u8" \
+-vf "hqdn3d,scale=1920x1080,unsharp=5:5:1.0,drawtext=fontfile='C\\:/Windows/Fonts/ahronbd.ttf':text='twitch.tv/AlinaRinRin':x=w-tw-100:y=20:fontsize=24:fontcolor=green,eq=brightness=0:contrast=1" \
+-b:v 6800k -c:v libx264 -crf 26 -preset fast -c:a aac -b:a 192k \
+-f flv "rtmp://b.rtmp.youtube.com/live2?backup=1/6qr3-2umk-tquf-9kjy-563h"
+
+ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -crf 0 -threads 0  -f flv "rtmp://b.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h" -an
+
+ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -crf 0 -threads 0 -f flv "rtmp://server.address/live/6qr3-2umk-tquf-9kjy-563h"
+
+
+https://www.twitch.tv/AlinaRinRin
+
 
 */

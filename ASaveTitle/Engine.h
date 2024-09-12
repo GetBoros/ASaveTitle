@@ -127,7 +127,7 @@ private:
 	
 	// Done | Parsing Site, Get Title Name(num, season) and Download Image
 	void Add_Pattern_File();  // Create File for user`s can set prefered patterns to curl || 164
-	void Get_ID();  // Handle ID_Content_Array | Save / Load Array | Resize Array | Tested only Anime-bit
+	void Get_ID();  // !!! Handle ID_Content_Array | Save / Load Array | Resize Array | Tested only Anime-bit
 	void Get_Patterns();  // Try to receive valid patterns from file, if bad string next func died
 	void Get_URL_Data() const;  // Download content to file from user url, need to find needet data | CURL
 	void Get_Contents();  // Use pattern to find title name, nums, season and image domain
@@ -970,18 +970,26 @@ V		- Need save image TemporaryName.png rename and save to Pictures/Аватар 
 	- Иногда багует draw page потестить, розобраться
 	- Сделать рефакторинг
 */
-// TASKS --- 03.09.2024 --- Current ---
+// TASKS --- 07.09.2024 --- Current ---
 /*
+	- rework Get_ID()  // ACurl
+	- 
+
+*/
+
+// MAIN TASKS
+/*
+X	- Начать работу над сервером?
+X	- Работа над кнопкой UPdate?
+		- брать ID парсить сайт на обновления серри?
+
+
 X	- При конвертации сохранять в структуру ID
 X	- Настроить сколько выделять памяти, лучшый вариант передавать url, в CURL очищать и заново выделять память
 X	- Сохранять изображения под названием ID в структуре
 X		- Меньше проблем с форматируванием текста
 
 
-*/
-
-// MAIN TASKS
-/*
 --- MOST WANTED ---
 X	- Добавиить опцию, увиличение шрифта?
 

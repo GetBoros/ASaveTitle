@@ -20,6 +20,28 @@ enum class EShow_Preview : int
 	EP_Show_Last
 };
 
+// AClient
+class AClient
+{
+public:
+	AClient();
+
+	void Connect_Server();
+	void Convert_Struct();
+	void Send_To_Server();
+
+private:
+	unsigned char *Buffer_To_Server;
+	sockaddr_in Address_Server;
+	SOCKET Socket_To_Server;
+
+	static const int Data_Size;
+};
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
 // AsExamples
 class AsExamples
 {
@@ -42,5 +64,7 @@ private:
 	void Display_Map_Pair_Ptr();
 	void Display_FFmpeg_Commands();
 	void Display_FFmpeg_Examples();
+
+	AClient *Client;
 };
 //------------------------------------------------------------------------------------------------------------

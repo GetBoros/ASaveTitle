@@ -9,6 +9,8 @@ public:
 	~AsConfig();
 	AsConfig();
 
+	static void Throw();
+
 	static const char Dictionary_Main_Folder[];
 	static const char Image_Name_File[];
 	static const char Path_Saves_Folder[];

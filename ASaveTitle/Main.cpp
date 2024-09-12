@@ -72,10 +72,9 @@ int connect_to_server()
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	connect_to_server();
+	AsExamples *examples = new AsExamples(EShow_Preview::EP_Show_Conect_To_Servers);
 	return 0;
 	// Tutorial
-	AsExamples *examples = new AsExamples(EShow_Preview::EP_Show_Conect_To_Server);
 
 	return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not
 }

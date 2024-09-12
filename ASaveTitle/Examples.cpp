@@ -1,12 +1,78 @@
 #include "Examples.h"
 
+
+// AClient
+const int AClient::Data_Size = 6;
+//------------------------------------------------------------------------------------------------------------
+AClient::AClient()
+ : Buffer_To_Server(0), Address_Server {}, Socket_To_Server {}
+{
+}
+//------------------------------------------------------------------------------------------------------------
+void AClient::Connect_Server()
+{
+	WSADATA wsocket_data;
+
+	if (WSAStartup(MAKEWORD(2, 2), &wsocket_data) )
+		return;
+	Socket_To_Server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+	// 1.1. Создаем сокет и задаем адрес сервера
+	if (Socket_To_Server == INVALID_SOCKET)
+	{
+		WSACleanup();
+		return;
+	}
+
+	Address_Server.sin_family = AF_INET;
+	Address_Server.sin_addr.s_addr = inet_addr("127.0.0.1");  // IP-адрес сервера
+	Address_Server.sin_port = htons(666);  // Порт сервера
+
+	if (connect(Socket_To_Server, (sockaddr*)&Address_Server, sizeof(Address_Server)) == SOCKET_ERROR)  // can`t connect server
+	{
+		closesocket(Socket_To_Server);
+		WSACleanup();
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+void AClient::Convert_Struct()
+{
+	unsigned long long *data_to_send = new unsigned long long[Data_Size];
+	Buffer_To_Server = new unsigned char[sizeof(unsigned long long) * Data_Size] {};
+
+	for (size_t i = 0; i < 5; ++i)
+		data_to_send[i] = 999999ULL;  // init data
+
+	memcpy(Buffer_To_Server, data_to_send, Data_Size * sizeof(unsigned long long) );  // cpy data to char *
+
+	delete[] data_to_send;
+}
+//------------------------------------------------------------------------------------------------------------
+void AClient::Send_To_Server()
+{
+	if (send(Socket_To_Server, (char*)&Data_Size, sizeof(Data_Size), 0) == SOCKET_ERROR)
+		AsConfig::Throw();
+
+	if (send(Socket_To_Server, (char *)Buffer_To_Server, sizeof(unsigned long long) * Data_Size, 0) == SOCKET_ERROR)
+		AsConfig::Throw();
+
+	closesocket(Socket_To_Server);
+	WSACleanup();
+
+	delete[] Buffer_To_Server;
+}
+//------------------------------------------------------------------------------------------------------------
+
+
 // AsExamples
 AsExamples::AsExamples()
+ : Client(0)
 {
 
 }
 //------------------------------------------------------------------------------------------------------------
 AsExamples::AsExamples(const EShow_Preview show_preview)
+ : Client(0)
 {
 	// 1.0 EP_Show_Path_Info Data
 	std::filesystem::path path_to_display(L"C:/FileSystemTest/SubDir3/SubDirLevel2/File2.txt ");
@@ -205,7 +271,19 @@ void AsExamples::Display_Replace_S()
 //------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_Connect_Server()
 {
+	Client = new AClient();
 
+	Client->Connect_Server();  // if can`t connect need return from this func and do nothing into a row
+	Client->Convert_Struct();
+	Client->Send_To_Server();
+
+	// TASKS
+	/*
+		- Connect to server
+		- Send to server
+	*/
+
+	delete Client;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_Map_Pair_Ptr()
@@ -358,7 +436,7 @@ void AsExamples::Display_FFmpeg_Examples()
 		- yt-dlp -f best -g https://www.youtube.com/watch?v=rn4PSf_-J1s
 	// Get download video + audio from site useing manifest format .mpd or .m3u8
 		- yt-dlp -f bestvideo+bestaudio --merge-output-format mp4 -o "4.mp4" "https://edge35-waw.live.mmcdn.com/live-edge/am"
-		- yt-dlp --merge-output-format mp4 -o "4.mp4" "https://edge35-waw.live.mmcdn.com/live-edge/amlst:_haruka_-sd-0c269a"
+		- yt-dlp --merge-output-format mp4 -o "4.mp4" "https://edge31-waw.live.mmcdn.com/live-edge/amlst:aurora_radiance-sd-38e5483d956715fbb3a7a1c5616abd535b0b5f496f25ec869cf5b0d0126cbc1c_trns_h264/chunklist_w2049916998_b5128000_t64RlBTOjMwLjA=.m3u8"
 
 	// Streaming
 ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1725287016/ei/CHbVZqPcM8"

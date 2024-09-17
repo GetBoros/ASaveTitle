@@ -28,7 +28,6 @@ extern "C"
 #include <mutex>
 #include <bitset>  // std::bitset || std::byte
 
-
 // TEMP
 /*
 //#include <cwchar>  // wcstombs_s

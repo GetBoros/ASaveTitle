@@ -2,6 +2,7 @@
 
 #include "AsConfig.h"
 
+//------------------------------------------------------------------------------------------------------------
 enum class EShow_Preview : int
 {
 	EP_None,
@@ -19,23 +20,39 @@ enum class EShow_Preview : int
 	EP_Show_FFMpeg_Example,
 	EP_Show_Last
 };
+//------------------------------------------------------------------------------------------------------------
+enum class EClient_State : byte
+{
+	ECS_None,
+	ECS_Server_Connect,
+	ECS_Server_Buffers,
+	ECS_Server_Buffers_Failed,
+	ECS_Server_Sending,
+	ECS_Failure
+};
+//------------------------------------------------------------------------------------------------------------
+
+
 
 // AClient
 class AClient
 {
 public:
-	AClient();
+	AClient(const unsigned long long *data_to_send, int len);
+
+	void Client_Handler();
 
 	void Connect_Server();
-	void Convert_Struct();
-	void Send_To_Server();
+	void Send_To_Server();  // PUSH
+	void Data_Emplace(const unsigned long long *data_to_send, int len);
 
 private:
+	EClient_State Client_State;
 	unsigned char *Buffer_To_Server;
-	sockaddr_in Address_Server;
 	SOCKET Socket_To_Server;
+	sockaddr_in Address_Server;
 
-	static const int Data_Size;
+	static unsigned long long Data_Size;
 };
 //------------------------------------------------------------------------------------------------------------
 

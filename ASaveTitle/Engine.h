@@ -970,11 +970,15 @@ V		- Need save image TemporaryName.png rename and save to Pictures/Аватар 
 	- Иногда багует draw page потестить, розобраться
 	- Сделать рефакторинг
 */
-// TASKS --- 07.09.2024 --- Current ---
+// TASKS --- 16.09.2024 ---
 /*
-	- rework Get_ID()  // ACurl
-	- 
-
+V	- Bug, Double on click on User input, non handled
+*/
+// TASKS --- 17.09.2024 --- Current ---
+/*
+X	- rework Get_ID()  // ACurl
+V	- Bug, Double on click on User input, non handled
+X	- Bug, Added the same title...
 */
 
 // MAIN TASKS
@@ -1041,6 +1045,8 @@ https://animixplay.st/ || https://animixplay.st/v1/ninja-kamui/ep11
 /*
 X	- Проблемы шрифта, некоторые символы от 7 до 8 пикселей, поэтому нельзя просто взять и по пикселям выравнивать рамку
 X	- Проблемы цвета в картинка, хз в чем проблема
+X	- Create Directory Data if don`t exist
+X	- Can`t save spec || folders char probl
 */
 // Fixed
 /*
@@ -1066,6 +1072,9 @@ V	- Если записанно в файлйе много данных а в к
 		- проблемы не будет если начинать с 0
 		- но что если кто то скопирует базу, и поставить новую программу? плохо, нужно решить
 V	- после удаления первого и последнего поль ввода остаеться пустая рамка в Library
+V	- Bug, out of bounds | Fixed
+V	- Bug : while call context menu and don`t click on it, error
+V	- Bug, Double on click on User input, non handled
 
 */
 // New Phase

@@ -1,9 +1,5 @@
 ﻿#include "Main.h"
 
-
-
-
-
 //------------------------------------------------------------------------------------------------------------
 void init(SOCKET &socket_to_server, struct sockaddr_in &address_server)
 {
@@ -72,11 +68,13 @@ int connect_to_server()
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	AsExamples *examples = new AsExamples(EShow_Preview::EP_Show_Conect_To_Servers);
-	return 0;
-	// Tutorial
-
-	return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not
+	if (false)
+	{
+		AsExamples *examples = new AsExamples(EShow_Preview::EP_Show_Conect_To_Servers);  // send data to server
+		return 0;
+	}
+	else
+		return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not
 }
 //------------------------------------------------------------------------------------------------------------
 

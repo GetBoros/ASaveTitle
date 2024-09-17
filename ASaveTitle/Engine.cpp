@@ -376,6 +376,16 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 : Ptr_Hdc(hdc), Builder_State(EBuilder_State::EBS_Working), Active_Map(EUser_Arrays::EUA_Arrays_Count), Border_Pressed(EPress::Border_Menu_Main), 
   Buttons {}, User_Input(0), Button_User_Offset(0), Borders_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}, It_User_Map_Active {}
 {
+	//const wchar_t test[] = L"https://anime-bit.ru/content/7025/";
+	//wchar_t *temp = new wchar_t[36] {};
+
+	//wcsncpy_s(temp, wcslen(test) + 1, test, wcslen(test) );
+	//
+	//ACurl_Client client_url(EProgram::ASaver, temp);  // Get content from url
+
+	//int yy = 0;
+	//delete[] temp;
+
 	std::vector<std::thread> threads;
 
 	User_Maps = new std::map<wchar_t *, STitle_Info *, SCmp_Char> *[(int)EUser_Arrays::EUA_Arrays_Count] {};
@@ -436,8 +446,11 @@ void AsUI_Builder::Builder_Handler(HDC ptr_hdc, const EUI_Builder_Handler &build
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Init()
 {
-	if (!std::filesystem::exists(AsConfig::Image_Folder) )  // !!! Need Remove from here
+	if (!std::filesystem::exists(AsConfig::Image_Folder) )
 		std::filesystem::create_directories(AsConfig::Image_Folder);
+
+	if (!std::filesystem::exists(AsConfig::Path_Saves_Folder) )
+		std::filesystem::create_directories(AsConfig::Path_Saves_Folder);
 
 	Borders_Rect = new RECT *[(int)EPress::Button_Not_Handled] {};  // Exit 7 last border
 	Borders_Rect[(int)EPress::Border_Menu_Main] = new RECT {};
@@ -926,7 +939,7 @@ void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_han
 		Redraw_Buttons_Menu_Context();
 
 	Border_Pressed = (EPress)index;
-	Handle_Border_Pressed();  // !!! Rename
+	Handle_Border_Pressed();
 	if (builder_handler == EUI_Builder_Handler::EBH_RM_Button)  // If RM Button
 		Draw_Buttons_Menu_Context();
 }
@@ -937,7 +950,7 @@ void AsUI_Builder::Handle_Border_Pressed()
 	{
 	case EPress::Border_Menu_Main:
 		Handle_Menu_Main();
-		if (Active_Map == EUser_Arrays::EUA_Quit_Button)
+		if (Active_Map == EUser_Arrays::EUA_Quit_Button || Active_Map == EUser_Arrays::EUA_Arrays_Count)
 			return;
 		Draw_Buttons_Menu_Sub();
 		Redraw_Buttons_Menu_Main();  // Redraw pressed button
@@ -949,7 +962,7 @@ void AsUI_Builder::Handle_Border_Pressed()
 		break;
 	case EPress::Border_Menu_Sub:
 		Handle_Menu_Sub();  // Change Border pressed State to User_Input | _Second | Button_Pages | Buttons_User_Input
-		Handle_Border_Pressed();
+		Handle_Border_Pressed();  // why this here?
 		break;
 	case EPress::Non_Bordered:
 		Handle_Non_Bordered();
@@ -1032,8 +1045,12 @@ void AsUI_Builder::Handle_Menu_Main()
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Sub()
 {
-	int i = 0;
-	RECT mouse_cord_destination {};
+	int i;
+	RECT mouse_cord_destination;
+
+	i = 0;
+	mouse_cord_destination = {};
+	Border_Pressed = EPress::Non_Bordered;
 
 	// 1.1. User Input Button Handler
 	if (IntersectRect(&mouse_cord_destination, Borders_Rect[(int)EPress::Mouse_Coordinate], &Borders_Rect[(int)EPress::Button_User_Input][0]) )
@@ -1149,7 +1166,22 @@ void AsUI_Builder::Handle_User_Input()
 			length = (int)wcslen(It_User_Map_Active->second->Title_Name_Key);
 			wcsncpy_s(url_content, length + 1, It_User_Map_Active->second->Title_Name_Key, length);
 			wcsncpy_s(url_content + wcslen(url_content), wcslen(AsConfig::Image_Format) + 1, AsConfig::Image_Format, wcslen(AsConfig::Image_Format) );
-			std::filesystem::rename(AsConfig::Image_Name_File, std::filesystem::path(AsConfig::Image_Folder) / url_content);
+			// !!! TEMP Need check title orphorgaphy and mine
+			wchar_t *ptr = 0;
+			ptr = url_content;
+			int index_problem = 0;
+
+			while (*(ptr++) != L'\0')  // while end?
+				if (*ptr == L':')  // must be array of prob chars
+				{
+					index_problem = (int)(ptr - url_content);
+					It_User_Map_Active->second->Title_Name_Key[index_problem] = L' ';
+					It_User_Map_Active->second->Title_Name_Num[index_problem] =  ' ';
+					*ptr = L' ';
+					break;
+				}
+			// !!! TEMP END
+			std::filesystem::rename(AsConfig::Image_Name_File, std::filesystem::path(AsConfig::Image_Folder) / url_content);  // that why we have problem here cant name with :
 		}
 	}
 	Border_Pressed = EPress::Button_User_Input_Second;
@@ -1394,7 +1426,7 @@ void AsUI_Builder::User_Map_Save(const char *file_path, std::map<wchar_t *, STit
 	unsigned short ch_i = 0;
 	unsigned long long numbers = 0;
 
-	std::ofstream outfile(file_path, std::ios::out | std::ios::binary);  // Создаем новые данные
+	std::ofstream outfile(file_path, std::ios::out | std::ios::binary);
 	if (!outfile)
 		return;
 

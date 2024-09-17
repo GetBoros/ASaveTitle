@@ -1,18 +1,43 @@
 #include "Examples.h"
 
-
 // AClient
-const int AClient::Data_Size = 6;
+unsigned long long AClient::Data_Size = 6;
 //------------------------------------------------------------------------------------------------------------
-AClient::AClient()
- : Buffer_To_Server(0), Address_Server {}, Socket_To_Server {}
+AClient::AClient(const unsigned long long *data_to_send, int len)
+ : Client_State(EClient_State::ECS_None), Buffer_To_Server(0), Socket_To_Server {}, Address_Server {}
 {
+	Client_State = EClient_State::ECS_Server_Buffers;  // first time check data correct
+
+	Data_Emplace(data_to_send, len);  // - Refactor
+	Client_Handler();
+
+}
+//------------------------------------------------------------------------------------------------------------
+void AClient::Client_Handler()
+{
+	if ( !(Client_State != EClient_State::ECS_Failure) )
+		return;
+
+	switch (Client_State)
+	{
+	case EClient_State::ECS_Server_Connect:
+		Connect_Server();
+		break;
+	case EClient_State::ECS_Server_Sending:
+		Send_To_Server();
+		return;
+	case EClient_State::ECS_Server_Buffers_Failed:
+	case EClient_State::ECS_Failure:
+		return;
+	}
+	Client_Handler();
 }
 //------------------------------------------------------------------------------------------------------------
 void AClient::Connect_Server()
 {
 	WSADATA wsocket_data;
 
+	Client_State = EClient_State::ECS_Failure;  // !!! refactoring to return this value, not now
 	if (WSAStartup(MAKEWORD(2, 2), &wsocket_data) )
 		return;
 	Socket_To_Server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -28,24 +53,13 @@ void AClient::Connect_Server()
 	Address_Server.sin_addr.s_addr = inet_addr("127.0.0.1");  // IP-адрес сервера
 	Address_Server.sin_port = htons(666);  // Порт сервера
 
-	if (connect(Socket_To_Server, (sockaddr*)&Address_Server, sizeof(Address_Server)) == SOCKET_ERROR)  // can`t connect server
+	if (connect(Socket_To_Server, (sockaddr *) &Address_Server, sizeof(Address_Server) ) == SOCKET_ERROR)  // can`t connect server
 	{
 		closesocket(Socket_To_Server);
 		WSACleanup();
 	}
-}
-//------------------------------------------------------------------------------------------------------------
-void AClient::Convert_Struct()
-{
-	unsigned long long *data_to_send = new unsigned long long[Data_Size];
-	Buffer_To_Server = new unsigned char[sizeof(unsigned long long) * Data_Size] {};
 
-	for (size_t i = 0; i < 5; ++i)
-		data_to_send[i] = 999999ULL;  // init data
-
-	memcpy(Buffer_To_Server, data_to_send, Data_Size * sizeof(unsigned long long) );  // cpy data to char *
-
-	delete[] data_to_send;
+	Client_State = EClient_State::ECS_Server_Sending;  // first time check data correct
 }
 //------------------------------------------------------------------------------------------------------------
 void AClient::Send_To_Server()
@@ -53,13 +67,26 @@ void AClient::Send_To_Server()
 	if (send(Socket_To_Server, (char*)&Data_Size, sizeof(Data_Size), 0) == SOCKET_ERROR)
 		AsConfig::Throw();
 
-	if (send(Socket_To_Server, (char *)Buffer_To_Server, sizeof(unsigned long long) * Data_Size, 0) == SOCKET_ERROR)
+	if (send(Socket_To_Server, (char *)Buffer_To_Server, sizeof(unsigned long long) * (int)Data_Size, 0) == SOCKET_ERROR)
 		AsConfig::Throw();
 
 	closesocket(Socket_To_Server);
 	WSACleanup();
 
 	delete[] Buffer_To_Server;
+}
+//------------------------------------------------------------------------------------------------------------
+void AClient::Data_Emplace(const unsigned long long *data_to_send, int len)
+{
+	if (!data_to_send != 0)
+		Client_State = EClient_State::ECS_Server_Buffers_Failed;
+	else
+	{
+		Data_Size = (unsigned long long)len;
+		Buffer_To_Server = new unsigned char[sizeof(unsigned long long) * len] {};
+		memcpy(Buffer_To_Server, data_to_send, len * sizeof(unsigned long long) );  // cpy data to char *
+		Client_State = EClient_State::ECS_Server_Connect;
+	}
 }
 //------------------------------------------------------------------------------------------------------------
 
@@ -271,16 +298,26 @@ void AsExamples::Display_Replace_S()
 //------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_Connect_Server()
 {
-	Client = new AClient();
+	//unsigned long long *send_to_serv = 0;  // Get from User Input
+	const int length = 3;
+	unsigned long long send_to_serv[length] {};
+	unsigned long long *send_to_serv_v = 0;
 
-	Client->Connect_Server();  // if can`t connect need return from this func and do nothing into a row
-	Client->Convert_Struct();
-	Client->Send_To_Server();
+	//send_to_serv[0] = 0ULL;
+	send_to_serv[0] = AsConfig::ULL_Max;
+	send_to_serv[1] = 999999ULL;
+	send_to_serv[2] = 888888ULL;
+
+	Client = new AClient(send_to_serv, length);  // temp
 
 	// TASKS
 	/*
-		- Connect to server
-		- Send to server
+	V	- Connect to server
+	V	- Send to server
+	V		- temp arg send ull *
+	X		- what if send 0?
+				- Who check, clien or server? think server will be good
+
 	*/
 
 	delete Client;
@@ -432,6 +469,11 @@ void AsExamples::Display_FFmpeg_Examples()
 
 // Restream || Effects ++ || yt-dlp Examples
 /*
+	// Download .m3u8 best quality
+		- ffmpeg -i "https://edge16-sof.live.mmcdn.com/live-edge/amlst:asianqueen93-sd-f42f6a4ffa525081b3f2e44f8a431e55a7591598194b871c412cbcbbac03263e_trns_h264/chunklist_w1877505185_b5128000_t64RlBTOjMwLjA=.m3u8" \
+		-c copy asianqueen93.mp4
+
+
 	// Get youtube url for ffmpeg
 		- yt-dlp -f best -g https://www.youtube.com/watch?v=rn4PSf_-J1s
 	// Get download video + audio from site useing manifest format .mpd or .m3u8
@@ -470,7 +512,7 @@ ffmpeg -i "https://manifest.googlevideo.com/api/manifest/" \
   -c:a aac -b:a 192k \
   -f flv "rtmp://b.rtmp.youtube.com/live2?backup=1/6qr3-2umk-tquf-9kjy-563h"
 
-  ffmpeg -i "https://video-weaver.vie02.hls.ttvnw.net/v1/playlist/CqMGIo_mYhKfjtfZHQi4FxidzrVBb1ny2xiBiRCHDtencN6IVyhg5X0cKRqqZnE1ExwbQQZwag7E4kWh6aq_Er8EenBSpVRdfPURRluTl2z35uKdGvz85KxqBKEffD_mdXDxz4pYpj7yjcoOJolUF-5TnBL4AgrHrsN9OHjELhucsZ3WeWXaKVIFpyEP4xmGHjuOuGcoUpilRIkwz1y0VMPk4JqM3RZ5drDK9SKe0vN5of5rgXd-hYPQ4KG9E3r-sKzlw0J_czTU0sdu4i5oJUCcvTZo7c651_HVPTJRxDLPHZITmaNVqbAX0-5OAHGvzOAbE-SbcGbVmhkANxy3tvtJqd_ifGN3XSUphuhAr_I6_cP_F6Cqc9P1VAWJvnIb7djWB7QCLR4wgIG-ZTHoivwZ5Y3t6e-0YoxfnaH0AkR_bFwCa1ZLlBA3x3dQFxn0ZJ9Hi5Sc414DL2HifI8VI-a4phoEcfdvE6ljcK_mxOFL2szgRLjA8drx0PAn5LTHeebyPudAZWeLML6sOzJ4oAVAEkdTUddnzpUvQXmThbd6ctY0GCV1EORpDnJZeUjrz4XDnowftg0JbySgFeLH3wmxRW3CFEE-EacJsLPxgEV1Fw5wuLiXwI_F7PecB1RK0xCqOiUawuWxjQ9Z5UhPYzZFkY2UV4PeXKXXeGS-E0Qy2Cm7na35DD2DQBLjG_PZboPf1Q-eLmm0vCTY3Jg0Zsqozt0ogKeNbvwZ4GqmNmSXg0sqOp-YLhlTQ0Kr37ZRFB0t_EfI9-xehWGOYIF8B8OQa7tFjSnuehN5SZAY_Avi-piygj097ptj8pr-eDLgRMxk4kcNz3RvCcBKe7BkVhyXDTiAlOGwutJspVppPGbBJuraz5jZ1Z24axfluOtrgXgWgcpX0PQZYF5EYQblRFFHKOllQ4Wu8Z9WdJULZl5XFNRbWG59qjK7H4nBVETc6OspM4hKUBt5xyWo54l8W8qpgxwcEy5XRNUJ_so7fHpE9DGmOVQYsF9YNtq-f0jNh_8Jkro8fon4B0BGWQEGe6ijvJewF48Mk8hkl_1jwEybtJnOoR4aDNN6qUJwUaTpLqQaJyABKglldS13ZXN0LTIwrgo.m3u8" \
+  ffmpeg -i "https://video-weaver.vie02.hls.ttvnw.net/v1/playlist/CoQHD1eoI2W4Sq6FuLMojkcorAugp-lPwT2_2cgLogvMndI_hGv0ZgF6sMQmvSuaEfF996AHvjY23KA-yHmBNUuQ4Oes1RkiMUOW_K0Q6uWqnvredafT1o0yBImHG0CcL3PjqSovCtKEHX1IZSaCENHWIVGm-vct5H0AtVYrAbFrcdhRZML_HS9tySnpbrOO-0t5VVx0MJitDlgqOnBBUyCRKTV7ZawzDhlvRR1EgcMgglHTyvwV9ctRNmMHo4s3RH4ksKozhtTbYLlpMzFaEiTKT7wnDJDge-GobImZRw0nXuNg6UuA6uKytm7KJZf_IsuGxoa1C-6Ilor94ZBR8Fud9ynJm-UoLGDJWvkkJzB66HIPAZ5XbR0NTCjlPzpGl_MZW28dA3ZqdrZ-TgiUlRGD7xNu4tIfZ-7XXW-0PMTfs0_arnYhTspOpumR-5LfmyGAmjjChJ9AHwHp1WGBDayauR1QuK7CwU7BTlQb3XGSQLZM1RQ5Kfxm4ZLkACpUrlTlry6YfD17nTSgS4zgb39qV7Ey4I2EM3_GtwwNlQCeh0-mzZT1uLJAZsn68XRr5UoZartJDF6r9Fz-BOyE0IhIzbCg8IMN0mf0gDYVgBbk6H_RuMaix84cEdasnQEyBxCzZuo3Lrz2gILqftdmnpDE6EgkP94yqZPJi0F-C1PWvjp4ckkltess6_gKohX6gpyh7AIYXj1iRq8dQsPWq6lTvGGNjOH8UYW6gOdvyMyjORKx8Kjk6pE2vSMTWcVDdy3dlBuPvh_m2RFh0lbjvqGUdReOZ7uRgUyB33ql2XAVQlYixyMhJwBIotdJ_EtMtWkGOMUHu8kx95DVuI4GPtB3maSrth3IQ7FPuqv_6KNdY1JWizpNVb0-wicmOPXn-zVibf85rBdcN2Z9qgYY_i10h4c478WTRrqpdeICokhKWeMAuyC2xKLANPyOqAzKcy-HXdDbpDXvH0dOsQgOtW7mgIBePOgNverfTNRkSX-xVAUdVD5UJvgLTVOiibMfqTZFa6dKnXo8uvOjscnYtsKIKjEsIxIaRUOZKEgI2fEm4PT04B8jz7qIXSpXjpZucNQ2S4rZ9GCPEl9WQ4kBq-VajLlDCre3hQ94KFVNmyxXeA3kC3DdaZ4f1DrstFC00rJbeQ2nIBaJVUt33oEqcpyksdvaLQuFWM9M7jfsWy41KUfqyXezGgxpfMn8vldCEqmhjbwgASoJZXUtd2VzdC0yMLAK.m3u8" \
   -c:v libx264   -crf 23 -preset fast   -c:a aac -b:a 192k \
   -f flv "rtmp://b.rtmp.youtube.com/live2?backup=1/6qr3-2umk-tquf-9kjy-563h"
 
@@ -484,8 +526,22 @@ ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -cr
 
 ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -crf 0 -threads 0 -f flv "rtmp://server.address/live/6qr3-2umk-tquf-9kjy-563h"
 
-
+ffmpeg  -framerate 30 -f gdigrab -i :1 -f pulse -i default -c:v libx264 -s 1920x1080 -r 60 -b:v 5000k  -crf 10 -vf format=yuv420p -c:a aac -b:a 128k -f flv rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h
 https://www.twitch.tv/AlinaRinRin
 
+// Twitch Stream
+ffmpeg -f gdigrab -framerate 30 -video_size 1440x900 -i desktop -vf "format=yuv420p" -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k -f flv rtmp://live.twitch.tv/app/live_263586276_G3Ev7Xqhd1et7JuDU5NA9xJQqmc7do
 
+ffmpeg -f gdigrab -framerate 30 -video_size 1440x900 -i desktop -vf "format=yuv420p" -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k -f flv rtmp://live.twitch.tv/app/live_263586276_6J5KQTRlyIKNT4Ef1cONmv62Ot0FtX
+
+*/
+
+// AUDIO
+/*
+	- atempo -af "asetrate=44100*1.2, atempo=1/1.2"  // Speed
+	- asetrate -af "asetrate=44100*1.2, atempo=1/1.2"  // 
+	- atempo -af "atempo=1.5"
+	- acompressor -af "acompressor=threshold=-20dB:ratio=4:attack=200:release=1000"
+
+	- equalizer -af "equalizer=f=1000:t=q:w=1:g=-10, aecho=0.8:0.88:60:0.4"
 */

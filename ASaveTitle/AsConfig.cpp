@@ -4,12 +4,14 @@
 const char AsConfig::Dictionary_Main_Folder[] = "Map.bin";
 const char AsConfig::Image_Name_File[] = "TemporaryName.png";
 const char AsConfig::Path_Saves_Folder[] = "Data/";
-const char AsConfig::Pattern_Default[] = "init_load = <h1>\ninit_load_line = 100\nurl_example = cache.dreamerscast.com/releases/\ntitle_bgn = laquo;\ntitle_end = &raquo\ntitle_num_bgn = Серии: [\ntitle_num_end =  \nimage_bgn = <img src='\nimage_end = ' width\n";
+const char AsConfig::Pattern_Default[] = "init_load = <h1>\ninit_load_line = 100\nurl_example = cache.dreamerscast.com/releases/\ntitle_bgn = laquo;\ntitle_end = &raquo\ntitle_num_bgn = : [\ntitle_num_end =  \nimage_bgn = <img src='\nimage_end = ' width\n";
+const char AsConfig::Pattern_Default_Anime_Bit[] = "init_load = <h1>\ninit_load_line = 100\nurl_example = anime-bit.ru/\ntitle_bgn = laquo;\ntitle_end = &raquo\ntitle_num_bgn = : [\ntitle_num_end =  \nimage_bgn = <img src='\nimage_end = ' width\n";
 const char *AsConfig::Settings[] = { "Standart Background = ;", "Coordinates = ;", "Something Else = ;" };
 const char *AsConfig::Folders_Save[] = { "Watching.bin", "Library.bin", "Paused.bin", "Wishlist.bin" };
 const char *AsConfig::Saved_Path[] = { "Data/Watching.bin", "Data/Library.bin", "Data/Paused.bin", "Data/Wishlist.bin" };
 const char *AsConfig::Temporary_File_Name[] = {"Data/1.bin", "Data/2.bin", "Data/3.bin", "Data/4.bin", "Data/5.bin", "Data/6.bin", "Data/7.bin", "Data/8.bin", };
 
+const wchar_t AsConfig::Patterns_Info[] = L"Pattern was added to Data folder";
 const wchar_t AsConfig::Pattern_Default_Bin[] = L"Url.bin";
 const wchar_t AsConfig::Pattern_Default_TXT[] = L"/PatternFindConfig.txt";
 const wchar_t AsConfig::Main_Image_Folder[] = L"Main_Image.png";

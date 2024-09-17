@@ -86,14 +86,15 @@ void ACurl_Client::Add_Pattern_File()
 {
 	std::filesystem::create_directories(*Content_W);
 	*Content_W += AsConfig::Pattern_Default_TXT;
+
 	std::ofstream write_file(*Content_W, std::ios::binary);
 	if (!write_file)
 		return;
 
-	write_file.write(AsConfig::Pattern_Default, strlen(AsConfig::Pattern_Default) );
+	write_file.write(AsConfig::Pattern_Default_Anime_Bit, strlen(AsConfig::Pattern_Default_Anime_Bit) );
 	write_file.close();
-
-	Title_Result[0] = '\0';  // !!! Need to say user what need format .txt to set patterns
+	
+	wcsncpy_s(Title_Result, wcslen(AsConfig::Patterns_Info) + 1, AsConfig::Patterns_Info, wcslen(AsConfig::Patterns_Info) );  // Say user what need format .txt to set patterns
 }
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::Get_ID()
@@ -923,7 +924,6 @@ void AsUI_Builder::Handle_Button_Bordered(const EUI_Builder_Handler &builder_han
 	int index = 0;
 	RECT mouse_cord_destination {};
 
-	
 	Borders_Rect[(int)EPress::Mouse_Coordinate]->left = x - 1;
 	Borders_Rect[(int)EPress::Mouse_Coordinate]->top = y;
 	Borders_Rect[(int)EPress::Mouse_Coordinate]->right = x;
@@ -1129,6 +1129,7 @@ void AsUI_Builder::Handle_Menu_Context()
 		map->insert(std::make_pair(It_User_Map_Active->first, std::move(It_User_Map_Active->second) ) );
 		User_Maps[(int)Active_Map]->erase(It_User_Map_Active->first);  // Errase from map
 	}
+	Buttons[(int)EActive_Button::EAB_Menu_Sub_Prev] = 0;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Non_Bordered()
@@ -1149,6 +1150,7 @@ void AsUI_Builder::Handle_User_Input()
 {
 	int length = 0;
 	wchar_t *url_content = 0;
+	wchar_t *ptr = 0;
 
 	// 1.0. If it`s url use ACurl_Client to Get ID_Content, Get Title + Num + Season
 	if (wcsstr(User_Input, AsConfig::Protocols[0]) != 0 || wcsstr(User_Input, AsConfig::Protocols[1]) != 0)
@@ -1157,33 +1159,32 @@ void AsUI_Builder::Handle_User_Input()
 		length = 128;  // !!! TEMP need to right
 		url_content = new wchar_t[length]{};  // need send a lot of memorry to get long title names
 		wcsncpy_s(url_content, (size_t)(wcslen(User_Input) + 1), User_Input, (int)wcslen(User_Input) );
-		ACurl_Client client_url(EProgram::ASaver, url_content);  // Get content from url
 
-		if (*url_content != L'\0')
+		// !!! Refactoring some day
+		ACurl_Client client_url(EProgram::ASaver, url_content);  // !!! || Get content from url
+		if (wcsstr(url_content, L"Pattern") )  // !!! Rework with ACurl
+		{
+			wcsncpy_s(User_Input, wcslen(url_content) + 1, url_content, wcslen(url_content) );
+			Draw_Button_User_Input();
+			User_Input[0] = L'\0';
+			Border_Pressed = EPress::Non_Bordered;
+			delete[] url_content;
+			return;
+		}
+		// !!! Refactoring END
+
+		if (*url_content != L'\0')  // !!! if pattern added don`t need go here
 		{// Covert data and title and Save image
+
 			Handle_Title_Info(url_content);
 
 			length = (int)wcslen(It_User_Map_Active->second->Title_Name_Key);
 			wcsncpy_s(url_content, length + 1, It_User_Map_Active->second->Title_Name_Key, length);
 			wcsncpy_s(url_content + wcslen(url_content), wcslen(AsConfig::Image_Format) + 1, AsConfig::Image_Format, wcslen(AsConfig::Image_Format) );
-			// !!! TEMP Need check title orphorgaphy and mine
-			wchar_t *ptr = 0;
-			ptr = url_content;
-			int index_problem = 0;
-
-			while (*(ptr++) != L'\0')  // while end?
-				if (*ptr == L':')  // must be array of prob chars
-				{
-					index_problem = (int)(ptr - url_content);
-					It_User_Map_Active->second->Title_Name_Key[index_problem] = L' ';
-					It_User_Map_Active->second->Title_Name_Num[index_problem] =  ' ';
-					*ptr = L' ';
-					break;
-				}
-			// !!! TEMP END
 			std::filesystem::rename(AsConfig::Image_Name_File, std::filesystem::path(AsConfig::Image_Folder) / url_content);  // that why we have problem here cant name with :
 		}
 	}
+
 	Border_Pressed = EPress::Button_User_Input_Second;
 	delete[] url_content;
 }
@@ -1213,9 +1214,9 @@ void AsUI_Builder::Handle_Title_Info(wchar_t *ptr)
 	}
 
 	// 1.2. Get Name Num And Name Key
-	while (*(++ptr) != L'\0')
-		*ptr = std::towlower(*ptr);
+	Handle_Title_Format(title_name_num);
 	It_User_Map_Active = User_Maps[(int)Active_Map]->find(title_name_num);
+	
 	if (!(It_User_Map_Active != User_Maps[(int)Active_Map]->end() ) )
 	{// If doesn`t exist create and add to active map
 		data = new STitle_Info();
@@ -1247,7 +1248,7 @@ void AsUI_Builder::Handle_Title_Info(wchar_t *ptr)
 	else
 	{
 		It_User_Map_Active->second->Title_Num = title_num;
-		const wchar_t *season_str = AsConfig::Season_Case_Up[std::stoi(ptr + 1, 0, 10) - 1];
+		const wchar_t *season_str = AsConfig::Season_Case_Up[std::stoi(ptr + 1 + wcslen(title_name_num), 0, 10) - 1];
 		if (title_season == 0)
 		{// Not work from 9 to 10 or 99 to 100 for now
 
@@ -1333,6 +1334,18 @@ void AsUI_Builder::Handle_Title_Name_Num(const wchar_t *key, wchar_t *num, const
 	wcsncpy_s(result + wcslen(result), wcslen(num) + 1, num, wcslen(num) );
 }
 //------------------------------------------------------------------------------------------------------------
+void AsUI_Builder::Handle_Title_Format(wchar_t *&title)
+{
+	wchar_t *ptr = title;
+	int length = 0;
+
+	while (*(ptr++) != L'\0')
+		if (*ptr == L':')  // must be array of prob chars
+			*ptr = L' ';
+		else
+			*ptr = std::towlower(*ptr);
+}
+//------------------------------------------------------------------------------------------------------------  1850 - 1555 CURL
 void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map)
 {
 	bool is_add_to_user_array = false;
@@ -1552,7 +1565,7 @@ unsigned long long  AsUI_Builder::User_Map_Convert_Out(unsigned long long &ch)
 
 	return 0LL;  // Bad Reserved 99
 }
-//------------------------------------------------------------------------------------------------------------  1850 - 1525 CURL
+//------------------------------------------------------------------------------------------------------------
 
 
 

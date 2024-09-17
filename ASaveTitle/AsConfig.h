@@ -15,6 +15,7 @@ public:
 	static const char Image_Name_File[];
 	static const char Path_Saves_Folder[];
 	static const char Pattern_Default[];
+	static const char Pattern_Default_Anime_Bit[];
 	static const char *Settings[];
 	static const char *Folders_Save[];
 	static const char *Saved_Path[];
@@ -24,6 +25,7 @@ public:
 	static constexpr int Menu_Main_Button_Count = 6;
 	static constexpr int Context_Button_Count = Menu_Main_Button_Count - 1;
 
+	static const wchar_t Patterns_Info[];
 	static const wchar_t Pattern_Default_Bin[];
 	static const wchar_t Pattern_Default_TXT[];
 	static const wchar_t Main_Image_Folder[];

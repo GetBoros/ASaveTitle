@@ -195,12 +195,14 @@ private:
 	void Handle_Title_Info_Beta(wchar_t *user_input, STitle_Info *&data);  // !!! Refactoring some day || Do just one universal
 	void Handle_Title_Season(wchar_t *ptr, int &result, int &season_length);
 	void Handle_Title_Name_Num(const wchar_t *key, wchar_t *num, const wchar_t *season, wchar_t *&result);
+	void Handle_Title_Format(wchar_t*& title);  // !!! Need add to config not valid chars, and handle here
 
 	void User_Map_Load(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  //Load from file || !!! Can be refactored
 	void User_Map_Save(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  // Save to file map
 	void User_Map_Free(std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  // Free All memory
 	unsigned short User_Map_Convert_In(unsigned short ch);  // Convert title, need to save to file
 	unsigned long long User_Map_Convert_Out(unsigned long long &ch);  // Convert back and get Title
+
 
 	EUser_Arrays Active_Map;
 	EPress Border_Pressed;
@@ -974,11 +976,25 @@ V		- Need save image TemporaryName.png rename and save to Pictures/Аватар 
 /*
 V	- Bug, Double on click on User input, non handled
 */
-// TASKS --- 17.09.2024 --- Current ---
+// TASKS --- 17.09.2024 ---
 /*
-X	- rework Get_ID()  // ACurl
-V	- Bug, Double on click on User input, non handled
-X	- Bug, Added the same title...
+V	- Bug, Added the same title... ony with incorrent chars
+V	- Bug, LMB after context menu on title
+V		- After erase need change prev button
+
+X	- Refactoring
+V	- Re-Create Patterns with site
+		- Base site anime-bit.ru
+V	- While enter first time to site need say it to user input
+V		- Third time click at User input, check url again
+V	- Bug, don`t transfer to second array
+V		- Prev button was not zero
+*/
+// TASKS --- 18.09.2024 --- Current ---
+/*
+
+
+
 */
 
 // MAIN TASKS
@@ -1075,7 +1091,9 @@ V	- после удаления первого и последнего поль 
 V	- Bug, out of bounds | Fixed
 V	- Bug : while call context menu and don`t click on it, error
 V	- Bug, Double on click on User input, non handled
-
+V	- Bug, Added the same title... ony with incorrent chars
+V	- Bug, LMB after context menu on title
+V		- After erase need change prev button
 */
 // New Phase
 /*

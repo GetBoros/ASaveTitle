@@ -91,6 +91,112 @@ void AClient::Data_Emplace(const unsigned long long *data_to_send, int len)
 //------------------------------------------------------------------------------------------------------------
 
 
+
+// AFFmpeg_Task
+AFFmpeg_Task::~AFFmpeg_Task()
+{
+	av_frame_free(&Frame);
+	av_packet_free(&Packet);
+	avcodec_free_context(&Decoder_Ctx);
+	avcodec_free_context(&Encoder_Ctx);
+	avformat_close_input(&Format_Context_Input);
+	avformat_free_context(Format_Context_Output);
+}
+//------------------------------------------------------------------------------------------------------------
+AFFmpeg_Task::AFFmpeg_Task(char *file_name)
+ : File_Name(file_name)
+{
+
+}
+//------------------------------------------------------------------------------------------------------------
+void AFFmpeg_Task::Init()
+{
+	//unsigned int stream_num = 0;
+	//AVStream* input_stream = 0, *output_stream = 0;
+	//AVDictionary* opts = 0;
+	//const AVCodec* decoder = 0, *encoder = 0;  // Изменено на const AVCodec
+
+	//av_dict_set(&opts, "bitrate", "2500k", 0);  // Set options
+
+
+	// 1.0. Init Inputs contexts and get best stream
+	if (avformat_open_input(&Format_Context_Input, File_Name, 0, 0) != 0)  // ffmpeg -i 1.mp4
+		return;
+
+	//if (avformat_find_stream_info(Format_Context_Input, 0) < 0)  // Info about stream || how many stream in mp4
+	//	return;
+
+	//stream_num = av_find_best_stream(Format_Context_Input, AVMEDIA_TYPE_VIDEO, -1, -1, &decoder, 0);  // Get best video stream
+	//if (stream_num < 0)
+	//	return;
+	//input_stream = Format_Context_Input->streams[stream_num];  // set best quality stream
+
+	//// 1.1. Decoder Context
+	//Decoder_Ctx = avcodec_alloc_context3(decoder);
+	//avcodec_parameters_to_context(Decoder_Ctx, input_stream->codecpar);  // set decoder context || try init Decoder_Ctx
+	//avcodec_open2(Decoder_Ctx, decoder, 0);  // Always call before using avcodec_receive_frame ref || if false couldn`t open codec
+
+	// 2.0. output settings | encoder
+	//avformat_alloc_output_context2(&Format_Context_Output, 0, 0, "out.mp4");  // init output_format_context, set output name
+	//if (!Format_Context_Output)
+	//	return;
+
+	//encoder = avcodec_find_encoder(AV_CODEC_ID_H264);  // set encoder .264
+	//Encoder_Ctx = avcodec_alloc_context3(encoder);  // init encoder context
+
+	//Encoder_Ctx->height = Decoder_Ctx->height;
+	//Encoder_Ctx->width = Decoder_Ctx->width;
+	//Encoder_Ctx->pix_fmt = encoder->pix_fmts[0];
+	//Encoder_Ctx->time_base = av_make_q(1, 30);  // if input.mp4 30 fps set 1,30
+	//Encoder_Ctx->bit_rate = 2500000;  // set bitrate
+	//Encoder_Ctx->pix_fmt = AV_PIX_FMT_YUV420P;  // Common format
+
+	//if (avcodec_open2(Encoder_Ctx, encoder, 0) < 0)  // Always call before using avcodec_receive_frame ref || init decoder context, prior
+	//	return;
+}
+//------------------------------------------------------------------------------------------------------------
+void AFFmpeg_Task::Show_Info()
+{
+	struct stat stat_buf;
+
+
+	if (avformat_find_stream_info(Format_Context_Input, 0) < 0)
+		avformat_close_input(&Format_Context_Input);
+	av_dump_format(Format_Context_Input, 0, File_Name, 0);
+
+	int rc = stat(File_Name, &stat_buf);
+	long temp = stat_buf.st_size;  // file size
+
+	const char *format_name = Format_Context_Input->iformat->long_name;
+	double duration_in_seconds = Format_Context_Input->duration / (double)AV_TIME_BASE;
+	int bit_rate = (int)Format_Context_Input->bit_rate / 1000;  // kbit/s if / 1000
+
+	// Разрешение видео и кодеки
+	for (unsigned int i = 0; i < Format_Context_Input->nb_streams; i++)
+	{
+		AVStream* stream = Format_Context_Input->streams[i];
+		AVCodecParameters* codecpar = stream->codecpar;
+
+		if (codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+		{
+			int width = codecpar->width;
+			int height = codecpar->height;
+
+			const AVCodec* codec = avcodec_find_decoder(codecpar->codec_id);
+			const char *name = codec->long_name;
+		}
+		else if (codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
+		{
+			const AVCodec* codec = avcodec_find_decoder(codecpar->codec_id);
+			const char* name = codec->long_name;
+		}
+	}
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
 // AsExamples
 AsExamples::AsExamples()
  : Client(0)
@@ -148,6 +254,246 @@ AsExamples::AsExamples(const EShow_Preview show_preview)
 void AsExamples::Show_Case(EShow_Preview example_preview)
 {
 
+}
+//------------------------------------------------------------------------------------------------------------
+void AsExamples::Change_Wormat(wchar_t* video_name)
+{
+	char* ptr = nullptr;
+	unsigned int stream_num = 0;
+	AVFormatContext* input_format_context = nullptr;
+	AVFormatContext* output_format_context = nullptr;
+	AVStream* input_stream = nullptr, * output_stream = nullptr;
+	AVDictionary* opts = nullptr;
+	AVCodecContext* decoder_ctx = nullptr, * encoder_ctx = nullptr;
+	const AVCodec* decoder = nullptr, * encoder = nullptr;
+	AVPacket* packet = nullptr;
+	AVFrame* frame = nullptr;
+
+	AsTools::Format_Wide_Char_To_Char(video_name, ptr);  // Convert to char
+
+	av_dict_set(&opts, "bitrate", "2500k", 0);  // Set options
+
+	// 1.0. Input context
+	if (avformat_open_input(&input_format_context, ptr, 0, 0) != 0)
+		return;
+
+	if (avformat_find_stream_info(input_format_context, 0) < 0)
+		return;
+
+	stream_num = av_find_best_stream(input_format_context, AVMEDIA_TYPE_VIDEO, -1, -1, &decoder, 0);
+	if (stream_num < 0)
+		return;
+
+	// 1.1. Decoder Context
+	input_stream = input_format_context->streams[stream_num];
+
+	decoder_ctx = avcodec_alloc_context3(decoder);
+	avcodec_parameters_to_context(decoder_ctx, input_stream->codecpar);
+	avcodec_open2(decoder_ctx, decoder, 0);
+
+	// 2.0. Output settings | encoder
+	avformat_alloc_output_context2(&output_format_context, 0, 0, "out.mp4");
+	if (!output_format_context)
+		return;
+
+	encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
+	encoder_ctx = avcodec_alloc_context3(encoder);
+
+	encoder_ctx->height = decoder_ctx->height;
+	encoder_ctx->width = decoder_ctx->width;
+	encoder_ctx->pix_fmt = encoder->pix_fmts[0];
+
+	// Use the input stream time_base
+	encoder_ctx->time_base = input_stream->time_base;  // Set time_base from input stream
+
+	encoder_ctx->bit_rate = 2500000;
+
+	if (avcodec_open2(encoder_ctx, encoder, 0) < 0)
+		return;
+
+	// 2.1. Create output stream
+	output_stream = avformat_new_stream(output_format_context, encoder);
+	avcodec_parameters_from_context(output_stream->codecpar, encoder_ctx);
+
+	// 2.2. Open output file
+	if (!(output_format_context->oformat->flags & AVFMT_NOFILE))
+		if (avio_open(&output_format_context->pb, "out.mp4", AVIO_FLAG_WRITE) < 0)
+			return;
+
+	avformat_write_header(output_format_context, &opts);
+
+	packet = av_packet_alloc();
+	frame = av_frame_alloc();
+
+	while (av_read_frame(input_format_context, packet) >= 0)
+	{
+		if (packet->stream_index == stream_num)
+		{
+			if (avcodec_send_packet(decoder_ctx, packet) >= 0)
+			{
+				while (avcodec_receive_frame(decoder_ctx, frame) >= 0)
+				{
+					if (avcodec_send_frame(encoder_ctx, frame) >= 0)
+					{
+						while (avcodec_receive_packet(encoder_ctx, packet) >= 0)
+						{
+							av_interleaved_write_frame(output_format_context, packet);
+							av_packet_unref(packet);
+						}
+					}
+				}
+			}
+		}
+		av_packet_unref(packet);
+	}
+
+	av_write_trailer(output_format_context);
+
+	av_frame_free(&frame);
+	av_packet_free(&packet);
+	avcodec_free_context(&decoder_ctx);
+	avcodec_free_context(&encoder_ctx);
+	avformat_close_input(&input_format_context);
+	avformat_free_context(output_format_context);
+}
+//------------------------------------------------------------------------------------------------------------
+void AsExamples::Open_File(char *file_name)
+{
+	unsigned int stream_num = 0;
+	AVFormatContext *input_format_context = 0;  // data struct stored info about media info | Streams else
+	AVFormatContext *output_format_context = 0;
+	AVStream *input_stream = 0, *output_stream = 0;
+	AVDictionary *opts = 0;
+	const AVCodec *decoder = 0, *encoder = 0;  // Изменено на const AVCodec
+	AVCodecContext *decoder_ctx = 0, *encoder_ctx = 0;
+	AVPacket *packet = 0;
+	AVFrame *frame = 0;
+
+	av_dict_set(&opts, "bitrate", "2500k", 0);  // Set options
+
+	// 1.0. Init Inputs contexts and get best stream
+	if (avformat_open_input(&input_format_context, file_name, 0, 0) != 0)  // ffmpeg -i 1.mp4
+		return;
+
+	if (avformat_find_stream_info(input_format_context, 0) < 0)  // Info about stream || how many stream in mp4
+		return;
+
+	stream_num = av_find_best_stream(input_format_context, AVMEDIA_TYPE_VIDEO, -1, -1, &decoder, 0);  // Get best video stream
+	if (stream_num < 0)
+		return;
+	input_stream = input_format_context->streams[stream_num];  // set best quality stream
+
+	// 1.1. Decoder Context
+	decoder_ctx = avcodec_alloc_context3(decoder);
+	avcodec_parameters_to_context(decoder_ctx, input_stream->codecpar);  // set decoder context || try init decoder_ctx
+	avcodec_open2(decoder_ctx, decoder, 0);  // Always call before using avcodec_receive_frame ref || if false couldn`t open codec
+
+	// 2.0. output settings | encoder
+	avformat_alloc_output_context2(&output_format_context, 0, 0, "out.mp4");  // init output_format_context, set output name
+	if (!output_format_context)
+		return;
+
+	encoder = avcodec_find_encoder(AV_CODEC_ID_H264);  // set encoder .264
+	encoder_ctx = avcodec_alloc_context3(encoder);  // init encoder context
+
+	encoder_ctx->height = decoder_ctx->height;
+	encoder_ctx->width = decoder_ctx->width;
+	encoder_ctx->pix_fmt = encoder->pix_fmts[0];
+	encoder_ctx->time_base = av_make_q(1, 30);  // if input.mp4 30 fps set 1,30
+	encoder_ctx->time_base = av_make_q(input_stream->time_base.num, input_stream->time_base.den);  // if input.mp4 30 fps set 1,30
+	encoder_ctx->bit_rate = 5000000;  // set bitrate
+	av_opt_set(encoder_ctx->priv_data, "crf", "23", 0);  // Adjust CRF for quality
+	encoder_ctx->pix_fmt = AV_PIX_FMT_YUV420P;  // Common format
+
+	if (avcodec_open2(encoder_ctx, encoder, 0) < 0)  // Always call before using avcodec_receive_frame ref || init decoder context, prior
+		return;
+
+	// 2.1. Create output stream
+	output_stream = avformat_new_stream(output_format_context, encoder);
+	avcodec_parameters_from_context(output_stream->codecpar, encoder_ctx);
+
+	// 2.2. Open output file
+	if ( !(output_format_context->oformat->flags & AVFMT_NOFILE) )
+		if (avio_open( &output_format_context->pb, "out.mp4", AVIO_FLAG_WRITE) < 0)
+			return;
+
+	avformat_write_header(output_format_context, &opts);  // write header
+
+	packet = av_packet_alloc();  // data, need for decoder?
+	frame = av_frame_alloc();  // stored data in frame
+
+	while (av_read_frame(input_format_context, packet) >= 0)  // while paket != 0, useing context to read frame from packet
+	{
+		if (packet->stream_index == stream_num)  // choose best stream quality
+			if (avcodec_send_packet(decoder_ctx, packet) >= 0 && avcodec_receive_frame(decoder_ctx, frame) >= 0)  // Decoding frame
+				if (avcodec_send_frame(encoder_ctx, frame) >= 0)  // encoding frame
+					while (avcodec_receive_packet(encoder_ctx, packet) >= 0)
+					{
+						av_interleaved_write_frame(output_format_context, packet);  // set packet to out context
+						av_packet_unref(packet);  // !!! ???
+					}
+		av_packet_unref(packet);
+	}
+
+	av_write_trailer(output_format_context);  // end writing
+
+	// Free memory
+	av_frame_free(&frame);
+	av_packet_free(&packet);
+	avcodec_free_context(&decoder_ctx);
+	avcodec_free_context(&encoder_ctx);
+	avformat_close_input(&input_format_context);
+	avformat_free_context(output_format_context);
+}
+//------------------------------------------------------------------------------------------------------------
+void AsExamples::Temp(wchar_t *video_name)
+{
+	char *ptr = 0;
+	unsigned int i = 0;
+	unsigned int stream_num = 0;
+	AVCodecID codec_type = AV_CODEC_ID_NONE;
+	AVFormatContext *format_context;
+	AVStream *stream = 0;
+	AVDictionary *opts = 0;  // Need init, after apply to video name in my case
+
+	AsTools::Format_Wide_Char_To_Char(video_name, ptr);  // Convert to char
+	
+	// Examples
+	av_dict_set(&opts, "bitrate", "2500k", 0);  // Set Options
+
+	// 1.0. 
+	if ( !(format_context = avformat_alloc_context() ) )  // Get || Alloc Context?
+		return;
+
+	// 1.1. 
+	if (avformat_open_input(&format_context, ptr, 0, 0) != 0)  // Set to context???
+		return;
+
+	// 1.2. Settings
+	avformat_alloc_output_context2(&format_context, 0, 0, "out.mp4");  // Get || Init? || output Context
+	av_opt_set_dict(format_context, &opts);  // Apply options to context? || set dictionary data
+	av_dict_free(&opts);  // free dictionary data
+
+	// Free mem
+	avformat_free_context(format_context);
+
+	return;
+
+	stream_num = format_context->nb_streams;
+	for (i = 0; i < stream_num; i++)
+	{
+		stream = format_context->streams[i];  // check all streams
+		codec_type = stream->codecpar->codec_id;  // Get Codec id(name, type) ENUM
+
+		const AVCodec* curr_codec = avcodec_find_decoder(codec_type);  //
+		if (!curr_codec)
+			return;
+
+		if (curr_codec->type == AVMEDIA_TYPE_VIDEO)  // If type Vide do what we want || Can do the same with audio
+			return;
+	}
+
+	delete[] ptr;
 }
 //------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_Path_Info(std::filesystem::path &path)
@@ -357,7 +703,7 @@ void AsExamples::Display_FFmpeg_Commands()
 	- Temp
 	
 	- Screen_Shots
-		- ffmpeg -i inFile.mp4 -ss 00:01 -vframes 1 -q:v 1 -vf "scale=1920:1080" outfile.png  // Get Screen
+		- ffmpeg -i inFile.mp4 -ss 00:01 -frames:v 1 -q:v 1 -vf "scale=1920:1080" outfile.png  // Get Screen
 	
 	- Video:
 			- Cut Video:  //  // Cut video from ss to...
@@ -434,14 +780,15 @@ void AsExamples::Display_FFmpeg_Commands()
 //------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_FFmpeg_Examples()
 {
-	const char *file_name = "Temp.mp4";
+	const char *file_name = "1.mp4";
 	unsigned int i = 0;
 	unsigned int stream_num = 0;
 	AVCodecID codec_type = AV_CODEC_ID_NONE;
 	AVFormatContext *format_context;
 	AVStream *stream = 0;
+	AVDictionary *opts = 0;
 
-	if (!(format_context = avformat_alloc_context() ) )
+	if ( !(format_context = avformat_alloc_context() ) )
 		return;
 	
 	if (avformat_open_input(&format_context, file_name, 0, 0) != 0)
@@ -459,18 +806,18 @@ void AsExamples::Display_FFmpeg_Examples()
 		
 		if (curr_codec->type == AVMEDIA_TYPE_VIDEO)  // If type Vide do what we want || Can do the same with audio
 			return;
-
-		int yy = 0;
 	}
-
-
+}
+//------------------------------------------------------------------------------------------------------------
+void AsExamples::Ffmpeg_Open_File()
+{
 }
 //------------------------------------------------------------------------------------------------------------
 
 // Restream || Effects ++ || yt-dlp Examples
 /*
 	// Download .m3u8 best quality
-		- ffmpeg -i "https://edge16-sof.live.mmcdn.com/live-edge/amlst:asianqueen93-sd-f42f6a4ffa525081b3f2e44f8a431e55a7591598194b871c412cbcbbac03263e_trns_h264/chunklist_w1877505185_b5128000_t64RlBTOjMwLjA=.m3u8" \
+		- ffmpeg -i "https://edge4-hel.live.mmcdn.com/live-edge/amlst:asianqueen93-sd-06676b964caecc82a68c1ae84c0e1ed0a5e93a39c200a6a11408a34307384192_trns_h264/chunklist_w2008446981_b5128000_t64RlBTOjMwLjA=.m3u8" \
 		-c copy asianqueen93.mp4
 
 
@@ -515,6 +862,10 @@ ffmpeg -i "https://manifest.googlevideo.com/api/manifest/" \
   ffmpeg -i "https://video-weaver.vie02.hls.ttvnw.net/v1/playlist/CoQHD1eoI2W4Sq6FuLMojkcorAugp-lPwT2_2cgLogvMndI_hGv0ZgF6sMQmvSuaEfF996AHvjY23KA-yHmBNUuQ4Oes1RkiMUOW_K0Q6uWqnvredafT1o0yBImHG0CcL3PjqSovCtKEHX1IZSaCENHWIVGm-vct5H0AtVYrAbFrcdhRZML_HS9tySnpbrOO-0t5VVx0MJitDlgqOnBBUyCRKTV7ZawzDhlvRR1EgcMgglHTyvwV9ctRNmMHo4s3RH4ksKozhtTbYLlpMzFaEiTKT7wnDJDge-GobImZRw0nXuNg6UuA6uKytm7KJZf_IsuGxoa1C-6Ilor94ZBR8Fud9ynJm-UoLGDJWvkkJzB66HIPAZ5XbR0NTCjlPzpGl_MZW28dA3ZqdrZ-TgiUlRGD7xNu4tIfZ-7XXW-0PMTfs0_arnYhTspOpumR-5LfmyGAmjjChJ9AHwHp1WGBDayauR1QuK7CwU7BTlQb3XGSQLZM1RQ5Kfxm4ZLkACpUrlTlry6YfD17nTSgS4zgb39qV7Ey4I2EM3_GtwwNlQCeh0-mzZT1uLJAZsn68XRr5UoZartJDF6r9Fz-BOyE0IhIzbCg8IMN0mf0gDYVgBbk6H_RuMaix84cEdasnQEyBxCzZuo3Lrz2gILqftdmnpDE6EgkP94yqZPJi0F-C1PWvjp4ckkltess6_gKohX6gpyh7AIYXj1iRq8dQsPWq6lTvGGNjOH8UYW6gOdvyMyjORKx8Kjk6pE2vSMTWcVDdy3dlBuPvh_m2RFh0lbjvqGUdReOZ7uRgUyB33ql2XAVQlYixyMhJwBIotdJ_EtMtWkGOMUHu8kx95DVuI4GPtB3maSrth3IQ7FPuqv_6KNdY1JWizpNVb0-wicmOPXn-zVibf85rBdcN2Z9qgYY_i10h4c478WTRrqpdeICokhKWeMAuyC2xKLANPyOqAzKcy-HXdDbpDXvH0dOsQgOtW7mgIBePOgNverfTNRkSX-xVAUdVD5UJvgLTVOiibMfqTZFa6dKnXo8uvOjscnYtsKIKjEsIxIaRUOZKEgI2fEm4PT04B8jz7qIXSpXjpZucNQ2S4rZ9GCPEl9WQ4kBq-VajLlDCre3hQ94KFVNmyxXeA3kC3DdaZ4f1DrstFC00rJbeQ2nIBaJVUt33oEqcpyksdvaLQuFWM9M7jfsWy41KUfqyXezGgxpfMn8vldCEqmhjbwgASoJZXUtd2VzdC0yMLAK.m3u8" \
   -c:v libx264   -crf 23 -preset fast   -c:a aac -b:a 192k \
   -f flv "rtmp://b.rtmp.youtube.com/live2?backup=1/6qr3-2umk-tquf-9kjy-563h"
+  
+  ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -crf 18 -threads 0 \
+  -c:v libx264   -crf 23 -preset fast   -c:a aac -b:a 192k \
+  output.mp4
 
   // Restream шумоподавление, аншарп, вывести надпись
 ffmpeg -i "https://video-weaver.vie02.hls.ttvnw.net/v1/playlist/CpUIEqBUXsqXxPolz7mKcvv1qyOQZjwIxZJOCoQjj4Kr0W5fMcji8ChyQ9VdPrAWrdnC9QmBjKG28XMv6pFGOEewSSGUhbAjOGQ3l6K3ZWryDH5pq_9MZQHepWA08WBNBBozWakYSy4nKJjfryly2H7qjWJ9jTjh9iGhriJiMnVXCKBOzqt5yYTLu2Im3RIATuzL3L5BrA0Wffp2sJ4wuY4nYDjN5PJDY-H1PDClx_0fiZ_7cqLctwbO1Ek9qxdqDtkpltwi2eqVbNhv4KS5fuVfwzhsa-l4PYOxjX5UdbYw5f0EGYyZm3ai4JDEb9FQxCjtPQi8ZCjkNDG2M7dUbZ6P2CbLuRxnJyWpN7K-dbPprQYx_DpiedBU__sMn5whDlzef3lgYL_0FsBOYL6hNVHWo7ChST-eLtHkdxwriuf8KSzh846xiaMa0434HQhanZx76bz4s5S6bBSe4RKnvLIKgnrWw1g5M_ZSM1wbgdGd2dhSrJQv0r5oh-tYZdHr3vOU15wN_4IcRYnVp3jR5G_RNGOz6oghSwn3sttiMtZzzDAwL9i60B56V9lUx_un4I5eOqBRicEPps1bvDpXNCZ0uBG7l6E3GS8SPyCGBlrarosuUSvgPTV6Okemm2kb-9h0GacQe2OY3k9Vh7b4NVGsd6g-8b9SkttmPgiTH8szZvCVkr6ItA4Cy8UQtNPkl1pf_fxYvPepfETEHSOsAAhS_SED9ZzaQC7TNXmS4AwdpKJhqUQsDEqgTTg-end3J__22SvSsrQ47ZMRPrgKkyC7iZZKVGqF17iZI25nueor1s6IexVW8SQ6Ri_XXws6cImpWqN0sa7hzWCRofNZuphNFbJkqlwH64phbvQrNKNZlzGqflYbTwvsBnCXAramO5qcKXUZRLsTs6w2G9bRKY1wvkJdQmU17o4JLGrGZx8Un7AN1qYuU0e-7FPglfkPeb51ZDn26uv9o9VzhAL7IzFZAUKB28GlwhwRY7dDhHgte8YkAcJnGAvTecYNSTUUCF7B-TTrDzfKThErHlWLurSs3kJIVQsaXkj9AGYlMj9jngB--7ezyf4-XRU0-u-ypd5tqJs1l4ydkn2t5T8DGe90kuJG8m1veCXsWrwI4UrIvSVdm8NnzXsm97DuamU3E9U4-7p1P6tPZRvWFWuMN1qgHyUFIDC2wFTA6h4HKH5btJ99b0dN3RI8B4pwxzlDoLN0_B4cyn5ZDJ6i-pbzXN7psZ9vM7B5BcBlzW9UkDRZD3xmFQxemdD_s02vB1oUcNssOGM8QNfgCzRbOXm8U4fg0nWrhMrwUr4tDTxWhgIOfegPu0WltAGEBG6GcL8TnbWXCYDNHLZrqzzI-Um00ihnhK4LBElPj4Wd_5m86MQIof9RsTTT1hoMS39TTbBwzr-2tAyVIAEqCWV1LXdlc3QtMjCuCg.m3u8" \
@@ -527,7 +878,6 @@ ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -cr
 ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -crf 0 -threads 0 -f flv "rtmp://server.address/live/6qr3-2umk-tquf-9kjy-563h"
 
 ffmpeg  -framerate 30 -f gdigrab -i :1 -f pulse -i default -c:v libx264 -s 1920x1080 -r 60 -b:v 5000k  -crf 10 -vf format=yuv420p -c:a aac -b:a 128k -f flv rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h
-https://www.twitch.tv/AlinaRinRin
 
 // Twitch Stream
 ffmpeg -f gdigrab -framerate 30 -video_size 1440x900 -i desktop -vf "format=yuv420p" -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k -f flv rtmp://live.twitch.tv/app/live_263586276_G3Ev7Xqhd1et7JuDU5NA9xJQqmc7do

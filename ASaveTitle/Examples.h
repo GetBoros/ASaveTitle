@@ -59,6 +59,33 @@ private:
 
 
 
+// AFFmpeg_Task
+class AFFmpeg_Task
+{
+public:
+	~AFFmpeg_Task();
+	AFFmpeg_Task(char *file_name);
+
+	void Init();
+
+	void Show_Info();
+
+private:
+	char *File_Name;
+
+	AVFormatContext *Format_Context_Input;  // data struct stored info about media info | Streams else
+	AVFormatContext *Format_Context_Output;
+	AVCodecContext *Decoder_Ctx;
+	AVCodecContext *Encoder_Ctx;
+
+	AVPacket *Packet;
+	AVFrame *Frame;
+};
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
 // AsExamples
 class AsExamples
 {
@@ -67,6 +94,9 @@ public:
 	AsExamples(const EShow_Preview show_preview);
 	
 	void Show_Case(EShow_Preview example_preview);
+	void Change_Wormat(wchar_t *video_name);
+	void Open_File(char *file_name);
+	void Temp(wchar_t *video_name);
 
 private:
 	void Display_Path_Info(std::filesystem::path &path);  // File System Examples
@@ -81,6 +111,8 @@ private:
 	void Display_Map_Pair_Ptr();
 	void Display_FFmpeg_Commands();
 	void Display_FFmpeg_Examples();
+
+	void Ffmpeg_Open_File();
 
 	AClient *Client;
 };

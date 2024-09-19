@@ -8,10 +8,12 @@
 // My Includes
 extern "C"
 {// FFMPEG
+#include <sys/stat.h>
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
+#include <libavutil/opt.h>
 }
 
 #include "resource.h"

@@ -990,10 +990,17 @@ V		- Third time click at User input, check url again
 V	- Bug, don`t transfer to second array
 V		- Prev button was not zero
 */
-// TASKS --- 18.09.2024 --- Current ---
+// TASKS --- 18.09.2024 ---
 /*
-
-
+V	- Added image too big
+V		- If it`s from dreamerscast
+*/
+// TASKS --- 19.09.2024 --- Current ---
+/*
+	- Is it ok if we have same titles but with different languages?
+	- "Башня бога тайтл" don`t show image, reason : in title name
+		- while add image can format title key
+	- Maybe format <h3>&#x411;&#x430;&#x441;&#x43D;&#x44F;  to rus and write rus title name? or at english?
 
 */
 
@@ -1184,4 +1191,14 @@ dxgiFactory->Release();
 // TASKS --- REGUESTS
 /*
 * 	- Stoped at http://loveread.me/read_book.php?id=92157&p=14
+*/
+
+
+
+
+// TEMPLATE
+/*
+A
+B
+
 */

@@ -34,6 +34,31 @@ enum class EClient_State : byte
 
 
 
+
+// AActor
+class AActor
+{
+public:
+	~AActor();
+	AActor();
+
+	void Init();
+	
+	std::function< void()> Func_Handler;  // less performance then void (AActor:: *Func_Address)();
+
+private:
+	void Call_Handler();
+	void Call_Me();
+	void Call_Me_Adnveced();
+
+	void *Func_Ptr;  // Max Performance
+	void (AActor:: *Func_Address)();  // Max Performance
+};
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
 // AClient
 class AClient
 {

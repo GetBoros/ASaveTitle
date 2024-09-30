@@ -1,5 +1,49 @@
 #include "Examples.h"
 
+// AActor
+AActor::~AActor()
+{
+
+}
+//------------------------------------------------------------------------------------------------------------
+AActor::AActor()
+ : Func_Ptr(0), Func_Address(0)
+{
+	Init();
+}
+//------------------------------------------------------------------------------------------------------------
+void AActor::Init()
+{
+	Func_Ptr = reinterpret_cast<void *>( &Func_Address);
+	Func_Address = &AActor::Call_Handler;
+	Func_Handler = [this]() { (this->*Func_Address)(); };
+
+	(this->*Func_Address)();
+}
+//------------------------------------------------------------------------------------------------------------
+void AActor::Call_Handler()
+{
+	if (Func_Address != 0)
+		Func_Address = &AActor::Call_Me;
+	else
+		Func_Address = &AActor::Call_Me_Adnveced;
+}
+//------------------------------------------------------------------------------------------------------------
+void AActor::Call_Me()
+{
+	int yy = 0;
+}
+//------------------------------------------------------------------------------------------------------------
+void AActor::Call_Me_Adnveced()
+{
+	int yy = 0;
+}
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
+
 // AClient
 unsigned long long AClient::Data_Size = 6;
 //------------------------------------------------------------------------------------------------------------
@@ -104,7 +148,7 @@ AFFmpeg_Task::~AFFmpeg_Task()
 }
 //------------------------------------------------------------------------------------------------------------
 AFFmpeg_Task::AFFmpeg_Task(char *file_name)
- : File_Name(file_name)
+ : File_Name(file_name), Format_Context_Input(0), Format_Context_Output(0), Decoder_Ctx(0), Encoder_Ctx(0), Packet(0), Frame(0)
 {
 
 }
@@ -563,13 +607,20 @@ void AsExamples::Display_Func_Ptrs()
 //------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_Func_Ptrs_Advenced()
 {
+	void (AActor:: *func_actor)() = 0;
 	void (AsExamples:: *ptr_func_update)(EShow_Preview) = 0;  // Тип(void) (где, указателя на функцию-член класса)(аргументы) = нулевой указатель
 	void *ptr_func = 0;  // Тип, имя указателя общего типа void * (универсальный указатель) может указывать на любой тип данных
 	uintptr_t func_addr = 0;  // Тип, имя адресса для хранения целочисленного представления адреса указателя
 	void ( *restored_func_ptr)(EShow_Preview) = 0;  // Объявление указателя на функцию которая принимает аргумент типа EShow_Preview и возвращает void
-	
+	AActor actor;  // Example how to work with other class
+
+	func_actor = &AActor::Init;
+	(actor.*func_actor)();
+	(actor.*func_actor)();
+
 	// Преобразование указателя на функцию
 	ptr_func_update = &AsExamples::Show_Case;  // Назначение указателю ptr_func_update адреса функции-члена Show_Case класса AsExamples.
+	(this->*ptr_func_update)((EShow_Preview)0);  // Call func
 	ptr_func = reinterpret_cast<void *&>(ptr_func_update);  // Приведение указателя, на функцию-член класса к типу void *.
 	func_addr = reinterpret_cast<uintptr_t>(ptr_func);  // Преобразование void * в uintptr_t полезно передать адрес функции между модулями, сохранить его для последующего использования
 
@@ -767,15 +818,6 @@ void AsExamples::Display_FFmpeg_Commands()
 
 
 	*/
-
-	// Command Line Examples yt-dlp
-	/*
-		- yt-dlp -g https://youtu.be/yMMYkONKCjs  // Get real & to video stream 
-		- yt-dlp https://youtu.be/yMMYkONKCjs -o "output.mp4"
-		- yt-dlp -o - https://youtu.be/yMMYkONKCjs | ffmpeg -i - -c copy -f mpegts udp://localhost:1234  // 
-
-
-	*/
 }
 //------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_FFmpeg_Examples()
@@ -826,6 +868,7 @@ void AsExamples::Ffmpeg_Open_File()
 	// Get download video + audio from site useing manifest format .mpd or .m3u8
 		- yt-dlp -f bestvideo+bestaudio --merge-output-format mp4 -o "4.mp4" "https://edge35-waw.live.mmcdn.com/live-edge/am"
 		- yt-dlp --merge-output-format mp4 -o "4.mp4" "https://edge31-waw.live.mmcdn.com/live-edge/amlst:aurora_radiance-sd-38e5483d956715fbb3a7a1c5616abd535b0b5f496f25ec869cf5b0d0126cbc1c_trns_h264/chunklist_w2049916998_b5128000_t64RlBTOjMwLjA=.m3u8"
+		- yt-dlp -f bestvideo+bestaudio --merge-output-format mp4 --write-sub --sub-lang en https://www.youtube.com/watch?v=liftGcnBvKs
 
 	// Streaming
 ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1725287016/ei/CHbVZqPcM8"

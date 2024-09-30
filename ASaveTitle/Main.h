@@ -3,6 +3,9 @@
 #include "Dictionary.h"
 #include "Engine.h"
 
+
+
+
 // AsMain
 class AsMain
 {
@@ -20,7 +23,6 @@ private:
 
 	bool Init_Instance() const;
 	ATOM Register_Class() const;
-	
 	// TEMP
 	RECT *Rect_Programs;
 

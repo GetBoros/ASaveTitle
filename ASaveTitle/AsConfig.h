@@ -1,8 +1,20 @@
-#pragma once
+﻿#pragma once
 
 #include "AsTools.h"
 
-// AsConfig
+//------------------------------------------------------------------------------------------------------------
+class AFont
+{
+public:
+	~AFont();
+	AFont(int height, int weight, int family, const wchar_t* face_name, bool is_italic = false);
+
+	void Select(HDC hdc) const;
+
+private:
+	HFONT Font_Handle;
+};
+//------------------------------------------------------------------------------------------------------------
 class AsConfig
 {
 public:
@@ -21,7 +33,6 @@ public:
 	static const char *Saved_Path[];
 	static const char *Temporary_File_Name[];
 
-	static const int Invalid_Chars_Len = 3;
 	static constexpr int Menu_Main_Button_Count = 6;
 	static constexpr int Context_Button_Count = Menu_Main_Button_Count - 1;
 
@@ -29,6 +40,7 @@ public:
 	static const wchar_t Pattern_Default_Bin[];
 	static const wchar_t Pattern_Default_TXT[];
 	static const wchar_t Main_Image_Folder[];
+	static const wchar_t Incompatible_Char_Type[];
 	static const wchar_t Image_Folder[];
 	static const wchar_t Image_Format[];
 	static const wchar_t Main_Menu_Title_Name[];
@@ -42,7 +54,6 @@ public:
 	static const wchar_t *Season_Case_Low[];
 	static const wchar_t *Text_Program_Names[];
 	static const wchar_t *Protocols[];
-	static const wchar_t Seasons[Invalid_Chars_Len];
 
 	static const int Settings_Size;
 	static const int Max_Line;

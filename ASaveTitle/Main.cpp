@@ -1,4 +1,11 @@
-﻿#include "Main.h"
+﻿#pragma region Hello
+/*
+	Hello
+*/
+#pragma endregion
+
+
+#include "Main.h"
 
 //------------------------------------------------------------------------------------------------------------
 void init(SOCKET &socket_to_server, struct sockaddr_in &address_server)
@@ -61,6 +68,17 @@ int connect_to_server()
 	return 0;
 }
 //------------------------------------------------------------------------------------------------------------
+void func()
+{
+	wchar_t *found = 0;
+	wchar_t str[] = L"Я стал самым сильным с провальным навыком «ненормальное состояние», я разрушу всё 12";
+	const wchar_t wrong[] = L"«»:";
+
+	while ( (found = wcspbrk(str, wrong) ) != 0)
+		while ( *found != '\0')
+			( *found++ = found[1]);  // set next wchar to empty space after found++(it`s last low prior)
+}
+//------------------------------------------------------------------------------------------------------------
 
 
 
@@ -102,6 +120,7 @@ AsMain::AsMain(HINSTANCE handle_instance)
 {
 	Main_Window = this;
 	setlocale(LC_ALL, "ru_RU.UTF-8");
+	std::lconv *st = std::localeconv();
 
 	LoadStringW(HInstance, IDC_ASAVETITLE, SZ_Window, AsConfig::Max_Loadstring);
 	LoadStringW(HInstance, IDS_APP_TITLE, SZ_Title, AsConfig::Max_Loadstring);  // from IDS_APP_TITLE get string and set to SZ_TITLE if < MAX_LOADSTRING
@@ -190,7 +209,8 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_PAINT:
 		if (AsMain::Main_Window != 0)
-			AsMain::Main_Window->Engine.Draw_Frame_ASaver(hWnd);
+			AsMain::Main_Window->Engine.Draw_Frame_AEmpty(hWnd);
+			//AsMain::Main_Window->Engine.Draw_Frame_ASaver(hWnd);
 		else
 			return !InvalidateRect(hWnd, 0, FALSE);  // if Main Window don`t created
 		break;
@@ -235,6 +255,7 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 	case WM_DESTROY:
+		Main_Window->Engine.~AsEngine();
 		PostQuitMessage(0);
 		break;
 

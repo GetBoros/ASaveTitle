@@ -195,14 +195,13 @@ private:
 	void Handle_Title_Info_Beta(wchar_t *user_input, STitle_Info *&data);  // !!! Refactoring some day || Do just one universal
 	void Handle_Title_Season(wchar_t *ptr, int &result, int &season_length);
 	void Handle_Title_Name_Num(const wchar_t *key, wchar_t *num, const wchar_t *season, wchar_t *&result);
-	void Handle_Title_Format(wchar_t*& title);  // !!! Need add to config not valid chars, and handle here
+	void Handle_Title_Format(wchar_t *&title);  // !!! Need add to config not valid chars, and handle here
 
 	void User_Map_Load(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  //Load from file || !!! Can be refactored
 	void User_Map_Save(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  // Save to file map
 	void User_Map_Free(std::map<wchar_t *, STitle_Info *, SCmp_Char> &map);  // Free All memory
 	unsigned short User_Map_Convert_In(unsigned short ch);  // Convert title, need to save to file
 	unsigned long long User_Map_Convert_Out(unsigned long long &ch);  // Convert back and get Title
-
 
 	EUser_Arrays Active_Map;
 	EPress Border_Pressed;
@@ -246,6 +245,7 @@ public:
 	AsEngine();
 
 	void Draw_Frame_ASaver(HWND hwnd);
+	void Draw_Frame_AEmpty(HWND hwnd);
 	void Redraw_Frame(const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 
 private:
@@ -997,6 +997,7 @@ V		- If it`s from dreamerscast
 */
 // TASKS --- 19.09.2024 --- Current ---
 /*
+	- https://anime-bit.ru/content/7003/ fix those
 	- Is it ok if we have same titles but with different languages?
 	- "Башня бога тайтл" don`t show image, reason : in title name
 		- while add image can format title key
@@ -1198,7 +1199,15 @@ dxgiFactory->Release();
 
 // TEMPLATE
 /*
-A
-B
+10 A bby
+11 B
+12 C
+13 D
+14 E
+15 F
+16 G
+
+Abba
+0110
 
 */

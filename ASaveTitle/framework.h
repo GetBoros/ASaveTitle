@@ -1,6 +1,7 @@
 #pragma once
 #pragma comment(lib, "dxgi.lib")
 
+#define UNICODE
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 #define WIN32_LEAN_AND_MEAN
 #define _WINSOCK_DEPRECATED_NO_WARNINGS

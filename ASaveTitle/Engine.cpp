@@ -377,8 +377,8 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 : Ptr_Hdc(hdc), Builder_State(EBuilder_State::EBS_Working), Active_Map(EUser_Arrays::EUA_Arrays_Count), Border_Pressed(EPress::Border_Menu_Main), 
   Buttons {}, User_Input(0), Button_User_Offset(0), Borders_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}, It_User_Map_Active {}
 {
-	//const wchar_t test[] = L"https://anime-bit.ru/content/7025/";
-	//wchar_t *temp = new wchar_t[36] {};
+	//const wchar_t test[] = L"https://anime-bit.ru/content/7003/";
+	//wchar_t *temp = new wchar_t[90] {};
 
 	//wcsncpy_s(temp, wcslen(test) + 1, test, wcslen(test) );
 	//
@@ -1199,6 +1199,8 @@ void AsUI_Builder::Handle_Title_Info(wchar_t *ptr)
 	int title_season = 0;
 	STitle_Info *data = 0;
 
+	Handle_Title_Format(title_name_num);  // Formatting title
+
 	// 1.0. Get Num
 	title_num_space = wcsrchr(ptr, L' ');
 	title_num = std::wcstol(title_num_space + 1, 0, 10);
@@ -1214,7 +1216,6 @@ void AsUI_Builder::Handle_Title_Info(wchar_t *ptr)
 	}
 
 	// 1.2. Get Name Num And Name Key
-	Handle_Title_Format(title_name_num);
 	It_User_Map_Active = User_Maps[(int)Active_Map]->find(title_name_num);
 	
 	if (!(It_User_Map_Active != User_Maps[(int)Active_Map]->end() ) )
@@ -1270,6 +1271,10 @@ void AsUI_Builder::Handle_Title_Info_Beta(wchar_t *user_input, STitle_Info *&dat
 
 	user_input_length = (int)wcslen(user_input) - 1;  // length without 0
 	current_ch = (unsigned short)user_input[user_input_length];  // get last index char
+
+	if (wcscmp(user_input, L"Я стал самым сильным с провальным навыком ") == 0)
+		return;
+
 
 	while (current_ch == L' ' || current_ch >= 48 && current_ch <= 57)
 	{// Get NUM and Seasons Data
@@ -1336,14 +1341,16 @@ void AsUI_Builder::Handle_Title_Name_Num(const wchar_t *key, wchar_t *num, const
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Title_Format(wchar_t *&title)
 {
-	wchar_t *ptr = title;
 	int length = 0;
+	wchar_t *found = 0;
+	wchar_t *ptr = title;
+
+	while ( (found = wcspbrk(title, AsConfig::Incompatible_Char_Type) ) != 0)
+		while ( *found != '\0')
+			( *found++ = found[1]);  // set next wchar to empty space after found++(it`s last low prior)
 
 	while (*(ptr++) != L'\0')
-		if (*ptr == L':')  // must be array of prob chars
-			*ptr = L' ';
-		else
-			*ptr = std::towlower(*ptr);
+		*ptr = std::towlower(*ptr);  // To lower
 }
 //------------------------------------------------------------------------------------------------------------  1850 - 1555 CURL
 void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, STitle_Info *, SCmp_Char> &map)
@@ -1404,7 +1411,7 @@ void AsUI_Builder::User_Map_Load(const char *file_path, std::map<wchar_t *, STit
 				to_map = buffer->Title_Name_Num;
 				wcsncpy_s(to_map, wcslen(user_input) + 1, user_input, wcslen(user_input) );
 				
-				Handle_Title_Info_Beta(buffer->Title_Name_Num, buffer);// Convert Data
+				Handle_Title_Info_Beta(buffer->Title_Name_Num, buffer);  // Convert Data
 				map.emplace(buffer->Title_Name_Key, buffer);  // Add to map
 
 				is_add_to_user_array = false;  // look next numbers
@@ -1641,14 +1648,41 @@ void AsEngine::Draw_Frame_ASaver(HWND hwnd)
 	Ptr_Hwnd = hwnd;
 	Ptr_Hdc = BeginPaint(Ptr_Hwnd, &Paint_Struct);
 
-	if (UI_Builder != 0)
+	if (UI_Builder != 0)  // Can be better
 		UI_Builder->Builder_Handler(Ptr_Hdc, EBuilder_Handler, W_Param, L_Param);
 	else
 		UI_Builder = new AsUI_Builder(Ptr_Hdc);  // <= 9ms || what if without Init()?
 
 	EBuilder_Handler = EUI_Builder_Handler::EBH_UI_Maximazed;
-	if (UI_Builder->Builder_State == EBuilder_State::EBS_Exit)
+	if (UI_Builder->Builder_State == EBuilder_State::EBS_Exit)  // !!! TEMP
 		AsEngine::~AsEngine();
+	EndPaint(Ptr_Hwnd, &Paint_Struct);
+}
+//------------------------------------------------------------------------------------------------------------
+void AsEngine::Draw_Frame_AEmpty(HWND hwnd)
+{
+	Ptr_Hwnd = hwnd;
+	Ptr_Hdc = BeginPaint(Ptr_Hwnd, &Paint_Struct);
+
+	// Определяем прямоугольник, задающий область для текста
+	RECT textRect{};
+	textRect.left = 100;  // Координата X
+	textRect.top = 100;   // Координата Y
+	textRect.right = 300; // Дальняя правая граница (зависит от ширины текста)
+	textRect.bottom = 200; // Дальняя нижняя граница (зависит от высоты текста)
+
+	wchar_t text[] = L"Text";
+
+
+	// Устанавливаем цвет текста
+	SetTextColor(Ptr_Hdc, RGB(255, 0, 0)); // Красный цвет
+
+	// Устанавливаем фон для текста (прозрачный)
+	SetBkMode(Ptr_Hdc, TRANSPARENT);
+
+	// Выводим текст в указанные координаты
+	DrawTextExW(Ptr_Hdc, text, -1, &textRect, DT_LEFT, 0);
+
 	EndPaint(Ptr_Hwnd, &Paint_Struct);
 }
 //------------------------------------------------------------------------------------------------------------

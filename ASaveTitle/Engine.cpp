@@ -1661,14 +1661,32 @@ void AsEngine::Draw_Frame_ASaver(HWND hwnd)
 //------------------------------------------------------------------------------------------------------------
 void AsEngine::Draw_Frame_AEmpty(HWND hwnd)
 {
-	wchar_t text[] = L"Monday";
-	RECT textRect { 10, 10, 1000, 50 };
-
+	int screen_width = GetSystemMetrics(SM_CXSCREEN);
+	int screen_height = GetSystemMetrics(SM_CYSCREEN);
 	Ptr_Hwnd = hwnd;
 	Ptr_Hdc = BeginPaint(Ptr_Hwnd, &Paint_Struct);
 
+	SelectObject(Ptr_Hdc, AsConfig::Brush_Green_Dark);  // Background
+	Test(1440, 900);
+	SelectObject(Ptr_Hdc, AsConfig::Brush_Green);  // Background
+	Test_0(1440, 900);
+
+	//POINT triangle[3] {};
+	//triangle[0] = { 1440 / 2, 900 / 2 };  // Левая нижняя вершина
+	//triangle[1] = { 1440, 900 };          // Правая нижняя вершина
+	//triangle[2] = { 1440 / 2, 900 };      // Верхняя вершина
+
+	//Polygon(Ptr_Hdc, triangle, 3);
+
+	EndPaint(Ptr_Hwnd, &Paint_Struct);
+
+		//wchar_t text[] = L"Monday";
+	//RECT textRect { 10, 10, 1000, 50 };
+
+
+
 	// Select FONT
-	AsConfig::Title_Font.Select(Ptr_Hdc);
+	//AsConfig::Title_Font.Select(Ptr_Hdc);
 
 	// Where to draw RECT
 	//textRect.left = 100;  // Координата X
@@ -1678,9 +1696,8 @@ void AsEngine::Draw_Frame_AEmpty(HWND hwnd)
 	
 	//SetTextColor(Ptr_Hdc, RGB(255, 0, 0) );  // Устанавливаем цвет текста
 	//SetBkMode(Ptr_Hdc, AsConfig::Color_Backgrount_Text);  // Устанавливаем фон для текста (прозрачный)
-	DrawTextExW(Ptr_Hdc, text, -1, &textRect, DT_LEFT, 0);  // Выводим текст в указанные координаты
+	//DrawTextExW(Ptr_Hdc, text, -1, &textRect, DT_LEFT, 0);  // Выводим текст в указанные координаты
 
-	EndPaint(Ptr_Hwnd, &Paint_Struct);
 }
 //------------------------------------------------------------------------------------------------------------
 void AsEngine::Redraw_Frame(const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam)
@@ -1690,6 +1707,41 @@ void AsEngine::Redraw_Frame(const EUI_Builder_Handler &builder_handler, const WP
 
 	InvalidateRect(Ptr_Hwnd, 0, FALSE);  // если во 2-м параметре указать RECT рисувать можно будет только в нем | TRUE если нужно стереть всё
 	EBuilder_Handler = builder_handler;
+}
+//------------------------------------------------------------------------------------------------------------
+void AsEngine::Test(double x, double y)
+{
+	RECT rect {};  // Don`t need here out of from those func
+
+	rect.left = static_cast<int>(x /= 2.0);
+	rect.top = static_cast<int>(y /= 2.0);
+	rect.right = static_cast<int>(std::floor(x * 2.0) );
+	rect.bottom = static_cast<int>(std::floor(y * 2.0) );
+	if (rect.left < 90.0)
+		return;
+
+	Rectangle(Ptr_Hdc, 0, 0, rect.left, rect.top);  // UP
+	Rectangle(Ptr_Hdc, 0, rect.top, rect.left, rect.bottom);  // DOWN
+
+	Rectangle(Ptr_Hdc, rect.left, rect.top, rect.right, rect.bottom);  // UP
+	Rectangle(Ptr_Hdc, rect.left, 0, rect.right, rect.top);  // DOWN
+	Test(x, y);
+}
+//------------------------------------------------------------------------------------------------------------
+void AsEngine::Test_0(double x, double y)
+{
+	RECT rect {};
+
+	rect.left = static_cast<int>(x /= 2.0);
+	rect.top = static_cast<int>(y /= 2.0);
+	rect.right = static_cast<int>(std::floor(x * 2.0) );
+	rect.bottom = static_cast<int>(std::floor(y * 2.0) );
+	if (rect.left < 90.0)
+		return;
+
+	Rectangle(Ptr_Hdc, 0, rect.top, rect.left, rect.bottom);  // 1 | 0
+	Rectangle(Ptr_Hdc, rect.left, 0, rect.right, rect.top);  // 0 | 1
+	Test_0(x, y);
 }
 //------------------------------------------------------------------------------------------------------------
 void AsEngine::Get_Current_Data_Time()

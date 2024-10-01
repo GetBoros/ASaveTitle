@@ -249,6 +249,9 @@ public:
 	void Redraw_Frame(const EUI_Builder_Handler &builder_handler, const WPARAM &wParam, const LPARAM &lParam);
 
 private:
+	void Test(double x, double y);
+	void Test_0(double x, double y);
+
 	void Get_Current_Data_Time();  // !!! Temp Get curre
 	void Draw_Frame_Book_Reader(HWND hwnd);
 	int Draw_Frame_Chooser_Main_Mane(HWND hwnd);  // !!! bad

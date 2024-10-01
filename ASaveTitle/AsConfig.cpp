@@ -35,6 +35,8 @@ void AFont::Select(HDC hdc) const
 
 
 // AsConfig
+HWND AsConfig::Hwnd;
+
 const char AsConfig::Dictionary_Main_Folder[] = "Map.bin";
 const char AsConfig::Image_Name_File[] = "TemporaryName.png";
 const char AsConfig::Path_Saves_Folder[] = "Data/";
@@ -76,6 +78,11 @@ const COLORREF AsConfig::Color_Dark = RGB(30, 30, 30);
 const COLORREF AsConfig::Color_Yellow = RGB(220, 220, 10);
 const COLORREF AsConfig::Color_Red = RGB(255, 32, 37);
 const COLORREF AsConfig::Color_Backgrount_Text = RGB(185, 122, 87);
+
+const AFont AsConfig::Title_Font(-24, 700, 49, L"Consolas");
+const AFont AsConfig::Logo_Pop_Font(-128, 900, 34, L"Arial Black");
+const AFont AsConfig::Game_Over_Font(-60, 700, 66, L"Comic Sans MS", true);
+
 
 const HBRUSH AsConfig::Brush_White  = CreateSolidBrush(RGB(255, 255, 255) );
 const HBRUSH AsConfig::Brush_Gray  = CreateSolidBrush(RGB(125, 125, 125) );

@@ -1661,27 +1661,24 @@ void AsEngine::Draw_Frame_ASaver(HWND hwnd)
 //------------------------------------------------------------------------------------------------------------
 void AsEngine::Draw_Frame_AEmpty(HWND hwnd)
 {
+	wchar_t text[] = L"Monday";
+	RECT textRect { 10, 10, 1000, 50 };
+
 	Ptr_Hwnd = hwnd;
 	Ptr_Hdc = BeginPaint(Ptr_Hwnd, &Paint_Struct);
 
-	// Определяем прямоугольник, задающий область для текста
-	RECT textRect{};
-	textRect.left = 100;  // Координата X
-	textRect.top = 100;   // Координата Y
-	textRect.right = 300; // Дальняя правая граница (зависит от ширины текста)
-	textRect.bottom = 200; // Дальняя нижняя граница (зависит от высоты текста)
+	// Select FONT
+	AsConfig::Title_Font.Select(Ptr_Hdc);
 
-	wchar_t text[] = L"Text";
-
-
-	// Устанавливаем цвет текста
-	SetTextColor(Ptr_Hdc, RGB(255, 0, 0)); // Красный цвет
-
-	// Устанавливаем фон для текста (прозрачный)
-	SetBkMode(Ptr_Hdc, TRANSPARENT);
-
-	// Выводим текст в указанные координаты
-	DrawTextExW(Ptr_Hdc, text, -1, &textRect, DT_LEFT, 0);
+	// Where to draw RECT
+	//textRect.left = 100;  // Координата X
+	//textRect.top = 100;   // Координата Y
+	//textRect.right = 300; // Дальняя правая граница (зависит от ширины текста)
+	//textRect.bottom = 200; // Дальняя нижняя граница (зависит от высоты текста)
+	
+	//SetTextColor(Ptr_Hdc, RGB(255, 0, 0) );  // Устанавливаем цвет текста
+	//SetBkMode(Ptr_Hdc, AsConfig::Color_Backgrount_Text);  // Устанавливаем фон для текста (прозрачный)
+	DrawTextExW(Ptr_Hdc, text, -1, &textRect, DT_LEFT, 0);  // Выводим текст в указанные координаты
 
 	EndPaint(Ptr_Hwnd, &Paint_Struct);
 }

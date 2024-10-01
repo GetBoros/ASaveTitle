@@ -160,17 +160,19 @@ bool AsMain::Init_Instance() const
 	RECT window_size{};
 	HWND hWnd;
 
-	int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-	int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+	int screen_width = GetSystemMetrics(SM_CXSCREEN);
+	int screen_height = GetSystemMetrics(SM_CYSCREEN);
 
 	window_size.left = 0;
 	window_size.top = 0;
-	window_size.right = screenWidth;
-	window_size.bottom = screenHeight - 20;
+	window_size.right = screen_width;
+	window_size.bottom = screen_height - 20;
 
 	hWnd = CreateWindowExW( 0, SZ_Window, 0, WS_OVERLAPPEDWINDOW, window_size.left, window_size.top, window_size.right - window_size.left, window_size.bottom - window_size.top, 0, 0, HInstance, 0);
 	if (!hWnd)
 		return false;
+
+	AsConfig::Hwnd = hWnd;
 
 	ShowWindow(hWnd, SW_MAXIMIZE);
 	UpdateWindow(hWnd);
@@ -209,8 +211,8 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_PAINT:
 		if (AsMain::Main_Window != 0)
-			AsMain::Main_Window->Engine.Draw_Frame_AEmpty(hWnd);
-			//AsMain::Main_Window->Engine.Draw_Frame_ASaver(hWnd);
+			//AsMain::Main_Window->Engine.Draw_Frame_AEmpty(hWnd);
+			AsMain::Main_Window->Engine.Draw_Frame_ASaver(hWnd);
 		else
 			return !InvalidateRect(hWnd, 0, FALSE);  // if Main Window don`t created
 		break;

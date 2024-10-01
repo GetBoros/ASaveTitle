@@ -7,7 +7,7 @@ class AFont
 {
 public:
 	~AFont();
-	AFont(int height, int weight, int family, const wchar_t* face_name, bool is_italic = false);
+	AFont(int height, int weight, int family, const wchar_t *face_name, bool is_italic = false);
 
 	void Select(HDC hdc) const;
 
@@ -22,6 +22,8 @@ public:
 	AsConfig();
 
 	static void Throw();
+
+	static HWND Hwnd;
 
 	static const char Dictionary_Main_Folder[];
 	static const char Image_Name_File[];
@@ -79,6 +81,8 @@ public:
 	static const COLORREF Color_Yellow;
 	static const COLORREF Color_Red;
 	static const COLORREF Color_Backgrount_Text;
+
+	static const AFont Title_Font, Logo_Pop_Font, Game_Over_Font;
 
 	static const HBRUSH Brush_White;
 	static const HBRUSH Brush_Gray;

@@ -998,18 +998,25 @@ V		- Prev button was not zero
 V	- Added image too big
 V		- If it`s from dreamerscast
 */
-// TASKS --- 19.09.2024 --- Current ---
+// TASKS --- 19.09.2024 ---
 /*
-	- https://anime-bit.ru/content/7003/ fix those
-	- Is it ok if we have same titles but with different languages?
-	- "Башня бога тайтл" don`t show image, reason : in title name
-		- while add image can format title key
-	- Maybe format <h3>&#x411;&#x430;&#x441;&#x43D;&#x44F;  to rus and write rus title name? or at english?
+V	- https://anime-bit.ru/content/7003/ fix those
+V	- Is it ok if we have same titles but with different languages?
+V	- "Башня бога тайтл" don`t show image, reason : in title name
+V		- while add image can format title key
+
+*/
+// TASKS --- 04.10.2024 --- Current ---
+/*
+
+X	- Создавать кастомные массивы, например для Китайских Аниме или Японских
+X	- Сделать поиск в библиотеке?
 
 */
 
 // MAIN TASKS
 /*
+X	- Maybe format <h3>&#x411;&#x430;&#x441;&#x43D;&#x44F;  to rus and write rus title name? or at english?
 X	- Начать работу над сервером?
 X	- Работа над кнопкой UPdate?
 		- брать ID парсить сайт на обновления серри?

@@ -17,19 +17,19 @@ extern "C"
 #include <libavutil/opt.h>
 }
 
-#include "resource.h"
-#include "fstream"  // SAVE || LOAD
-#include "map"  // STL || 
-#include "filesystem"  // FOLDERS || CREATE
-#include "d3d12.h"  // DirectX || IMAGE || Must be first
-#include "DirectXTex.h"  // DirectX || IMAGE :
-#include "thread"  // THREADS
-#include "WinSock2.h"  // NET
-#include "curl/curl.h"  // NET || BROWSE
-#include "array"
+#include <fstream>  // SAVE || LOAD
+#include <map>  // STL || 
+#include <filesystem>  // FOLDERS || CREATE
+#include <thread>  // THREADS
+#include <array>
 #include <cwctype>  // For std::towupper and std::towlower
 #include <mutex>
 #include <bitset>  // std::bitset || std::byte
+#include "WinSock2.h"  // NET
+#include "curl/curl.h"  // NET || BROWSE
+#include "resource.h"
+#include "d3d12.h"  // DirectX || IMAGE || Must be first
+#include "DirectXTex.h"  // DirectX || IMAGE :
 
 // TEMP
 /*

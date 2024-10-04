@@ -1021,9 +1021,28 @@ void AsUI_Builder::Handle_Button_Request(const bool is_increment)
 			*title_num += decrease_to;  // from 9 to 0 or from 0 to 9
 		else
 			break;
-	} while ( *(title_num -= 1) != ' ');
+	} while ( *(title_num -= 1) != L' ');
 
 	*title_num += increase_to;
+
+	if (*title_num == L'0')  // From 100+ to 99 format str
+		while (*title_num != L'\0')
+			*(title_num++) = title_num[1];
+
+	if (*title_num == L'!')  // From 99 to 100 formatting str
+	{
+		*title_num = L'1';
+		if (*(--title_num) != L' ')
+		{
+			*(++title_num) = L' ';
+			title_num_last_index = (int)wcslen(title_num);
+			title_num = title_num + 1;
+			*title_num = L'1';
+			while (--title_num_last_index != 0)
+				*(++title_num) = L'0';
+		}
+	}
+
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Main()

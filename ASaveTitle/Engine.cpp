@@ -1002,13 +1002,15 @@ void AsUI_Builder::Handle_Border_Pressed_Index(const int border_index, const int
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Button_Request(const bool is_increment)
 {
-	wchar_t *title_num;
+	int title_num_last_index, title_length;
 	int *ptr_title_num;
-	int title_num_last_index;
+	wchar_t *title_num, *ptr, *ptr_buffer;
 	const wchar_t compare_to = is_increment ? L'9' : L'0';
 	const int decrease_to = is_increment ? -9 : 9;
 	const int increase_to = is_increment ? 1 : -1;
 
+	ptr = 0;
+	ptr_buffer = 0;
 	ptr_title_num = &It_User_Map_Active->second->Title_Num;
 	*ptr_title_num += increase_to;
 	title_num = It_User_Map_Active->second->Title_Name_Num;
@@ -1025,24 +1027,27 @@ void AsUI_Builder::Handle_Button_Request(const bool is_increment)
 
 	*title_num += increase_to;
 
+	if ( *title_num == L'!')  // From 99 to 100
+	{// memloc | resize data and add new data
+		title_length = (int)wcslen(It_User_Map_Active->second->Title_Name_Num) + 2;
+		ptr = new wchar_t[title_length] {};
+		title_num_last_index = (int)(title_num - It_User_Map_Active->second->Title_Name_Num);
+
+		wcsncpy_s(ptr, title_length, It_User_Map_Active->second->Title_Name_Num, title_num_last_index);
+		ptr[title_length - 1] = L'\0';
+		ptr_buffer = ptr + title_num_last_index;
+		*(ptr_buffer++) = L' ';
+		ptr_buffer[0] = L'1';
+		while ( *(++ptr_buffer) != L'\0')
+			*ptr_buffer = L'0';
+
+		delete[] It_User_Map_Active->second->Title_Name_Num;
+		It_User_Map_Active->second->Title_Name_Num = ptr;
+	}
+
 	if (*title_num == L'0')  // From 100+ to 99 format str
 		while (*title_num != L'\0')
 			*(title_num++) = title_num[1];
-
-	if (*title_num == L'!')  // From 99 to 100 formatting str
-	{
-		*title_num = L'1';
-		if (*(--title_num) != L' ')
-		{
-			*(++title_num) = L' ';
-			title_num_last_index = (int)wcslen(title_num);
-			title_num = title_num + 1;
-			*title_num = L'1';
-			while (--title_num_last_index != 0)
-				*(++title_num) = L'0';
-		}
-	}
-
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Handle_Menu_Main()

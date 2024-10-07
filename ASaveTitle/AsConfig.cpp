@@ -1,4 +1,5 @@
-﻿#include "AsConfig.h"
+﻿#include "stdafx.h"
+#include "AsConfig.h"
 
 // AFont
 AFont::~AFont()

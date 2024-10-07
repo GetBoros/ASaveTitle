@@ -1,4 +1,5 @@
-﻿#include "Engine.h"
+﻿#include "stdafx.h"
+#include "Engine.h"
 
 // ACurl_Client
 ACurl_Client::~ACurl_Client()
@@ -1563,6 +1564,7 @@ unsigned short AsUI_Builder::User_Map_Convert_In(unsigned short ch)
 //------------------------------------------------------------------------------------------------------------
 unsigned long long  AsUI_Builder::User_Map_Convert_Out(unsigned long long &ch)
 {
+
 	// 1.1 Russian
 	if (ch >= 10 && ch <= 42)  // Rus Symb
 	{

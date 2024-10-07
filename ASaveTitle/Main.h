@@ -1,10 +1,6 @@
 ﻿#pragma once
 
-#include "Dictionary.h"
 #include "Engine.h"
-
-
-
 
 // AsMain
 class AsMain

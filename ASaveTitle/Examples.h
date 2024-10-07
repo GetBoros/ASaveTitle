@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AsConfig.h"
+//#include "AsConfig.h"
 
 //------------------------------------------------------------------------------------------------------------
 enum class EShow_Preview : int
@@ -11,6 +11,7 @@ enum class EShow_Preview : int
 	EP_Show_Void_Ptrs,  // Example how to use void * (void *)
 	EP_Show_Func_Ptrs,  // how to get func ptr and handle it
 	EP_Show_Func_Ptrs_Advenced,  // how to get func ptr and handle it advenced
+	EP_Show_Constexpr_Examples,
 	EP_Show_Cast_Exam,  // Reinterpret cast examples and other useful thinks
 	EP_Show_Html_Decode,
 	EP_Show_String_Replace,  // Example how to handle string, replace, find texts
@@ -129,6 +130,7 @@ private:
 	void Display_Void_Ptrs();
 	void Display_Func_Ptrs();
 	void Display_Func_Ptrs_Advenced();
+	void Display_Constexpr_Examples();
 	void Display_Cast_Exam();
 	void Display_Html_Decoder();
 	void Display_Replace_S();  // Example how replace std::string
@@ -138,6 +140,7 @@ private:
 	void Display_FFmpeg_Examples();
 
 	void Ffmpeg_Open_File();
+	constexpr int Func();
 
 	AClient *Client;
 };

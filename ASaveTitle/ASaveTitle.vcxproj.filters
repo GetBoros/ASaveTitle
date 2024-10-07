@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
@@ -21,28 +17,19 @@
     <Filter Include="Tools\Config">
       <UniqueIdentifier>{e677aac0-9124-41c6-ac3c-59d3efc1425e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dictionary">
-      <UniqueIdentifier>{b4b4616e-706c-4fdc-aa0b-fa0a09ea9867}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Tools\Examples">
       <UniqueIdentifier>{b3696955-78df-4a20-8cdc-c3057499cbf2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Tools\Tools">
+      <UniqueIdentifier>{85c019a2-e6d6-4a8c-aeaf-50556f4aa079}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools\PreCompile">
+      <UniqueIdentifier>{69800fc5-0e23-4b3e-97d2-49a23b9e3de4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="targetver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Main.h">
       <Filter>Main</Filter>
-    </ClInclude>
-    <ClInclude Include="AsTools.h">
-      <Filter>Tools</Filter>
     </ClInclude>
     <ClInclude Include="Engine.h">
       <Filter>Engine</Filter>
@@ -50,11 +37,20 @@
     <ClInclude Include="AsConfig.h">
       <Filter>Tools\Config</Filter>
     </ClInclude>
-    <ClInclude Include="Dictionary.h">
-      <Filter>Dictionary</Filter>
-    </ClInclude>
     <ClInclude Include="Examples.h">
       <Filter>Tools\Examples</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AsTools.h">
+      <Filter>Tools\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Tools\PreCompile</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -74,20 +70,20 @@
     <ClCompile Include="Main.cpp">
       <Filter>Main</Filter>
     </ClCompile>
-    <ClCompile Include="AsTools.cpp">
-      <Filter>Tools</Filter>
-    </ClCompile>
     <ClCompile Include="Engine.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="AsConfig.cpp">
       <Filter>Tools\Config</Filter>
     </ClCompile>
-    <ClCompile Include="Dictionary.cpp">
-      <Filter>Dictionary</Filter>
-    </ClCompile>
     <ClCompile Include="Examples.cpp">
       <Filter>Tools\Examples</Filter>
+    </ClCompile>
+    <ClCompile Include="AsTools.cpp">
+      <Filter>Tools\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Tools\PreCompile</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

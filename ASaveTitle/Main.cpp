@@ -4,7 +4,7 @@
 */
 #pragma endregion
 
-
+#include "stdafx.h"
 #include "Main.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -86,6 +86,8 @@ void func()
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
+	AsExamples examples(EShow_Preview::EP_Show_Constexpr_Examples);  // send data to server
+
 	if (false)  // Testing
 	{
 		char *test = 0;
@@ -94,8 +96,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_
 		AFFmpeg_Task ffmpeg_task(test);
 		ffmpeg_task.Init();
 		ffmpeg_task.Show_Info();
-		//AsExamples examples(EShow_Preview::EP_Show_FFMpeg_Example);  // send data to server
-		//examples.Open_File(test);
 		
 		delete[] test;
 		return 0;

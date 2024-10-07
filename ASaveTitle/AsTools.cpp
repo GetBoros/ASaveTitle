@@ -1,4 +1,5 @@
-﻿#include "AsTools.h"
+﻿#include "stdafx.h"
+#include "AsTools.h"
 
 // AsTools
 unsigned long long AsTools::How_Fast = 0LL;

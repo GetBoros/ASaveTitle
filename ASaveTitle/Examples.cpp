@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "Examples.h"
 
 // AActor
@@ -273,6 +274,9 @@ AsExamples::AsExamples(const EShow_Preview show_preview)
 		break;
 	case EShow_Preview::EP_Show_Func_Ptrs_Advenced:
 		Display_Func_Ptrs_Advenced();
+		break;
+	case EShow_Preview::EP_Show_Constexpr_Examples:
+		Display_Constexpr_Examples();
 		break;
 	case EShow_Preview::EP_Show_Cast_Exam:
 		Display_Cast_Exam();
@@ -629,6 +633,11 @@ void AsExamples::Display_Func_Ptrs_Advenced()
 	restored_func_ptr(EShow_Preview::EP_None);  //  Вызов функции через восстановленный указатель и передача аргумента типа EShow_Preview.
 }
 //------------------------------------------------------------------------------------------------------------
+void AsExamples::Display_Constexpr_Examples()
+{
+	int a = Func();
+}
+//------------------------------------------------------------------------------------------------------------
 void AsExamples::Display_Cast_Exam()
 {
 	struct SBase
@@ -853,6 +862,11 @@ void AsExamples::Display_FFmpeg_Examples()
 //------------------------------------------------------------------------------------------------------------
 void AsExamples::Ffmpeg_Open_File()
 {
+}
+//------------------------------------------------------------------------------------------------------------
+constexpr int AsExamples::Func()
+{
+	return 0;
 }
 //------------------------------------------------------------------------------------------------------------
 

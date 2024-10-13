@@ -81,11 +81,13 @@ void func()
 //------------------------------------------------------------------------------------------------------------
 
 
-
+extern "C" int Make_Sum(int *a, int b);
 
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
+	int arr[5] {};
+	Make_Sum(arr, 1);
 	AsExamples examples(EShow_Preview::EP_Show_Constexpr_Examples);  // send data to server
 
 	if (false)  // Testing

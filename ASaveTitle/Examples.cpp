@@ -760,10 +760,12 @@ void AsExamples::Display_FFmpeg_Commands()
 
 	// Command Line Examples ffmpeg
 	/*
-	- Temp
-	
+	- Temp Experements
+		- ffmpeg -i input.mp4 -vf "unsharp=5:5:1.0" -c:v libx264 -preset slow -crf 0 output.mp4
+		- ffmpeg -i input.mp4 -vf "minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps=60',unsharp=5:5:1.0" -c:v libx264 -preset slow -crf 18 output.mp4
+
 	- Screen_Shots
-		- ffmpeg -i inFile.mp4 -ss 00:01 -frames:v 1 -q:v 1 -vf "scale=1920:1080" outfile.png  // Get Screen
+		- ffmpeg -i improved_output.mp4 -ss 00:01 -frames:v 1 -q:v 1 -vf "scale=1920:1080" screen_00.png  // Get Screen
 	
 	- Video:
 			- Cut Video:  //  // Cut video from ss to...
@@ -771,10 +773,20 @@ void AsExamples::Display_FFmpeg_Commands()
 				- ffmpeg -i input.mp4 -ss 5 -c copy output.mp4  // Before 5 second save video
 				- ffmpeg -i input.mp4 -t 15 -c copy output.mp4  // Save only first 15 second
 
-				- ffmpeg -ss 00:00:00 -to 00:00:17 -i inFile.mp4 -c copy outfile.mp4  // Save 17 second 
+				- ffmpeg -ss 00:00:00 -to 00:00:17 -i input.mp4 -c copy outfile.mp4  // Save 17 second 
 				- ffmpeg -i inFile.mp4 -ss 00:00:00 -to 00:00:17 out.mp4 -c copy outfile.mp4  //
 				- ffmpeg -ss 14 -i inFile.mp4 -t 4 outfile.mp4  //  -ss 14 skip 14 second | -t time duration 4 seconds
 				- ffmpeg -i inFile.mp4 -ss 14 -to 18 outfile.mp4
+
+			- Intorpolate :
+		- ffmpeg -i input.mp4 -vf "minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps=60',scale=1920:-1,unsharp=5:5:1.0" -b:v 6000k -c:v libx264 -preset slow -crf 18 output_60fps_smooth_unsharp.mp4
+		- ffmpeg -i input.mp4 -vf "minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps=60',unsharp=5:5:1.0" -c:v libx264 -preset slow -crf 18 output.mp4
+			- Divide : stack two video in one
+		- ffmpeg -i output.mp4 -i input.mp4 -filter_complex " \
+			[0:v]crop=in_w:in_h/2:0:in_h/2[v1bottom]; \
+			[1:v]crop=in_w:in_h/2:0:in_h/2[v2bottom]; \
+			[v1bottom][v2bottom]vstack[vout]" \
+			-map "[vout]" -map 0:a -c:v libx264 -crf 16 -preset veryfast output_00_with_audio.mp4
 
 			- Convert :
 		- ffmpeg -i input.mp4 -vf "scale=1920:1080, fps=60, unsharp=5:5:1.0" -c:v libx264 -b:v 14866k -profile:v high -preset slow -c:a aac -b:a 128k -ar 44100 output.mp4
@@ -783,7 +795,7 @@ void AsExamples::Display_FFmpeg_Commands()
 		- ffmpeg -i input.mp4 -q 23 quality_23.avi  // or if mp4 use -crf || -q(quality) 23 value quality low better?!?
 
 	- Video Concatenation :
-		- ffmpeg -f concat -safe 0 -i file_list.txt -c copy outfile.mp4  // Create .txt and set all files to concatenate || file 'Test_00.mp4'
+		- ffmpeg -f concat -safe 0 -i file_list.txt -c copy outfile.mp4  // Create .txt and set all files to concatenate ||" file 'Test_00.mp4' "
 
 	- Audio:
 		- ffmpeg -i inFile.mp3 -b:a 320k outfile.mp3  // -b:a maybe bitrate for audo can change 320k to 1000k need write k

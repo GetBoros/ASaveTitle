@@ -63,20 +63,18 @@ public:
 
 	static const int Settings_Size;
 	static const int Max_Line;
-	static const int Max_Loadstring = 100;
-	static const int Global_Scale = 3;
-	static const int Ch_W = 8;
-	static const int Ch_H = 16;
-	static const int Menu_Main_Title_Length = 50;
+	static constexpr int Max_Loadstring = 100;
+	static constexpr int Global_Scale = 3;
+	static constexpr int Ch_W = 8;
+	static constexpr int Ch_H = 16;
+	static constexpr int Menu_Main_Title_Length = 50;
 	static constexpr int Window_Width = (int)( (double)960 * 1.5);
 	static constexpr int Window_Height = (int)((double)540 * 1.5);
 	static constexpr int Main_Image_Width = 424;
 	static constexpr int Main_Image_Height = 818;
 	static constexpr int User_Input_Buffer = Window_Width / Ch_W;
-	static const unsigned long long LL_Max;
-	static const unsigned long long ULL_Max;
-	static const unsigned long long ULL_Length;
-	static const unsigned long long ULL_Index_Length;
+	static constexpr unsigned long long ULL_Max = 18446744073709551615ULL;  // 18 [44 67 44] [07 37 09] [55 16 15] ULL || 9;
+	static constexpr unsigned long long ULL_Index_Length = 10000000000000000ULL;  // !!!;
 	
 	static const COLORREF Color_White;
 	static const COLORREF Color_Green;

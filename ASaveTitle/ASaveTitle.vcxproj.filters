@@ -86,4 +86,9 @@
       <Filter>Tools\PreCompile</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <MASM Include="Asm_Tools.asm">
+      <Filter>Tools</Filter>
+    </MASM>
+  </ItemGroup>
 </Project>

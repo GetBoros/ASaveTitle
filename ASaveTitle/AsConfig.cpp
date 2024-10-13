@@ -84,18 +84,12 @@ const AFont AsConfig::Title_Font(-24, 700, 49, L"Consolas");
 const AFont AsConfig::Logo_Pop_Font(-128, 900, 34, L"Arial Black");
 const AFont AsConfig::Game_Over_Font(-60, 700, 66, L"Comic Sans MS", true);
 
-
 const HBRUSH AsConfig::Brush_White  = CreateSolidBrush(RGB(255, 255, 255) );
 const HBRUSH AsConfig::Brush_Gray  = CreateSolidBrush(RGB(125, 125, 125) );
 const HBRUSH AsConfig::Brush_Green = CreateSolidBrush(RGB(0, 255, 0) );
 const HBRUSH AsConfig::Brush_Green_Dark = CreateSolidBrush(RGB(80, 146, 56) );
 const HBRUSH AsConfig::Brush_Background_Dark = CreateSolidBrush(RGB(30, 30, 30) );
 const HBRUSH AsConfig::Brush_Background_Button_Update = CreateSolidBrush(RGB(185, 122, 87) );
-
-const unsigned long long AsConfig::LL_Max = 9223372036854775807LL;  // 9 22 33 72 03 68 54 77 58 07 LL || 8
-const unsigned long long AsConfig::ULL_Max = 18446744073709551615ULL;  // 18 [44 67 44] [07 37 09] [55 16 15] ULL || 9
-const unsigned long long AsConfig::ULL_Length = 1000000000000000000ULL;  // 18 [44 67 44] [07 37 09] [55 16 15] ULL || 9
-const unsigned long long AsConfig::ULL_Index_Length = 10000000000000000ULL;  // !!!
 //------------------------------------------------------------------------------------------------------------
 AsConfig::~AsConfig()
 {

@@ -10,9 +10,9 @@ AsTools::~AsTools()
 	delta_tick = end_tick - start_tick;  // 194176 170824 192866
 	How_Fast = delta_tick;
 
-	if (delta_tick > 1999888)  // 86000
+	if (delta_tick > 2954178)  // 2954178
 		How_Fast = 0;  // Good
-	else if (delta_tick < 999888)
+	else if (delta_tick < 2954178)
 		How_Fast = 0;  // Bad |
 }
 //------------------------------------------------------------------------------------------------------------

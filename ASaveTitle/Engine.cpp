@@ -1472,10 +1472,10 @@ void AsUI_Builder::User_Map_Save(const char *file_path, std::map<wchar_t *, STit
 	unsigned long long numbers = 0;
 
 	std::ofstream outfile(file_path, std::ios::out | std::ios::binary);
-	if (!outfile)
+	if (!outfile != 0)
 		return;
 
-	for (std::pair<wchar_t *, STitle_Info *> it : map)
+	for (const std::pair<wchar_t *, STitle_Info *> it : map)
 	{
 		while (it.second->Title_Name_Num[title_index_length] != L'\0')
 		{// Title length

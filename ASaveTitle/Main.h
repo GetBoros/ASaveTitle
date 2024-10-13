@@ -19,8 +19,6 @@ private:
 
 	bool Init_Instance() const;
 	ATOM Register_Class() const;
-	// TEMP
-	RECT *Rect_Programs;
 
 	static WCHAR SZ_Title[AsConfig::Max_Loadstring];
 	static WCHAR SZ_Window[AsConfig::Max_Loadstring];

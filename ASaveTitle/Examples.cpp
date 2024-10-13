@@ -896,7 +896,7 @@ constexpr int AsExamples::Func()
 		- yt-dlp --merge-output-format mp4 -o "4.mp4" "https://edge31-waw.live.mmcdn.com/live-edge/amlst:aurora_radiance-sd-38e5483d956715fbb3a7a1c5616abd535b0b5f496f25ec869cf5b0d0126cbc1c_trns_h264/chunklist_w2049916998_b5128000_t64RlBTOjMwLjA=.m3u8"
 		- yt-dlp -f bestvideo+bestaudio --merge-output-format mp4 --write-sub --sub-lang en https://www.youtube.com/watch?v=liftGcnBvKs
 
-	// Streaming
+	// Re-Streaming
 ffmpeg -i "https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1725287016/ei/CHbVZqPcM8"
  -filter_complex "[0:a]showwaves=s=1920x1080:mode=cline:colors=cyan|magenta:scale=sqrt,eq=gamma=2.0[v]" -map "[v]" -map 0:a
  -f flv "rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h"
@@ -932,10 +932,6 @@ ffmpeg -i "https://manifest.googlevideo.com/api/manifest/" \
   -c:v libx264   -crf 23 -preset fast   -c:a aac -b:a 192k \
   -f flv "rtmp://b.rtmp.youtube.com/live2?backup=1/6qr3-2umk-tquf-9kjy-563h"
   
-  ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -crf 18 -threads 0 \
-  -c:v libx264   -crf 23 -preset fast   -c:a aac -b:a 192k \
-  output.mp4
-
   // Restream шумоподавление, аншарп, вывести надпись
 ffmpeg -i "https://video-weaver.vie02.hls.ttvnw.net/v1/playlist/CpUIEqBUXsqXxPolz7mKcvv1qyOQZjwIxZJOCoQjj4Kr0W5fMcji8ChyQ9VdPrAWrdnC9QmBjKG28XMv6pFGOEewSSGUhbAjOGQ3l6K3ZWryDH5pq_9MZQHepWA08WBNBBozWakYSy4nKJjfryly2H7qjWJ9jTjh9iGhriJiMnVXCKBOzqt5yYTLu2Im3RIATuzL3L5BrA0Wffp2sJ4wuY4nYDjN5PJDY-H1PDClx_0fiZ_7cqLctwbO1Ek9qxdqDtkpltwi2eqVbNhv4KS5fuVfwzhsa-l4PYOxjX5UdbYw5f0EGYyZm3ai4JDEb9FQxCjtPQi8ZCjkNDG2M7dUbZ6P2CbLuRxnJyWpN7K-dbPprQYx_DpiedBU__sMn5whDlzef3lgYL_0FsBOYL6hNVHWo7ChST-eLtHkdxwriuf8KSzh846xiaMa0434HQhanZx76bz4s5S6bBSe4RKnvLIKgnrWw1g5M_ZSM1wbgdGd2dhSrJQv0r5oh-tYZdHr3vOU15wN_4IcRYnVp3jR5G_RNGOz6oghSwn3sttiMtZzzDAwL9i60B56V9lUx_un4I5eOqBRicEPps1bvDpXNCZ0uBG7l6E3GS8SPyCGBlrarosuUSvgPTV6Okemm2kb-9h0GacQe2OY3k9Vh7b4NVGsd6g-8b9SkttmPgiTH8szZvCVkr6ItA4Cy8UQtNPkl1pf_fxYvPepfETEHSOsAAhS_SED9ZzaQC7TNXmS4AwdpKJhqUQsDEqgTTg-end3J__22SvSsrQ47ZMRPrgKkyC7iZZKVGqF17iZI25nueor1s6IexVW8SQ6Ri_XXws6cImpWqN0sa7hzWCRofNZuphNFbJkqlwH64phbvQrNKNZlzGqflYbTwvsBnCXAramO5qcKXUZRLsTs6w2G9bRKY1wvkJdQmU17o4JLGrGZx8Un7AN1qYuU0e-7FPglfkPeb51ZDn26uv9o9VzhAL7IzFZAUKB28GlwhwRY7dDhHgte8YkAcJnGAvTecYNSTUUCF7B-TTrDzfKThErHlWLurSs3kJIVQsaXkj9AGYlMj9jngB--7ezyf4-XRU0-u-ypd5tqJs1l4ydkn2t5T8DGe90kuJG8m1veCXsWrwI4UrIvSVdm8NnzXsm97DuamU3E9U4-7p1P6tPZRvWFWuMN1qgHyUFIDC2wFTA6h4HKH5btJ99b0dN3RI8B4pwxzlDoLN0_B4cyn5ZDJ6i-pbzXN7psZ9vM7B5BcBlzW9UkDRZD3xmFQxemdD_s02vB1oUcNssOGM8QNfgCzRbOXm8U4fg0nWrhMrwUr4tDTxWhgIOfegPu0WltAGEBG6GcL8TnbWXCYDNHLZrqzzI-Um00ihnhK4LBElPj4Wd_5m86MQIof9RsTTT1hoMS39TTbBwzr-2tAyVIAEqCWV1LXdlc3QtMjCuCg.m3u8" \
 -vf "hqdn3d,scale=1920x1080,unsharp=5:5:1.0,drawtext=fontfile='C\\:/Windows/Fonts/ahronbd.ttf':text='twitch.tv/AlinaRinRin':x=w-tw-100:y=20:fontsize=24:fontcolor=green,eq=brightness=0:contrast=1" \
@@ -949,7 +945,9 @@ ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -cr
 ffmpeg  -framerate 30 -f gdigrab -i :1 -f pulse -i default -c:v libx264 -s 1920x1080 -r 60 -b:v 5000k  -crf 10 -vf format=yuv420p -c:a aac -b:a 128k -f flv rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h
 
 // Twitch Stream
-ffmpeg -f gdigrab -framerate 30 -video_size 1440x900 -i desktop -vf "format=yuv420p" -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k -f flv rtmp://live.twitch.tv/app/live_263586276_G3Ev7Xqhd1et7JuDU5NA9xJQqmc7do
+ffmpeg -f gdigrab -framerate 24 -video_size 1440x900 -i desktop \
+-f dshow -i audio="Стерео микшер (Realtek High Definition Audio)" \
+-c:v libx264 -preset veryfast -b:v 4500k -maxrate 4000k -c:a aac -b:a 192k output.mp4
 
 ffmpeg -f gdigrab -framerate 30 -video_size 1440x900 -i desktop -vf "format=yuv420p" -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k -f flv rtmp://live.twitch.tv/app/live_263586276_6J5KQTRlyIKNT4Ef1cONmv62Ot0FtX
 

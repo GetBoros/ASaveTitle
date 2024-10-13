@@ -79,15 +79,44 @@ void func()
 			( *found++ = found[1]);  // set next wchar to empty space after found++(it`s last low prior)
 }
 //------------------------------------------------------------------------------------------------------------
+static size_t allocationCount; // Счетчик выделений памяти
+static size_t allocationDeleted; // Счетчик выделений памяти
+//------------------------------------------------------------------------------------------------------------
+void *operator new(size_t size) {
+	allocationCount++;
+	return malloc(size); // Вызов стандартного оператора new
+}
+//------------------------------------------------------------------------------------------------------------
+void operator delete(void *ptr) {
+	allocationDeleted++;
+	return free(ptr); // Вызов стандартного оператора new
+}
+//------------------------------------------------------------------------------------------------------------
 
 
-extern "C" int Make_Sum(int *a, int b);
+
+
+extern "C" int Make_Sum(int a, int b);
+extern "C" int Add_To_Array(int *arr, int value, int length);
 
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	int arr[5] {};
-	Make_Sum(arr, 1);
+	//constexpr char temp[] = "Hello world";
+	//const std::string path(temp);
+
+	//int count = sizeof(path);
+	//const char *path = path.c_str();
+
+	constexpr int length = 5;
+
+	int value = 0;
+	int arr[length] {};
+	value = Make_Sum(1, 3);
+	Add_To_Array(arr, value, length);  // memset
+	value++;
+
+	//return 0;
 	AsExamples examples(EShow_Preview::EP_Show_Constexpr_Examples);  // send data to server
 
 	if (false)  // Testing
@@ -118,7 +147,7 @@ WCHAR AsMain::SZ_Title[] = L"ASaver";
 WCHAR AsMain::SZ_Window[] = L"Book_Reader";
 //------------------------------------------------------------------------------------------------------------
 AsMain::AsMain(HINSTANCE handle_instance)
-	:HInstance(handle_instance)
+ : HInstance(handle_instance)
 {
 	Main_Window = this;
 	setlocale(LC_ALL, "ru_RU.UTF-8");

@@ -352,7 +352,7 @@ AsUI_Builder::~AsUI_Builder()
 	if (H_Bitmap != 0)
 		DeleteObject(H_Bitmap);
 
-	// 1.3. Save and free memmory
+	// !!! 1.3. Save and free memmory || Make just one func
 	for (i = 0; i < (int)EUser_Arrays::EUA_Arrays_Count; ++i)
 	{
 		threads_temp.emplace_back([&, i]()
@@ -992,7 +992,7 @@ void AsUI_Builder::Handle_Border_Pressed()
 	Border_Pressed = EPress::Non_Bordered;
 }
 //------------------------------------------------------------------------------------------------------------
-void AsUI_Builder::Handle_Border_Pressed_Index(const int border_index, const int border_length, int& result) const
+void AsUI_Builder::Handle_Border_Pressed_Index(const int border_index, const int border_length, int &result) const
 {
 	RECT mouse_cord_destination{};
 
@@ -1096,6 +1096,24 @@ void AsUI_Builder::Handle_Menu_Sub()
 
 		if (i == EPage_Button::EPB_Next && User_Maps[(int)Active_Map]->size() > (size_t)(AsConfig::Max_Line + Button_User_Offset) )
 			Button_User_Offset += AsConfig::Max_Line;
+
+		if (i == EPage_Button::EPB_Update)
+		{
+			// !!! Copy pasta from destructor those class
+			std::vector<std::thread> threads_temp;
+
+			for (i = 0; i < (int)EUser_Arrays::EUA_Arrays_Count; ++i)
+			{
+				threads_temp.emplace_back([&, i]()
+					{
+						User_Map_Save(AsConfig::Saved_Path[i], *User_Maps[i]);
+						User_Map_Free(*User_Maps[i]);  // Thread 1
+					});
+			}
+			for (std::thread &thread : threads_temp)
+				thread.join();
+		}
+
 		Border_Pressed = EPress::Button_Pages;
 		return;
 	}

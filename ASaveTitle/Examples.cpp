@@ -938,18 +938,10 @@ ffmpeg -i "https://video-weaver.vie02.hls.ttvnw.net/v1/playlist/CpUIEqBUXsqXxPol
 -b:v 6800k -c:v libx264 -crf 26 -preset fast -c:a aac -b:a 192k \
 -f flv "rtmp://b.rtmp.youtube.com/live2?backup=1/6qr3-2umk-tquf-9kjy-563h"
 
-ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -crf 0 -threads 0  -f flv "rtmp://b.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h" -an
-
-ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -preset ultrafast -crf 0 -threads 0 -f flv "rtmp://server.address/live/6qr3-2umk-tquf-9kjy-563h"
-
-ffmpeg  -framerate 30 -f gdigrab -i :1 -f pulse -i default -c:v libx264 -s 1920x1080 -r 60 -b:v 5000k  -crf 10 -vf format=yuv420p -c:a aac -b:a 128k -f flv rtmp://a.rtmp.youtube.com/live2/6qr3-2umk-tquf-9kjy-563h
-
 // Twitch Stream
-ffmpeg -f gdigrab -framerate 24 -video_size 1440x900 -i desktop \
--f dshow -i audio="Стерео микшер (Realtek High Definition Audio)" \
--c:v libx264 -preset veryfast -b:v 4500k -maxrate 4000k -c:a aac -b:a 192k output.mp4
-
-ffmpeg -f gdigrab -framerate 30 -video_size 1440x900 -i desktop -vf "format=yuv420p" -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k -f flv rtmp://live.twitch.tv/app/live_263586276_6J5KQTRlyIKNT4Ef1cONmv62Ot0FtX
+ffmpeg -f gdigrab -framerate 30 -video_size 1440x900 -i desktop -vf "format=yuv420p" \
+-c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
+-f flv rtmp://live.twitch.tv/app/live_263586276_6J5KQTRlyIKNT4Ef1cONmv62Ot0FtX
 
 */
 

@@ -7,8 +7,8 @@
 #include "stdafx.h"
 #include "Main.h"
 
-//------------------------------------------------------------------------------------------------------------
-void init(SOCKET &socket_to_server, struct sockaddr_in &address_server)
+// TEMPORARY
+static void init(SOCKET &socket_to_server, struct sockaddr_in &address_server)
 {
 	int result;
 	WSADATA wsocket_data;
@@ -32,7 +32,7 @@ void init(SOCKET &socket_to_server, struct sockaddr_in &address_server)
 	address_server.sin_port = htons(666);  // Порт сервера
 }
 //------------------------------------------------------------------------------------------------------------
-int connect_to_server()
+static int connect_to_server()
 {
 	SOCKET socket_to_server;
 	struct sockaddr_in address_server;
@@ -68,7 +68,7 @@ int connect_to_server()
 	return 0;
 }
 //------------------------------------------------------------------------------------------------------------
-void func()
+static void func()
 {
 	wchar_t *found = 0;
 	wchar_t str[] = L"Я стал самым сильным с провальным навыком «ненормальное состояние», я разрушу всё 12";
@@ -82,12 +82,14 @@ void func()
 static size_t allocationCount; // Счетчик выделений памяти
 static size_t allocationDeleted; // Счетчик выделений памяти
 //------------------------------------------------------------------------------------------------------------
-void *operator new(size_t size) {
+void *operator new(size_t size)
+{
 	allocationCount++;
 	return malloc(size); // Вызов стандартного оператора new
 }
 //------------------------------------------------------------------------------------------------------------
-void operator delete(void *ptr) {
+void operator delete(void *ptr)
+{
 	allocationDeleted++;
 	return free(ptr); // Вызов стандартного оператора new
 }
@@ -96,18 +98,17 @@ void operator delete(void *ptr) {
 
 
 
+// ASSEMBLER
 extern "C" int Make_Sum(int a, int b);
 extern "C" int Add_To_Array(int *arr, int value, int length);
+//------------------------------------------------------------------------------------------------------------
+
+
+
 
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	//constexpr char temp[] = "Hello world";
-	//const std::string path(temp);
-
-	//int count = sizeof(path);
-	//const char *path = path.c_str();
-
 	constexpr int length = 5;
 
 	int value = 0;

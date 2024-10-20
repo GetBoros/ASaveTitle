@@ -1107,7 +1107,6 @@ void AsUI_Builder::Handle_Menu_Sub()
 				threads_temp.emplace_back([&, i]()
 					{
 						User_Map_Save(AsConfig::Saved_Path[i], *User_Maps[i]);
-						User_Map_Free(*User_Maps[i]);  // Thread 1
 					});
 			}
 			for (std::thread &thread : threads_temp)

@@ -109,6 +109,7 @@ extern "C" int Add_To_Array(int *arr, int value, int length);
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
+	// ASSEMBLY EXAMPLES
 	constexpr int length = 5;
 
 	int value = 0;
@@ -116,6 +117,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_
 	value = Make_Sum(1, 3);
 	Add_To_Array(arr, value, length);  // memset
 	value++;
+	// ASSEMBLY EXAMPLES END
 
 	//return 0;
 	AsExamples examples(EShow_Preview::EP_Show_Constexpr_Examples);  // send data to server

@@ -38,6 +38,7 @@ void AFont::Select(HDC hdc) const
 // AsConfig
 HWND AsConfig::Hwnd;
 
+// Так можно здоровые массивы хранить быстрый доступ и тд и тп и не занимает тактов
 const char AsConfig::Dictionary_Main_Folder[] = "Map.bin";
 const char AsConfig::Image_Name_File[] = "TemporaryName.png";
 const char AsConfig::Path_Saves_Folder[] = "Data/";

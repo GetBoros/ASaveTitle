@@ -36,6 +36,38 @@ enum class EClient_State : byte
 
 
 
+// ABase_Widget
+class ABase_Widget
+{
+public:
+	virtual void Button_Create() = 0;
+	virtual void Button_Remove() = 0;
+
+	int a = 1;
+};
+//------------------------------------------------------------------------------------------------------------
+class AModule_Menu : public ABase_Widget
+{
+public:
+	virtual void Button_Create();
+	virtual void Button_Remove();
+	
+	int b = 2;
+};
+//------------------------------------------------------------------------------------------------------------
+class AModule_Menu_Option : public ABase_Widget
+{
+public:
+	virtual void Button_Create();
+	virtual void Button_Remove();
+
+	int c = 3;
+};
+//------------------------------------------------------------------------------------------------------------
+
+
+
+
 // AActor
 class AActor
 {

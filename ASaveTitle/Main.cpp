@@ -102,13 +102,31 @@ void operator delete(void *ptr)
 extern "C" int Make_Sum(int a, int b);
 extern "C" int Add_To_Array(int *arr, int value, int length);
 //------------------------------------------------------------------------------------------------------------
+int Game_Mode_Func()
+{
+	ABase_Widget *base_widget[2] {};
+	base_widget[0] = new AModule_Menu;
+	base_widget[1] = new AModule_Menu_Option;
 
+	base_widget[0]->Button_Create();
+	base_widget[1]->Button_Create();
+	base_widget[0]->Button_Remove();
+	base_widget[1]->Button_Remove();
 
+	delete base_widget[0];
+	base_widget[0] = 0;
+	delete base_widget[1];
+	base_widget[1] = 0;
+	return 0;
+}
+//------------------------------------------------------------------------------------------------------------
 
 
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
+	return Game_Mode_Func();
+
 	// ASSEMBLY EXAMPLES
 	constexpr int length = 5;
 

@@ -7,6 +7,8 @@
 #include "stdafx.h"
 #include "Main.h"
 
+Gdiplus::Image* gdi_image = nullptr;
+
 // TEMPORARY
 static void init(SOCKET &socket_to_server, struct sockaddr_in &address_server)
 {
@@ -121,11 +123,18 @@ int Game_Mode_Func()
 }
 //------------------------------------------------------------------------------------------------------------
 
-
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	return Game_Mode_Func();
+	// Инициализация GDI+
+	Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+	ULONG_PTR gdiplusToken;
+	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, 0);
+
+	// Загрузка изображения (замени "image.jpg" на свой путь к изображению)
+	gdi_image = new Gdiplus::Image(L"Main_Image.png");
+
+	//return Game_Mode_Func();
 
 	// ASSEMBLY EXAMPLES
 	constexpr int length = 5;
@@ -138,7 +147,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_
 	// ASSEMBLY EXAMPLES END
 
 	//return 0;
-	AsExamples examples(EShow_Preview::EP_Show_Constexpr_Examples);  // send data to server
+	//AsExamples examples(EShow_Preview::EP_Show_Constexpr_Examples);  // send data to server
 
 	if (false)  // Testing
 	{
@@ -154,6 +163,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_
 	}
 	else
 		return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not
+
+	/*delete image;
+	GdiplusShutdown(gdiplusToken);*/
 }
 //------------------------------------------------------------------------------------------------------------
 

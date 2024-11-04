@@ -1691,6 +1691,14 @@ void AsEngine::Draw_Frame_ASaver(HWND hwnd)
 	Ptr_Hwnd = hwnd;
 	Ptr_Hdc = BeginPaint(Ptr_Hwnd, &Paint_Struct);
 
+	Gdiplus::Graphics graphics(Ptr_Hdc);
+
+	// Отображение изображения
+	if (gdi_image)
+	{
+		graphics.DrawImage(gdi_image, 0, 0, gdi_image->GetWidth(), gdi_image->GetHeight());
+	}
+
 	if (UI_Builder != 0)  // Can be better
 		UI_Builder->Builder_Handler(Ptr_Hdc, EBuilder_Handler, W_Param, L_Param);
 	else

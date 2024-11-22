@@ -790,29 +790,34 @@ void AsExamples::Display_FFmpeg_Commands()
 
 	// Command Line Examples ffmpeg
 	/*
+	
+	- QSP  // Only to convert scale
+		- ffmpeg -hwaccel qsv -hwaccel_output_format qsv -i 0.mp4 -vf "format=nv12,scale=1920:1080:flags=lanczos" -c:v h264_qsv -preset veryslow -global_quality 21 output.mp4
+		- ffmpeg -hwaccel qsv -hwaccel_output_format qsv -i 0.mp4 -c:v h264_qsv -preset veryslow -global_quality 21 output.mp4
+	
 	- Temp Experements
 		- ffmpeg -i input.mp4 -vf "unsharp=5:5:1.0" -c:v libx264 -preset slow -crf 0 output.mp4
-		- ffmpeg -i input.mp4 -vf "minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps=60',unsharp=5:5:1.0" -c:v libx264 -preset slow -crf 18 output.mp4
+		- ffmpeg -i input.mp4 -vf "scale=1920:1080:flags=lanczos,minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps=60',unsharp=3:3:0.8" -c:v libx264 -preset veryslow -crf 21 output.mp4
 
 	- Screen_Shots
 		- ffmpeg -i improved_output.mp4 -ss 00:01 -frames:v 1 -q:v 1 -vf "scale=1920:1080" screen_00.png  // Get Screen
 	
 	- Video:
 			- Cut Video:  //  // Cut video from ss to...
-				- ffmpeg -i input.mp4 -ss 00:01:18 -to 00:02:48 -c copy 0.mp4
-				- ffmpeg -i input.mp4 -ss 5 -c copy output.mp4  // Before 5 second save video
+				- ffmpeg -i input.mp4 -ss 00:01:18 -to 00:02:48 -c copy 0.mp4  // from to
 				- ffmpeg -i input.mp4 -t 15 -c copy output.mp4  // Save only first 15 second
 
 				- ffmpeg -ss 00:00:00 -to 00:00:17 -i input.mp4 -c copy outfile.mp4  // Save 17 second 
 				- ffmpeg -i inFile.mp4 -ss 00:00:00 -to 00:00:17 out.mp4 -c copy outfile.mp4  //
-				- ffmpeg -ss 14 -i inFile.mp4 -t 4 outfile.mp4  //  -ss 14 skip 14 second | -t time duration 4 seconds
+				- ffmpeg -ss 14 -i inFile.mp4 -t 4 outfile.mp4  //  -ss 14 - skip 14 second | -t time duration 4 seconds
 				- ffmpeg -i inFile.mp4 -ss 14 -to 18 outfile.mp4
 
 			- Intorpolate :
 		- ffmpeg -i input.mp4 -vf "minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps=60',scale=1920:-1,unsharp=5:5:1.0" -b:v 6000k -c:v libx264 -preset slow -crf 18 output_60fps_smooth_unsharp.mp4
 		- ffmpeg -i input.mp4 -vf "minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps=60',unsharp=5:5:1.0" -c:v libx264 -preset slow -crf 18 output.mp4
+			
 			- Divide : stack two video in one
-		- ffmpeg -i output.mp4 -i input.mp4 -filter_complex " \
+		- ffmpeg -i 0.mp4 -i output.mp4 -filter_complex " \
 			[0:v]crop=in_w:in_h/2:0:in_h/2[v1bottom]; \
 			[1:v]crop=in_w:in_h/2:0:in_h/2[v2bottom]; \
 			[v1bottom][v2bottom]vstack[vout]" \
@@ -983,4 +988,25 @@ ffmpeg -f gdigrab -framerate 30 -video_size 1440x900 -i desktop -vf "format=yuv4
 	- acompressor -af "acompressor=threshold=-20dB:ratio=4:attack=200:release=1000"
 
 	- equalizer -af "equalizer=f=1000:t=q:w=1:g=-10, aecho=0.8:0.88:60:0.4"
+*/
+
+// HOTKEYS
+/*
+	- CTRL+SHIFT+BACKSPACE Back to prev changed in code
+	- CTRL + G  // Go to Line
+	- ALT + F12 show func defenition and can change it
+	- CTRL + - || CTRL + SHIFT + -   // Toggle pages
+	- CTRL + K,S  // Surrond with if or elsewhere
+	- TOOLS Windows Managment:
+		- CTRL + ALT + O  // Show output
+		- CTRL + ALT + L  // Show solution + 1
+		- CTRL + ALT + B  // Show Breakpoints
+		- CTRL + \,E  // Show Errors
+		- SHIFT + ESC  // Close current tool window
+
+	- DEBUG:
+		- Shift+F5  // Stop debug
+		- Ctrl+F10  // Run to cursor
+
+
 */

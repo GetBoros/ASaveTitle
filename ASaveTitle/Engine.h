@@ -128,7 +128,6 @@ private:
 	void Init();
 	void CURL_Handler();  // !!! Need Refactoring
 	
-	// Done | Parsing Site, Get Title Name(num, season) and Download Image
 	void Add_Pattern_File();  // Create File for user`s can set prefered patterns to curl || 164
 	void Get_ID();  // !!! Handle ID_Content_Array | Save / Load Array | Resize Array | Tested only Anime-bit
 	void Get_Patterns();  // Try to receive valid patterns from file, if bad string next func died
@@ -1009,7 +1008,7 @@ V	- "Башня бога тайтл" don`t show image, reason : in title name
 V		- while add image can format title key
 
 */
-// TASKS --- 04.10.2024 --- Current ---
+// TASKS --- 04.10.2024 ---
 /*
 
 X	- Создавать кастомные массивы, например для Китайских Аниме или Японских
@@ -1022,6 +1021,7 @@ X	- Сделать поиск в библиотеке?
 
 // MAIN TASKS
 /*
+X	- Change current draw image to GDIplus
 X	- Maybe format <h3>&#x411;&#x430;&#x441;&#x43D;&#x44F;  to rus and write rus title name? or at english?
 X	- Начать работу над сервером?
 X	- Работа над кнопкой UPdate?

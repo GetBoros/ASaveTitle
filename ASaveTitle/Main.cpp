@@ -96,29 +96,6 @@ void operator delete(void *ptr)
 	return free(ptr); // Вызов стандартного оператора new
 }
 //------------------------------------------------------------------------------------------------------------
-int factorial(int n) {
-	if (n <= 1) {
-		return 1;
-	}
-	else {
-		return n * factorial(n - 1);
-	}
-}
-//------------------------------------------------------------------------------------------------------------
-void Temp()
-{
-	std::vector<int> numbers = { 1, 2, 3, 4, 5 };
-
-	for (int i = 0; i < numbers.size(); ++i)
-		if (numbers[i] % 2 == 0)
-			numbers[i];
-		else
-			numbers[i];
-
-	int result = factorial(5);
-	throw result;
-}
-//------------------------------------------------------------------------------------------------------------
 
 
 
@@ -149,7 +126,22 @@ int Game_Mode_Func()
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	Temp();
+	INPUT inputs[2] {};
+
+	inputs[0].type = INPUT_MOUSE;
+	inputs[0].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+
+	inputs[1].type = INPUT_MOUSE;
+	inputs[1].mi.dwFlags = MOUSEEVENTF_LEFTUP;  // Отпускание ЛКМ
+
+	SetCursorPos(651, 22);
+	
+	std::this_thread::sleep_for(std::chrono::seconds(5) );
+
+	SendInput(2, inputs, sizeof(INPUT) );
+
+	return 0;
+
 	int a = 0;
 
 	// Инициализация GDI+

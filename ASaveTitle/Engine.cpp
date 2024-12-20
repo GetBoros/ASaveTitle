@@ -201,10 +201,10 @@ void ACurl_Client::Get_Patterns()
 //------------------------------------------------------------------------------------------------------------
 void ACurl_Client::Get_URL_Data() const
 {
-	char *url;
 	int size;
-	CURL *curl;
 	CURLcode res;
+	char *url;
+	CURL *curl;
 	FILE *file;
 
 	size = 0;
@@ -215,8 +215,11 @@ void ACurl_Client::Get_URL_Data() const
 	curl_easy_setopt(curl, CURLOPT_URL, url);  // Options
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Write_To_File);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, "getboros");
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
 	res = curl_easy_perform(curl);
-	
+
 	curl_easy_cleanup(curl);  // Cleaning
 	if (file != 0)
 		fclose(file);
@@ -378,16 +381,6 @@ AsUI_Builder::AsUI_Builder(HDC hdc)
 : Ptr_Hdc(hdc), Builder_State(EBuilder_State::EBS_Working), Active_Map(EUser_Arrays::EUA_Arrays_Count), Border_Pressed(EPress::Border_Menu_Main), 
   Buttons {}, User_Input(0), Button_User_Offset(0), Borders_Rect{}, Hdc_Memory(0), H_Bitmap(0), Saved_Object(0), User_Maps {}, It_User_Map_Active {}
 {
-	//const wchar_t test[] = L"https://anime-bit.ru/content/7003/";
-	//wchar_t *temp = new wchar_t[90] {};
-
-	//wcsncpy_s(temp, wcslen(test) + 1, test, wcslen(test) );
-	//
-	//ACurl_Client client_url(EProgram::ASaver, temp);  // Get content from url
-
-	//int yy = 0;
-	//delete[] temp;
-
 	std::vector<std::thread> threads;
 
 	User_Maps = new std::map<wchar_t *, STitle_Info *, SCmp_Char> *[(int)EUser_Arrays::EUA_Arrays_Count] {};
@@ -471,7 +464,7 @@ void AsUI_Builder::Init()
 	Borders_Rect[(int)EPress::Button_Pages][EPage_Button::EPB_Next] = { 1305, 12, 1375, 30 };
 
 	Buttons = new byte[(int)EActive_Button::EAB_Handlers_Count] {};
-	User_Input = new wchar_t[128] {};
+	User_Input = new wchar_t[200] {};
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Draw_Border()
@@ -836,50 +829,51 @@ void AsUI_Builder::Redraw_Button_User_Input_Added()
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Redraw_Image() const
-{
-	int width = 0, height = 0, bpp = 0;
-	DXGI_FORMAT format {};
-	RECT img_cords {};
-	std::filesystem::path image_path {};
-	BITMAPINFO bmi = {};
-	DirectX::ScratchImage image_title {};
+{// Change to GDI IMAGE
 
-	//if (Active_Map == EUser_Arrays::EUA_Arrays_Count)
-	if (Border_Pressed == EPress::Border_Menu_Main)
-		image_path = AsConfig::Main_Image_Folder;
-	else
-		image_path = AsConfig::Image_Folder + std::wstring(It_User_Map_Active->second->Title_Name_Key) + AsConfig::Image_Format;
+	//int width = 0, height = 0, bpp = 0;
+	//DXGI_FORMAT format {};
+	//RECT img_cords {};
+	//std::filesystem::path image_path {};
+	//BITMAPINFO bmi = {};
+	//DirectX::ScratchImage image_title {};
 
-	DirectX::LoadFromWICFile(image_path.c_str(), DirectX::WIC_FLAGS_NONE, 0, image_title);
+	////if (Active_Map == EUser_Arrays::EUA_Arrays_Count)
+	//if (Border_Pressed == EPress::Border_Menu_Main)
+	//	image_path = AsConfig::Main_Image_Folder;
+	//else
+	//	image_path = AsConfig::Image_Folder + std::wstring(It_User_Map_Active->second->Title_Name_Key) + AsConfig::Image_Format;
 
-	const DirectX::Image *img = image_title.GetImage(0, 0, 0);
-	if (!img != 0)
-		return;
+	//DirectX::LoadFromWICFile(image_path.c_str(), DirectX::WIC_FLAGS_NONE, 0, image_title);
 
-	format = img->format;
-	bpp = (int)DirectX::BitsPerPixel(format);
-	width = (int)img->width;
-	height = (int)img->height;
+	//const DirectX::Image *img = image_title.GetImage(0, 0, 0);
+	//if (!img != 0)
+	//	return;
 
-	bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-	bmi.bmiHeader.biWidth = width;
-	bmi.bmiHeader.biHeight = -height; // отрицательное значение для вертикального растеризации сверху вниз
-	bmi.bmiHeader.biPlanes = 1;
-	bmi.bmiHeader.biBitCount = bpp;
-	bmi.bmiHeader.biCompression = BI_RGB;
+	//format = img->format;
+	//bpp = (int)DirectX::BitsPerPixel(format);
+	//width = (int)img->width;
+	//height = (int)img->height;
 
-	img_cords.left = 9;
-	img_cords.top = 182;
-	img_cords.right = AsConfig::Main_Image_Width;  // 415
-	img_cords.bottom = AsConfig::Main_Image_Height;  // 636
-	FillRect(Ptr_Hdc, &img_cords, AsConfig::Brush_Background_Dark);
+	//bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+	//bmi.bmiHeader.biWidth = width;
+	//bmi.bmiHeader.biHeight = -height; // отрицательное значение для вертикального растеризации сверху вниз
+	//bmi.bmiHeader.biPlanes = 1;
+	//bmi.bmiHeader.biBitCount = bpp;
+	//bmi.bmiHeader.biCompression = BI_RGB;
 
-	img_cords.right = width;  // 415
-	img_cords.bottom = height;  // 636
+	//img_cords.left = 9;
+	//img_cords.top = 182;
+	//img_cords.right = AsConfig::Main_Image_Width;  // 415
+	//img_cords.bottom = AsConfig::Main_Image_Height;  // 636
+	//FillRect(Ptr_Hdc, &img_cords, AsConfig::Brush_Background_Dark);
 
-	StretchDIBits(Ptr_Hdc, img_cords.left, img_cords.top, img_cords.right, img_cords.bottom, 0, 0, width, height, img->pixels, &bmi, DIB_RGB_COLORS, SRCCOPY);
+	//img_cords.right = width;  // 415
+	//img_cords.bottom = height;  // 636
 
-	image_title.Release();
+	//StretchDIBits(Ptr_Hdc, img_cords.left, img_cords.top, img_cords.right, img_cords.bottom, 0, 0, width, height, img->pixels, &bmi, DIB_RGB_COLORS, SRCCOPY);
+
+	//image_title.Release();
 }
 //------------------------------------------------------------------------------------------------------------
 void AsUI_Builder::Redraw_Button_Request() const
@@ -1198,13 +1192,12 @@ void AsUI_Builder::Handle_User_Input()
 	if (wcsstr(User_Input, AsConfig::Protocols[0]) != 0 || wcsstr(User_Input, AsConfig::Protocols[1]) != 0)
 	{
 		// 1.1. Try to get url content from ACurl
-		length = 128;  // !!! TEMP need to right
-		url_content = new wchar_t[length]{};  // need send a lot of memorry to get long title names
+		length = (int)(wcslen(User_Input) + 1);
+		url_content = new wchar_t[length] {};
 		wcsncpy_s(url_content, (size_t)(wcslen(User_Input) + 1), User_Input, (int)wcslen(User_Input) );
 
-		// !!! Refactoring some day
-		ACurl_Client client_url(EProgram::ASaver, url_content);  // !!! || Get content from url
-		if (wcsstr(url_content, L"Pattern") )  // !!! Rework with ACurl
+		ACurl_Client client_url(EProgram::ASaver, url_content);
+		if (wcsstr(url_content, L"Pattern") )
 		{
 			wcsncpy_s(User_Input, wcslen(url_content) + 1, url_content, wcslen(url_content) );
 			Draw_Button_User_Input();
@@ -1213,7 +1206,6 @@ void AsUI_Builder::Handle_User_Input()
 			delete[] url_content;
 			return;
 		}
-		// !!! Refactoring END
 
 		if (*url_content != L'\0')  // !!! if pattern added don`t need go here
 		{// Covert data and title and Save image
@@ -1690,14 +1682,6 @@ void AsEngine::Draw_Frame_ASaver(HWND hwnd)
 {
 	Ptr_Hwnd = hwnd;
 	Ptr_Hdc = BeginPaint(Ptr_Hwnd, &Paint_Struct);
-
-	Gdiplus::Graphics graphics(Ptr_Hdc);
-
-	// Отображение изображения
-	if (gdi_image)
-	{
-		graphics.DrawImage(gdi_image, 0, 0, gdi_image->GetWidth(), gdi_image->GetHeight());
-	}
 
 	if (UI_Builder != 0)  // Can be better
 		UI_Builder->Builder_Handler(Ptr_Hdc, EBuilder_Handler, W_Param, L_Param);

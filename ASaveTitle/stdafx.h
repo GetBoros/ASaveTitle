@@ -10,11 +10,11 @@
 extern "C"
 {// FFMPEG
 #include <sys/stat.h>
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-#include <libswscale/swscale.h>
-#include <libavutil/imgutils.h>
-#include <libavutil/opt.h>
+//#include <libavformat/avformat.h>
+//#include <libavcodec/avcodec.h>
+//#include <libswscale/swscale.h>
+//#include <libavutil/imgutils.h>
+//#include <libavutil/opt.h>
 }
 
 #include <fstream>  // SAVE || LOAD
@@ -24,12 +24,13 @@ extern "C"
 #include <array>
 #include <cwctype>  // For std::towupper and std::towlower
 #include <mutex>
+#include <functional>
 #include <bitset>  // std::bitset || std::byte
 #include "WinSock2.h"  // NET
 #include "curl/curl.h"  // NET || BROWSE
 #include "resource.h"
 #include "d3d12.h"  // DirectX || IMAGE || Must be first
-#include "DirectXTex.h"  // DirectX || IMAGE :
+//#include "DirectXTex.h"  // DirectX || IMAGE :
 
 #include "AsTools.h"
 #include "AsConfig.h"

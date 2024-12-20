@@ -1,13 +1,5 @@
-﻿#pragma region Hello
-/*
-	Hello
-*/
-#pragma endregion
-
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "Main.h"
-
-Gdiplus::Image* gdi_image = nullptr;
 
 // TEMPORARY
 static void init(SOCKET &socket_to_server, struct sockaddr_in &address_server)
@@ -126,61 +118,22 @@ int Game_Mode_Func()
 // API_ENTRY
 int APIENTRY wWinMain(_In_ HINSTANCE hinstance, _In_opt_ HINSTANCE hi_prev, _In_ LPWSTR ptr_cmd, _In_ int cmd_int)
 {
-	INPUT inputs[2] {};
-
-	inputs[0].type = INPUT_MOUSE;
-	inputs[0].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-
-	inputs[1].type = INPUT_MOUSE;
-	inputs[1].mi.dwFlags = MOUSEEVENTF_LEFTUP;  // Отпускание ЛКМ
-
-	SetCursorPos(651, 22);
-	
-	std::this_thread::sleep_for(std::chrono::seconds(5) );
-
-	SendInput(2, inputs, sizeof(INPUT) );
-
-	return 0;
-
-	int a = 0;
-
-	// Инициализация GDI+
-	Gdiplus::GdiplusStartupInput gdiplusStartupInput;
-	ULONG_PTR gdiplusToken;
-	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, 0);
-
-	// Загрузка изображения (замени "image.jpg" на свой путь к изображению)
-	gdi_image = new Gdiplus::Image(L"1.png");
-
-	//return Game_Mode_Func();
+	return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not
 
 	// ASSEMBLY EXAMPLES
-	constexpr int length = 5;
+	//constexpr int length = 5;
 
-	int value = 0;
-	int arr[length] {};
-	value = Make_Sum(1, 3);
-	Add_To_Array(arr, value, length);  // memset
-	value++;
+	//int value = 0;
+	//int arr[length] {};
+	//value = Make_Sum(1, 3);
+	//Add_To_Array(arr, value, length);  // memset
+	//value++;
+
 	// ASSEMBLY EXAMPLES END
 
 	//return 0;
 	//AsExamples examples(EShow_Preview::EP_Show_Constexpr_Examples);  // send data to server
 
-	if (false)  // Testing
-	{
-		char *test = 0;
-		AsTools::Format_Wide_Char_To_Char(ptr_cmd, test);  // convert to char
-
-		AFFmpeg_Task ffmpeg_task(test);
-		ffmpeg_task.Init();
-		ffmpeg_task.Show_Info();
-		
-		delete[] test;
-		return 0;
-	}
-	else
-		return AsMain::Set_Instance(hinstance)->Get_WParam();  // Bad, but why not
 
 	/*delete image;
 	GdiplusShutdown(gdiplusToken);*/

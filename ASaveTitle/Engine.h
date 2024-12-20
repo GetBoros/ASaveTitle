@@ -989,18 +989,13 @@ V	- "Башня бога тайтл" don`t show image, reason : in title name
 V		- while add image can format title key
 
 */
-// TASKS --- 04.10.2024 ---
+// TASKS --- 20.12.2024 ---
 /*
-
-X	- Создавать кастомные массивы, например для Китайских Аниме или Японских
-X	- Сделать поиск в библиотеке?
-
+V	- fixing bugs curl, now good work with not seasons anime
+X	- Broken image display need rework
 */
 
-
-
-
-// MAIN TASKS
+#pragma region TASKS_MAIN_TO_DO
 /*
 X	- Change current draw image to GDIplus
 X	- Maybe format <h3>&#x411;&#x430;&#x441;&#x43D;&#x44F;  to rus and write rus title name? or at english?
@@ -1008,6 +1003,8 @@ X	- Начать работу над сервером?
 X	- Работа над кнопкой UPdate?
 		- брать ID парсить сайт на обновления серри?
 
+X	- Создавать кастомные массивы, например для Китайских Аниме или Японских
+X	- Сделать поиск в библиотеке?
 
 X	- При конвертации сохранять в структуру ID
 X	- Настроить сколько выделять памяти, лучшый вариант передавать url, в CURL очищать и заново выделять память
@@ -1047,9 +1044,12 @@ x		- Данные о тайле, где их хранить и тд?
 			- Пользувательская картинка которую он захочет добавить ***
 			- Возможно добавить рейтинг( в виде звездочек? =) )
 
+
+
+X	- Need format text added from site
+X	- if text has anime delete, or season need delete
 */
-
-
+#pragma endregion
 
 
 // SITES
@@ -1099,65 +1099,6 @@ V	- Bug, Double on click on User input, non handled
 V	- Bug, Added the same title... ony with incorrent chars
 V	- Bug, LMB after context menu on title
 V		- After erase need change prev button
-*/
-// New Phase
-/*
-	- Сделать Рефакторинг когда всё будет отлично работать
-		- Сохранение в файл 80% хорошо -
-		- Загрузка из файла 80% хорошо - много лишний итераций если тайтл длиней ща 8 символо и до 10
-*/
-// Futures from 01 to 100
-/*
-	len = (int)wcslen(User_Array[i]) + 5;
-	next_level_line = new wchar_t[len];
-	count = 4;
-
-	if (count < len)
-	{
-		next_level_line[0] = '0' + i / 10;
-		next_level_line[1] = '0' + (i % 10);
-		next_level_line[2] = '.';
-		next_level_line[3] = ' ';
-
-		while (count < len)
-			next_level_line[count++] = User_Array[i][count - 4];
-	}
-	delete []next_level_line;
-*/
-// FUTURES FAST FIND 
-/*
-	wchar_t result[100] {};
-	wchar_t url[] = L"https://animevost.org/tip/tv/3183-tadaima-okaeri.html";
-	wchar_t *ptr_start = wcsstr(url, L"animevost");
-
-	// Находим совпадение с доступними сайтами
-	if (ptr_start != 0)
-	{
-		wchar_t *ptr_end = wcsstr(ptr_start, L".");
-		if (ptr_end != 0)
-		{
-			size_t length = ptr_end - ptr_start;
-			wcsncpy_s(result, 100, ptr_start, length);
-			result[length] = L'\0';
-		}
-	}
-	// Если находим такой сайт в базе можно вигрузить паттерн для собственного класса CURL
-
-	// Сохраняем в Config? Или может передать через конструктор напрямую
-	ACurl_Client client_url(url);  // reset from url to User_Input
-
-*/
-// TEMP
-/*
-
-	- Суть определить влияние шумов изображения при распознавании частотными методами.
-		- Преобразование входного изображения из цветного в оттенки серого
-		- Бинаризация
-		- Двухмерное преобразование Фурье
-		- Превращение результата в лог-полярные координаты
-		- Кросс-корреляция входных данных с каждой цифрой из базы данных 
-	- После этого заменяем лог-полярные координаты на полярные и сравниваем эффективность.
-
 */
 // DRXT
 /*

@@ -246,7 +246,6 @@ LRESULT AsMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_PAINT:
 		if (AsMain::Main_Window != 0)
-			//AsMain::Main_Window->Engine.Draw_Frame_AEmpty(hWnd);
 			AsMain::Main_Window->Engine.Draw_Frame_ASaver(hWnd);
 		else
 			return !InvalidateRect(hWnd, 0, FALSE);  // if Main Window don`t created

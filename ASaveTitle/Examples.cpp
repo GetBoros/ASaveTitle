@@ -635,8 +635,8 @@ ffmpeg -f gdigrab -framerate 30 -video_size 1440x900 -i desktop -vf "format=yuv4
 #pragma region CURL
 /*
 	// -A user agent can be anything
-	- curl -L -A "Dick_Hunter" -O https://animestars.org/aniserials/video/action/2719-moguschestvennye-ucheniki.html
-	- curl -L -A "Dick_Hunter" -O https://api.animestars.org/ | jq
+	- curl -L -A "Agent_Name" -O https://animestars.org/aniserials/video/action/2719-moguschestvennye-ucheniki.html
+	- curl -L -A "Agent_Name" -O https://api.animestars.org/ | jq
 
 */
 #pragma endregion
